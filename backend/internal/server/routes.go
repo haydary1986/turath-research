@@ -33,6 +33,7 @@ func NewRouter(cfg *config.Config, db *pgxpool.Pool, rdb *redis.Client) *chi.Mux
 	publicationH := handler.NewPublicationHandler(db)
 	orgH := handler.NewOrganizationHandler(db)
 	syncH := handler.NewSyncHandler(db, cfg.CrossRef.Mailto)
+	metricsH := handler.NewMetricsHandler(db)
 
 	// ── Routes ───────────────────────────────────
 	r.Route("/api/v1", func(r chi.Router) {
@@ -68,6 +69,13 @@ func NewRouter(cfg *config.Config, db *pgxpool.Pool, rdb *redis.Client) *chi.Mux
 			r.Post("/colleges", orgH.CreateCollege)
 			r.Get("/departments", orgH.ListDepartments)
 			r.Post("/departments", orgH.CreateDepartment)
+
+			// Metrics & dashboards
+			r.Get("/metrics/institution", metricsH.InstitutionKPIs)
+			r.Get("/metrics/researcher/{id}", metricsH.ResearcherStats)
+			r.Get("/metrics/departments", metricsH.DepartmentComparison)
+			r.Get("/metrics/leaderboard", metricsH.TopResearchers)
+			r.Get("/export/researchers", metricsH.ExportResearchersCSV)
 
 			// Sync routes
 			r.Post("/sync/researcher/{id}", syncH.SyncResearcher)

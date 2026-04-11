@@ -34,6 +34,7 @@ func NewRouter(cfg *config.Config, db *pgxpool.Pool, rdb *redis.Client) *chi.Mux
 	orgH := handler.NewOrganizationHandler(db)
 	syncH := handler.NewSyncHandler(db, cfg.CrossRef.Mailto)
 	metricsH := handler.NewMetricsHandler(db)
+	aiH := handler.NewAIHandler(db, cfg.DeepSeek.APIKey, cfg.DeepSeek.BaseURL)
 
 	// ── Routes ───────────────────────────────────
 	r.Route("/api/v1", func(r chi.Router) {
@@ -76,6 +77,12 @@ func NewRouter(cfg *config.Config, db *pgxpool.Pool, rdb *redis.Client) *chi.Mux
 			r.Get("/metrics/departments", metricsH.DepartmentComparison)
 			r.Get("/metrics/leaderboard", metricsH.TopResearchers)
 			r.Get("/export/researchers", metricsH.ExportResearchersCSV)
+
+			// AI insights
+			r.Get("/ai/collaboration/{id}", aiH.CollaborationRecommendations)
+			r.Get("/ai/trends", aiH.TrendingTopics)
+			r.Get("/ai/strategy/{id}", aiH.PublicationStrategy)
+			r.Get("/ai/gaps", aiH.GapAnalysis)
 
 			// Sync routes
 			r.Post("/sync/researcher/{id}", syncH.SyncResearcher)

@@ -38,6 +38,9 @@ func NewRouter(cfg *config.Config, db *pgxpool.Pool, rdb *redis.Client) *chi.Mux
 	searchH := handler.NewSearchHandler(db)
 	notifH := handler.NewNotificationHandler(db)
 	sciH := handler.NewScientificAffairsHandler(db)
+	accredH := handler.NewAccreditationHandler(db)
+	workflowH := handler.NewWorkflowHandler(db)
+	roleDashH := handler.NewRoleDashboardHandler(db)
 
 	// ── Routes ───────────────────────────────────
 	r.Route("/api/v1", func(r chi.Router) {
@@ -123,6 +126,23 @@ func NewRouter(cfg *config.Config, db *pgxpool.Pool, rdb *redis.Client) *chi.Mux
 
 			// Agreements
 			r.Get("/agreements", sciH.ListAgreements)
+
+			// ── Accreditation & Quality ───────────
+			r.Get("/accreditation/dashboard", accredH.Dashboard)
+			r.Get("/accreditation/evidence", accredH.ListEvidence)
+			r.Post("/accreditation/evidence", accredH.CreateEvidence)
+			r.Get("/accreditation/recommendations", accredH.ListRecommendations)
+			r.Put("/accreditation/recommendations/{id}", accredH.UpdateRecommendation)
+			r.Get("/accreditation/kpis", accredH.ListKPIs)
+
+			// ── Approval Workflows ────────────────
+			r.Get("/workflows/pending", workflowH.MyPendingApprovals)
+			r.Post("/workflows/initiate", workflowH.InitiateWorkflow)
+			r.Put("/workflows/{id}/decide", workflowH.MakeDecision)
+			r.Get("/workflows/history", workflowH.RequestHistory)
+
+			// ── Role-based Dashboard ──────────────
+			r.Get("/dashboard/me", roleDashH.MyDashboard)
 		})
 	})
 

@@ -9,8 +9,11 @@ import (
 
 func CORS(allowedOrigins string) func(next http.Handler) http.Handler {
 	origins := []string{"*"}
+	allowCredentials := false
+
 	if allowedOrigins != "" && allowedOrigins != "*" {
 		origins = strings.Split(allowedOrigins, ",")
+		allowCredentials = true
 	}
 
 	return cors.Handler(cors.Options{
@@ -18,7 +21,7 @@ func CORS(allowedOrigins string) func(next http.Handler) http.Handler {
 		AllowedMethods:   []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-Request-ID"},
 		ExposedHeaders:   []string{"Link", "X-Total-Count"},
-		AllowCredentials: true,
+		AllowCredentials: allowCredentials,
 		MaxAge:           300,
 	})
 }

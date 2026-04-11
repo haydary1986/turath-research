@@ -58,36 +58,37 @@ function NavGroup({ title, items }: { title: string; items: NavItem[] }) {
 }
 
 export function AppSidebar() {
-  const t = useTranslations("nav");
+  const nav = useTranslations("nav");
+  const sb = useTranslations("sidebar");
 
   const mainItems: NavItem[] = [
-    { href: "/dashboard", label: t("dashboard"), icon: LayoutDashboard },
-    { href: "/researchers", label: t("researchers"), icon: Users },
-    { href: "/publications", label: t("publications"), icon: FileText },
-    { href: "/departments", label: t("departments"), icon: Building2 },
-    { href: "/colleges", label: t("colleges"), icon: GraduationCap },
+    { href: "/dashboard", label: nav("dashboard"), icon: LayoutDashboard },
+    { href: "/researchers", label: nav("researchers"), icon: Users },
+    { href: "/publications", label: nav("publications"), icon: FileText },
+    { href: "/departments", label: nav("departments"), icon: Building2 },
+    { href: "/colleges", label: nav("colleges"), icon: GraduationCap },
   ];
 
   const insightItems: NavItem[] = [
-    { href: "/insights/trends", label: t("trends"), icon: TrendingUp },
-    { href: "/search", label: t("search"), icon: Search },
+    { href: "/insights/trends", label: nav("trends"), icon: TrendingUp },
+    { href: "/search", label: nav("search"), icon: Search },
   ];
 
   const adminItems: NavItem[] = [
-    { href: "/admin/sync", label: t("sync"), icon: RefreshCw },
-    { href: "/admin/settings", label: t("settings"), icon: Settings },
+    { href: "/admin/sync", label: nav("sync"), icon: RefreshCw },
+    { href: "/admin/settings", label: nav("settings"), icon: Settings },
   ];
 
   return (
     <Sidebar>
       <SidebarHeader className="border-b px-6 py-4">
-        <h1 className="text-lg font-bold">تراث</h1>
-        <p className="text-xs text-muted-foreground">Research Performance</p>
+        <h1 className="text-lg font-bold">{sb("brand")}</h1>
+        <p className="text-xs text-muted-foreground">{sb("subtitle")}</p>
       </SidebarHeader>
       <SidebarContent>
-        <NavGroup title="الرئيسية" items={mainItems} />
-        <NavGroup title="التحليلات" items={insightItems} />
-        <NavGroup title="الإدارة" items={adminItems} />
+        <NavGroup title={sb("main")} items={mainItems} />
+        <NavGroup title={sb("insights")} items={insightItems} />
+        <NavGroup title={sb("admin")} items={adminItems} />
       </SidebarContent>
     </Sidebar>
   );

@@ -1,4 +1,4 @@
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "/api";
 
 interface APIResponse<T> {
   success: boolean;
@@ -11,6 +11,11 @@ interface APIResponse<T> {
   };
 }
 
+function getAuthHeaders(): Record<string, string> {
+  // TODO: implement token retrieval from secure HttpOnly cookie
+  return {};
+}
+
 async function request<T>(
   path: string,
   options?: RequestInit
@@ -19,15 +24,24 @@ async function request<T>(
 
   const res = await fetch(url, {
     ...options,
+    credentials: "include",
     headers: {
       "Content-Type": "application/json",
+      ...getAuthHeaders(),
       ...options?.headers,
     },
   });
 
-  const json: APIResponse<T> = await res.json();
+  let json: APIResponse<T>;
+  try {
+    json = await res.json();
+  } catch {
+    throw new Error(
+      `Server returned non-JSON response (HTTP ${res.status})`
+    );
+  }
 
-  if (!res.ok) {
+  if (!res.ok || !json.success) {
     throw new Error(json.error || `Request failed: ${res.status}`);
   }
 
@@ -49,6 +63,5 @@ export const api = {
       body: JSON.stringify(body),
     }),
 
-  delete: <T>(path: string) =>
-    request<T>(path, { method: "DELETE" }),
+  delete: <T>(path: string) => request<T>(path, { method: "DELETE" }),
 };

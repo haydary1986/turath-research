@@ -38,7 +38,16 @@
     "avgHIndex": "متوسط h-index",
     "q1Ratio": "نسبة أبحاث Q1",
     "recentPublications": "آخر المنشورات",
-    "topResearchers": "أفضل الباحثين"
+    "topResearchers": "أفضل الباحثين",
+    "recentPlaceholder": "سيتم عرض آخر المنشورات هنا بعد استيراد البيانات",
+    "topPlaceholder": "سيتم عرض أفضل الباحثين هنا بعد استيراد البيانات"
+  },
+  "sidebar": {
+    "brand": "تراث",
+    "subtitle": "متابعة الأداء البحثي",
+    "main": "الرئيسية",
+    "insights": "التحليلات",
+    "admin": "الإدارة"
   },
   "researcher": {
     "title": "الباحثون",

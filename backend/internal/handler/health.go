@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -31,12 +32,14 @@ func (h *HealthHandler) Check(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.db.Ping(ctx); err != nil {
-		status["postgres"] = "error: " + err.Error()
+		slog.Error("health check: postgres ping failed", "error", err)
+		status["postgres"] = "unhealthy"
 		status["status"] = "degraded"
 	}
 
 	if err := h.redis.Ping(ctx).Err(); err != nil {
-		status["redis"] = "error: " + err.Error()
+		slog.Error("health check: redis ping failed", "error", err)
+		status["redis"] = "unhealthy"
 		status["status"] = "degraded"
 	}
 

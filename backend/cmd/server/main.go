@@ -2,11 +2,13 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"os"
 	"time"
 
+	gomigrate "github.com/golang-migrate/migrate/v4"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/joho/godotenv"
 	"github.com/redis/go-redis/v9"
@@ -69,7 +71,7 @@ func run() error {
 	if os.Getenv("RUN_MIGRATIONS") == "true" {
 		slog.Info("running database migrations")
 		if err := runMigrations(cfg.Database.URL); err != nil {
-			slog.Warn("migrations", "error", err)
+			return fmt.Errorf("migrations failed: %w", err)
 		}
 	}
 
@@ -84,7 +86,7 @@ func runMigrations(dbURL string) error {
 	}
 	defer migrate.Close()
 
-	if err := migrate.Up(); err != nil && err.Error() != "no change" {
+	if err := migrate.Up(); err != nil && !errors.Is(err, gomigrate.ErrNoChange) {
 		return fmt.Errorf("migrate up: %w", err)
 	}
 

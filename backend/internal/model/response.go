@@ -2,45 +2,48 @@ package model
 
 import (
 	"encoding/json"
+	"log/slog"
 	"net/http"
 )
 
 // APIResponse is the standard envelope for all API responses.
 type APIResponse struct {
-	Success bool        `json:"success"`
-	Data    interface{} `json:"data,omitempty"`
-	Error   string      `json:"error,omitempty"`
-	Meta    *Meta       `json:"meta,omitempty"`
+	Success bool   `json:"success"`
+	Data    any    `json:"data,omitempty"`
+	Error   string `json:"error,omitempty"`
+	Meta    *Meta  `json:"meta,omitempty"`
 }
 
 type Meta struct {
-	Total  int `json:"total,omitempty"`
-	Page   int `json:"page,omitempty"`
-	Limit  int `json:"limit,omitempty"`
+	Total int `json:"total,omitempty"`
+	Page  int `json:"page,omitempty"`
+	Limit int `json:"limit,omitempty"`
 }
 
-func RespondJSON(w http.ResponseWriter, status int, data interface{}) {
-	resp := APIResponse{
-		Success: status >= 200 && status < 300,
-		Data:    data,
-	}
+func writeJSON(w http.ResponseWriter, status int, resp APIResponse) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
-	json.NewEncoder(w).Encode(resp)
+	if err := json.NewEncoder(w).Encode(resp); err != nil {
+		slog.Error("failed to encode response", "error", err)
+	}
+}
+
+func RespondJSON(w http.ResponseWriter, status int, data any) {
+	writeJSON(w, status, APIResponse{
+		Success: status >= 200 && status < 300,
+		Data:    data,
+	})
 }
 
 func RespondError(w http.ResponseWriter, status int, message string) {
-	resp := APIResponse{
+	writeJSON(w, status, APIResponse{
 		Success: false,
 		Error:   message,
-	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(status)
-	json.NewEncoder(w).Encode(resp)
+	})
 }
 
-func RespondPaginated(w http.ResponseWriter, status int, data interface{}, total, page, limit int) {
-	resp := APIResponse{
+func RespondPaginated(w http.ResponseWriter, status int, data any, total, page, limit int) {
+	writeJSON(w, status, APIResponse{
 		Success: true,
 		Data:    data,
 		Meta: &Meta{
@@ -48,8 +51,5 @@ func RespondPaginated(w http.ResponseWriter, status int, data interface{}, total
 			Page:  page,
 			Limit: limit,
 		},
-	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(status)
-	json.NewEncoder(w).Encode(resp)
+	})
 }

@@ -38,7 +38,16 @@
     "avgHIndex": "Average h-index",
     "q1Ratio": "Q1 Publications Ratio",
     "recentPublications": "Recent Publications",
-    "topResearchers": "Top Researchers"
+    "topResearchers": "Top Researchers",
+    "recentPlaceholder": "Recent publications will appear here after data import",
+    "topPlaceholder": "Top researchers will appear here after data import"
+  },
+  "sidebar": {
+    "brand": "Turath",
+    "subtitle": "Research Performance",
+    "main": "Main",
+    "insights": "Insights",
+    "admin": "Admin"
   },
   "researcher": {
     "title": "Researchers",

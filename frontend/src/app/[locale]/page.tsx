@@ -1,5 +1,10 @@
 import { redirect } from "@/i18n/routing";
 
-export default function Home() {
-  redirect({ href: "/dashboard", locale: "ar" });
+type Props = {
+  params: Promise<{ locale: string }>;
+};
+
+export default async function Home({ params }: Props) {
+  const { locale } = await params;
+  redirect({ href: "/dashboard", locale });
 }

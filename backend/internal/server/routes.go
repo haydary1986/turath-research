@@ -22,6 +22,7 @@ func NewRouter(cfg *config.Config, db *pgxpool.Pool, rdb *redis.Client) *chi.Mux
 	r.Use(chimw.Logger)
 	r.Use(chimw.Recoverer)
 	r.Use(chimw.Timeout(30 * time.Second))
+	r.Use(middleware.SecurityHeaders)
 	r.Use(middleware.CORS(cfg.Server.AllowedOrigins))
 	r.Use(middleware.RateLimit(100, time.Minute))
 

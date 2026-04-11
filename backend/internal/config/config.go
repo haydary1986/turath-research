@@ -67,7 +67,7 @@ func Load() (*Config, error) {
 			AllowedOrigins: getEnv("ALLOWED_ORIGINS", "*"),
 		},
 		Database: DatabaseConfig{
-			URL: getEnv("DATABASE_URL", "postgresql://turath:turath@localhost:5432/turath?sslmode=disable"),
+			URL: getEnv("DATABASE_URL", ""),
 		},
 		Redis: RedisConfig{
 			URL: getEnv("REDIS_URL", "redis://localhost:6379"),
@@ -94,6 +94,9 @@ func Load() (*Config, error) {
 
 	if cfg.JWT.Secret == "" {
 		return nil, fmt.Errorf("JWT_SECRET is required")
+	}
+	if cfg.Database.URL == "" {
+		return nil, fmt.Errorf("DATABASE_URL is required")
 	}
 
 	return cfg, nil

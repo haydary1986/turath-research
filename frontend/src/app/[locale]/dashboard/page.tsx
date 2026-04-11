@@ -6,31 +6,11 @@ export default function DashboardPage() {
   const t = useTranslations("dashboard");
 
   const stats = [
-    {
-      title: t("totalResearchers"),
-      value: "—",
-      icon: Users,
-      color: "text-blue-600",
-    },
-    {
-      title: t("totalPublications"),
-      value: "—",
-      icon: FileText,
-      color: "text-green-600",
-    },
-    {
-      title: t("totalCitations"),
-      value: "—",
-      icon: Quote,
-      color: "text-purple-600",
-    },
-    {
-      title: t("avgHIndex"),
-      value: "—",
-      icon: TrendingUp,
-      color: "text-orange-600",
-    },
-  ];
+    { key: "totalResearchers", icon: Users, color: "text-blue-600" },
+    { key: "totalPublications", icon: FileText, color: "text-green-600" },
+    { key: "totalCitations", icon: Quote, color: "text-purple-600" },
+    { key: "avgHIndex", icon: TrendingUp, color: "text-orange-600" },
+  ] as const;
 
   return (
     <div className="space-y-6">
@@ -38,15 +18,15 @@ export default function DashboardPage() {
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {stats.map((stat) => (
-          <Card key={stat.title}>
+          <Card key={stat.key}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
-                {stat.title}
+                {t(stat.key)}
               </CardTitle>
               <stat.icon className={`size-4 ${stat.color}`} />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stat.value}</div>
+              <div className="text-2xl font-bold">—</div>
             </CardContent>
           </Card>
         ))}
@@ -59,7 +39,7 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <p className="text-sm text-muted-foreground">
-              سيتم عرض آخر المنشورات هنا بعد استيراد البيانات
+              {t("recentPlaceholder")}
             </p>
           </CardContent>
         </Card>
@@ -70,7 +50,7 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <p className="text-sm text-muted-foreground">
-              سيتم عرض أفضل الباحثين هنا بعد استيراد البيانات
+              {t("topPlaceholder")}
             </p>
           </CardContent>
         </Card>

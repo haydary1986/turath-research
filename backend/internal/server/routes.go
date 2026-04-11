@@ -35,6 +35,8 @@ func NewRouter(cfg *config.Config, db *pgxpool.Pool, rdb *redis.Client) *chi.Mux
 	syncH := handler.NewSyncHandler(db, cfg.CrossRef.Mailto)
 	metricsH := handler.NewMetricsHandler(db)
 	aiH := handler.NewAIHandler(db, cfg.DeepSeek.APIKey, cfg.DeepSeek.BaseURL)
+	searchH := handler.NewSearchHandler(db)
+	notifH := handler.NewNotificationHandler(db)
 
 	// ── Routes ───────────────────────────────────
 	r.Route("/api/v1", func(r chi.Router) {
@@ -77,6 +79,15 @@ func NewRouter(cfg *config.Config, db *pgxpool.Pool, rdb *redis.Client) *chi.Mux
 			r.Get("/metrics/departments", metricsH.DepartmentComparison)
 			r.Get("/metrics/leaderboard", metricsH.TopResearchers)
 			r.Get("/export/researchers", metricsH.ExportResearchersCSV)
+
+			// Search
+			r.Get("/search", searchH.GlobalSearch)
+
+			// Notifications
+			r.Get("/notifications", notifH.ListMyNotifications)
+			r.Get("/notifications/unread", notifH.UnreadCount)
+			r.Put("/notifications/{id}/read", notifH.MarkRead)
+			r.Put("/notifications/read-all", notifH.MarkAllRead)
 
 			// AI insights
 			r.Get("/ai/collaboration/{id}", aiH.CollaborationRecommendations)

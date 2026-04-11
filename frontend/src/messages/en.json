@@ -1,0 +1,81 @@
+{
+  "common": {
+    "appName": "Turath Research",
+    "loading": "Loading...",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "add": "Add",
+    "search": "Search",
+    "filter": "Filter",
+    "export": "Export",
+    "back": "Back",
+    "next": "Next",
+    "previous": "Previous",
+    "noResults": "No results found",
+    "actions": "Actions"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "researchers": "Researchers",
+    "publications": "Publications",
+    "departments": "Departments",
+    "colleges": "Colleges",
+    "insights": "Insights",
+    "trends": "Trending Topics",
+    "gaps": "Gap Analysis",
+    "search": "Search",
+    "admin": "Admin",
+    "sync": "Sync",
+    "settings": "Settings"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "totalResearchers": "Total Researchers",
+    "totalPublications": "Total Publications",
+    "totalCitations": "Total Citations",
+    "avgHIndex": "Average h-index",
+    "q1Ratio": "Q1 Publications Ratio",
+    "recentPublications": "Recent Publications",
+    "topResearchers": "Top Researchers"
+  },
+  "researcher": {
+    "title": "Researchers",
+    "addNew": "Add Researcher",
+    "name": "Name",
+    "nameAr": "Name (Arabic)",
+    "nameEn": "Name (English)",
+    "email": "Email",
+    "academicTitle": "Academic Title",
+    "department": "Department",
+    "hIndex": "h-index",
+    "citations": "Citations",
+    "publications": "Publications",
+    "status": "Status",
+    "active": "Active",
+    "inactive": "Inactive",
+    "profile": "Profile",
+    "metrics": "Metrics"
+  },
+  "publication": {
+    "title": "Publications",
+    "addNew": "Add Publication",
+    "titleAr": "Title (Arabic)",
+    "titleEn": "Title (English)",
+    "doi": "DOI",
+    "journal": "Journal",
+    "year": "Year",
+    "type": "Type",
+    "ranking": "Ranking",
+    "citations": "Citations",
+    "authors": "Authors",
+    "abstract": "Abstract"
+  },
+  "auth": {
+    "login": "Login",
+    "logout": "Logout",
+    "email": "Email",
+    "password": "Password"
+  }
+}

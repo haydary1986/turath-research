@@ -1,0 +1,81 @@
+{
+  "common": {
+    "appName": "تراث للبحث العلمي",
+    "loading": "جاري التحميل...",
+    "save": "حفظ",
+    "cancel": "إلغاء",
+    "delete": "حذف",
+    "edit": "تعديل",
+    "add": "إضافة",
+    "search": "بحث",
+    "filter": "تصفية",
+    "export": "تصدير",
+    "back": "رجوع",
+    "next": "التالي",
+    "previous": "السابق",
+    "noResults": "لا توجد نتائج",
+    "actions": "إجراءات"
+  },
+  "nav": {
+    "dashboard": "لوحة المتابعة",
+    "researchers": "الباحثون",
+    "publications": "المنشورات",
+    "departments": "الأقسام",
+    "colleges": "الكليات",
+    "insights": "التحليلات",
+    "trends": "المواضيع الرائجة",
+    "gaps": "تحليل الفجوات",
+    "search": "البحث",
+    "admin": "الإدارة",
+    "sync": "المزامنة",
+    "settings": "الإعدادات"
+  },
+  "dashboard": {
+    "title": "لوحة المتابعة",
+    "totalResearchers": "إجمالي الباحثين",
+    "totalPublications": "إجمالي المنشورات",
+    "totalCitations": "إجمالي الاستشهادات",
+    "avgHIndex": "متوسط h-index",
+    "q1Ratio": "نسبة أبحاث Q1",
+    "recentPublications": "آخر المنشورات",
+    "topResearchers": "أفضل الباحثين"
+  },
+  "researcher": {
+    "title": "الباحثون",
+    "addNew": "إضافة باحث",
+    "name": "الاسم",
+    "nameAr": "الاسم بالعربي",
+    "nameEn": "الاسم بالإنجليزي",
+    "email": "البريد الإلكتروني",
+    "academicTitle": "اللقب الأكاديمي",
+    "department": "القسم",
+    "hIndex": "h-index",
+    "citations": "الاستشهادات",
+    "publications": "المنشورات",
+    "status": "الحالة",
+    "active": "نشط",
+    "inactive": "غير نشط",
+    "profile": "الملف الشخصي",
+    "metrics": "المقاييس"
+  },
+  "publication": {
+    "title": "المنشورات",
+    "addNew": "إضافة منشور",
+    "titleAr": "العنوان بالعربي",
+    "titleEn": "العنوان بالإنجليزي",
+    "doi": "DOI",
+    "journal": "المجلة",
+    "year": "السنة",
+    "type": "النوع",
+    "ranking": "التصنيف",
+    "citations": "الاستشهادات",
+    "authors": "المؤلفون",
+    "abstract": "الملخص"
+  },
+  "auth": {
+    "login": "تسجيل الدخول",
+    "logout": "تسجيل الخروج",
+    "email": "البريد الإلكتروني",
+    "password": "كلمة المرور"
+  }
+}

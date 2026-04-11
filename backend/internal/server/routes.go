@@ -32,6 +32,7 @@ func NewRouter(cfg *config.Config, db *pgxpool.Pool, rdb *redis.Client) *chi.Mux
 	researcherH := handler.NewResearcherHandler(db)
 	publicationH := handler.NewPublicationHandler(db)
 	orgH := handler.NewOrganizationHandler(db)
+	syncH := handler.NewSyncHandler(db, cfg.CrossRef.Mailto)
 
 	// ── Routes ───────────────────────────────────
 	r.Route("/api/v1", func(r chi.Router) {
@@ -67,6 +68,11 @@ func NewRouter(cfg *config.Config, db *pgxpool.Pool, rdb *redis.Client) *chi.Mux
 			r.Post("/colleges", orgH.CreateCollege)
 			r.Get("/departments", orgH.ListDepartments)
 			r.Post("/departments", orgH.CreateDepartment)
+
+			// Sync routes
+			r.Post("/sync/researcher/{id}", syncH.SyncResearcher)
+			r.Post("/sync/doi", syncH.SyncByDOI)
+			r.Get("/sync/jobs", syncH.ListSyncJobs)
 
 			// Admin-only routes
 			r.Group(func(r chi.Router) {

@@ -28,16 +28,34 @@ func NewRouter(cfg *config.Config, db *pgxpool.Pool, rdb *redis.Client) *chi.Mux
 
 	// ── Handlers ─────────────────────────────────
 	healthH := handler.NewHealthHandler(db, rdb)
+	authH := handler.NewAuthHandler(db, cfg)
 
 	// ── Routes ───────────────────────────────────
 	r.Route("/api/v1", func(r chi.Router) {
+		// Public routes
 		r.Get("/health", healthH.Check)
+		r.Post("/auth/login", authH.Login)
+		r.Post("/auth/register", authH.Register)
 
-		// TODO: auth routes
-		// TODO: researcher routes
-		// TODO: publication routes
-		// TODO: metrics routes
-		// TODO: ai routes
+		// Protected routes
+		r.Group(func(r chi.Router) {
+			r.Use(middleware.RequireAuth(cfg.JWT.Secret))
+
+			r.Get("/auth/me", authH.Me)
+
+			// TODO: researcher routes
+			// TODO: publication routes
+			// TODO: organization routes
+			// TODO: promotion routes
+			// TODO: incentive routes
+			// TODO: performance routes
+			// TODO: sabbatical routes
+			// TODO: conference routes
+			// TODO: agreement routes
+			// TODO: accreditation routes
+			// TODO: workflow routes
+			// TODO: AI routes
+		})
 	})
 
 	return r

@@ -29,32 +29,59 @@ func NewRouter(cfg *config.Config, db *pgxpool.Pool, rdb *redis.Client) *chi.Mux
 	// ── Handlers ─────────────────────────────────
 	healthH := handler.NewHealthHandler(db, rdb)
 	authH := handler.NewAuthHandler(db, cfg)
+	researcherH := handler.NewResearcherHandler(db)
+	publicationH := handler.NewPublicationHandler(db)
+	orgH := handler.NewOrganizationHandler(db)
 
 	// ── Routes ───────────────────────────────────
 	r.Route("/api/v1", func(r chi.Router) {
-		// Public routes
+		// Public
 		r.Get("/health", healthH.Check)
 		r.Post("/auth/login", authH.Login)
 		r.Post("/auth/register", authH.Register)
 
-		// Protected routes
+		// Protected
 		r.Group(func(r chi.Router) {
 			r.Use(middleware.RequireAuth(cfg.JWT.Secret))
 
+			// Auth
 			r.Get("/auth/me", authH.Me)
 
-			// TODO: researcher routes
-			// TODO: publication routes
-			// TODO: organization routes
-			// TODO: promotion routes
-			// TODO: incentive routes
-			// TODO: performance routes
-			// TODO: sabbatical routes
-			// TODO: conference routes
-			// TODO: agreement routes
-			// TODO: accreditation routes
-			// TODO: workflow routes
-			// TODO: AI routes
+			// Researchers
+			r.Get("/researchers", researcherH.List)
+			r.Get("/researchers/{id}", researcherH.Get)
+			r.Post("/researchers", researcherH.Create)
+			r.Put("/researchers/{id}", researcherH.Update)
+			r.Delete("/researchers/{id}", researcherH.Delete)
+
+			// Publications
+			r.Get("/publications", publicationH.List)
+			r.Get("/publications/{id}", publicationH.Get)
+			r.Post("/publications", publicationH.Create)
+			r.Delete("/publications/{id}", publicationH.Delete)
+
+			// Organizations
+			r.Get("/institutions", orgH.ListInstitutions)
+			r.Post("/institutions", orgH.CreateInstitution)
+			r.Get("/colleges", orgH.ListColleges)
+			r.Post("/colleges", orgH.CreateCollege)
+			r.Get("/departments", orgH.ListDepartments)
+			r.Post("/departments", orgH.CreateDepartment)
+
+			// Admin-only routes
+			r.Group(func(r chi.Router) {
+				r.Use(middleware.RequireRole(
+					middleware.RoleAdmin,
+					middleware.RoleVPResearch,
+					middleware.RoleDeanResearch,
+					middleware.RoleScientificAffairs,
+				))
+				// TODO: promotion management routes
+				// TODO: incentive management routes
+				// TODO: performance review routes
+				// TODO: accreditation routes
+				// TODO: workflow management routes
+			})
 		})
 	})
 

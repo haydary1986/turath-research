@@ -37,6 +37,7 @@ func NewRouter(cfg *config.Config, db *pgxpool.Pool, rdb *redis.Client) *chi.Mux
 	aiH := handler.NewAIHandler(db, cfg.DeepSeek.APIKey, cfg.DeepSeek.BaseURL)
 	searchH := handler.NewSearchHandler(db)
 	notifH := handler.NewNotificationHandler(db)
+	sciH := handler.NewScientificAffairsHandler(db)
 
 	// ── Routes ───────────────────────────────────
 	r.Route("/api/v1", func(r chi.Router) {
@@ -100,20 +101,28 @@ func NewRouter(cfg *config.Config, db *pgxpool.Pool, rdb *redis.Client) *chi.Mux
 			r.Post("/sync/doi", syncH.SyncByDOI)
 			r.Get("/sync/jobs", syncH.ListSyncJobs)
 
-			// Admin-only routes
-			r.Group(func(r chi.Router) {
-				r.Use(middleware.RequireRole(
-					middleware.RoleAdmin,
-					middleware.RoleVPResearch,
-					middleware.RoleDeanResearch,
-					middleware.RoleScientificAffairs,
-				))
-				// TODO: promotion management routes
-				// TODO: incentive management routes
-				// TODO: performance review routes
-				// TODO: accreditation routes
-				// TODO: workflow management routes
-			})
+			// ── Scientific Affairs ────────────────
+			// Promotions
+			r.Get("/promotions/eligibility/{id}", sciH.CheckEligibility)
+			r.Post("/promotions", sciH.SubmitPromotionApplication)
+			r.Get("/promotions", sciH.ListPromotionApplications)
+
+			// Incentives
+			r.Get("/incentives/calculate/{id}", sciH.CalculateIncentives)
+			r.Get("/incentives/rules", sciH.ListIncentiveRules)
+
+			// Performance
+			r.Post("/performance/generate/{deptId}", sciH.GeneratePerformanceReviews)
+
+			// Sabbaticals
+			r.Post("/sabbaticals", sciH.SubmitSabbatical)
+			r.Get("/sabbaticals", sciH.ListSabbaticals)
+
+			// Conferences
+			r.Post("/conferences", sciH.SubmitConference)
+
+			// Agreements
+			r.Get("/agreements", sciH.ListAgreements)
 		})
 	})
 

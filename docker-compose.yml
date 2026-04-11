@@ -1,0 +1,114 @@
+# Turath Research — Coolify Docker Compose
+# 4 حاويات منفصلة: PostgreSQL + Redis + Go Backend + Next.js Frontend
+# Coolify يكتشف هذا الملف تلقائياً عند الاستيراد من GitHub
+
+services:
+  # ── PostgreSQL 16 ───────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-turath}
+      POSTGRES_USER: ${POSTGRES_USER:-turath}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?required}
+      # Arabic full-text search support
+      POSTGRES_INITDB_ARGS: "--locale=en_US.UTF-8"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - turath-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-turath} -d ${POSTGRES_DB:-turath}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # ── Redis 7 ─────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: >
+      redis-server
+      --appendonly yes
+      --maxmemory 256mb
+      --maxmemory-policy allkeys-lru
+      --save 60 1000
+    volumes:
+      - redisdata:/data
+    networks:
+      - turath-net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── Go Backend ──────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      # Database — يتصل بـ postgres عبر Docker network
+      DATABASE_URL: postgresql://${POSTGRES_USER:-turath}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-turath}?sslmode=disable
+      # Redis — يتصل بـ redis عبر Docker network
+      REDIS_URL: redis://redis:6379
+      # Server
+      SERVER_PORT: "8080"
+      FRONTEND_URL: ${FRONTEND_URL:-http://frontend:3000}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-*}
+      # Auth
+      JWT_SECRET: ${JWT_SECRET:?required}
+      JWT_EXPIRY: ${JWT_EXPIRY:-24h}
+      # AI
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
+      DEEPSEEK_BASE_URL: ${DEEPSEEK_BASE_URL:-https://api.deepseek.com}
+      # Academic APIs
+      SCOPUS_API_KEY: ${SCOPUS_API_KEY:-}
+      CROSSREF_MAILTO: ${CROSSREF_MAILTO:-}
+      ORCID_CLIENT_ID: ${ORCID_CLIENT_ID:-}
+      ORCID_CLIENT_SECRET: ${ORCID_CLIENT_SECRET:-}
+      SERPAPI_KEY: ${SERPAPI_KEY:-}
+      # Run migrations on startup
+      RUN_MIGRATIONS: "true"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - turath-net
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8080/api/v1/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+  # ── Next.js Frontend ────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-/api}
+    restart: unless-stopped
+    environment:
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-/api}
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - turath-net
+
+volumes:
+  pgdata:
+    driver: local
+  redisdata:
+    driver: local
+
+networks:
+  turath-net:
+    driver: bridge

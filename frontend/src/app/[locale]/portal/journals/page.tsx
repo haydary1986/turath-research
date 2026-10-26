@@ -1,0 +1,253 @@
+"use client";
+
+import { useCallback, useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
+import { Plus, Search, ShieldAlert, ShieldCheck, ShieldX, Trash2 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
+import { api } from "@/lib/api";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+} from "@/components/ui/table";
+import { NativeSelect, Textarea } from "@/components/portal/form-controls";
+import { RequireAuth } from "@/components/portal/require-auth";
+import { usePortalErrors } from "@/components/portal/use-portal-errors";
+
+const CLASSES = ["accredited", "predatory", "suspended"] as const;
+type Classification = (typeof CLASSES)[number];
+
+const CLASS_STYLE: Record<Classification, { badge: string; icon: LucideIcon }> = {
+  accredited: { badge: "bg-green-100 text-green-800", icon: ShieldCheck },
+  predatory: { badge: "bg-red-100 text-red-800", icon: ShieldX },
+  suspended: { badge: "bg-amber-100 text-amber-800", icon: ShieldAlert },
+};
+
+interface Entry {
+  id: string;
+  issn: string | null;
+  name: string;
+  publisher: string | null;
+  classification: Classification;
+  note: string | null;
+  source: string | null;
+}
+
+interface FormState {
+  id: string | null;
+  issn: string;
+  name: string;
+  publisher: string;
+  classification: Classification;
+  note: string;
+  source: string;
+}
+
+const EMPTY: FormState = {
+  id: null, issn: "", name: "", publisher: "",
+  classification: "predatory", note: "", source: "",
+};
+
+function JournalsPage() {
+  const t = useTranslations("portal");
+  const tj = useTranslations("portal.journals");
+  const toMessage = usePortalErrors();
+  const [items, setItems] = useState<Entry[]>([]);
+  const [q, setQ] = useState("");
+  const [classFilter, setClassFilter] = useState("");
+  const [form, setForm] = useState<FormState | null>(null);
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  const load = useCallback(() => {
+    const params = new URLSearchParams({ limit: "100" });
+    if (q.trim()) params.set("q", q.trim());
+    if (classFilter) params.set("classification", classFilter);
+    api
+      .get<Entry[]>(`/api/v1/screening?${params}`)
+      .then((res) => setItems(res.data ?? []))
+      .catch((err) => setError(toMessage(err)));
+  }, [q, classFilter, toMessage]);
+
+  useEffect(() => {
+    const timer = setTimeout(load, 250);
+    return () => clearTimeout(timer);
+  }, [load]);
+
+  async function save() {
+    if (!form) return;
+    setError("");
+    setBusy(true);
+    try {
+      const { id, ...payload } = form;
+      if (id) {
+        await api.put(`/api/v1/screening/${id}`, payload);
+      } else {
+        await api.post("/api/v1/screening", payload);
+      }
+      setForm(null);
+      load();
+    } catch (err) {
+      setError(toMessage(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function remove(id: string) {
+    setError("");
+    try {
+      await api.delete(`/api/v1/screening/${id}`);
+      load();
+    } catch (err) {
+      setError(toMessage(err));
+    }
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold">{tj("title")}</h1>
+          <p className="text-sm text-muted-foreground">{tj("subtitle")}</p>
+        </div>
+        <Button onClick={() => setForm(form ? null : { ...EMPTY })}>
+          <Plus className="size-4" />
+          <span>{tj("new")}</span>
+        </Button>
+      </div>
+
+      {error && <div className="whitespace-pre-line rounded bg-red-50 p-3 text-sm text-red-600">{error}</div>}
+
+      {form && (
+        <Card>
+          <CardHeader>
+            <CardTitle>{form.id ? t("ui.edit") : tj("new")}</CardTitle>
+          </CardHeader>
+          <CardContent className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="js-name">{t("fields.journal_name")} *</Label>
+              <Input id="js-name" dir="auto" value={form.name}
+                onChange={(e) => setForm({ ...form, name: e.target.value })} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="js-issn">ISSN</Label>
+              <Input id="js-issn" dir="ltr" placeholder="1234-567X" value={form.issn}
+                onChange={(e) => setForm({ ...form, issn: e.target.value })} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="js-class">{tj("classification")} *</Label>
+              <NativeSelect id="js-class" value={form.classification}
+                onChange={(e) => setForm({ ...form, classification: e.target.value as Classification })}>
+                {CLASSES.map((c) => <option key={c} value={c}>{tj(`classes.${c}`)}</option>)}
+              </NativeSelect>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="js-publisher">{t("fields.publisher")}</Label>
+              <Input id="js-publisher" value={form.publisher}
+                onChange={(e) => setForm({ ...form, publisher: e.target.value })} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="js-source">{tj("source")}</Label>
+              <Input id="js-source" value={form.source} placeholder={tj("sourceHint")}
+                onChange={(e) => setForm({ ...form, source: e.target.value })} />
+            </div>
+            <div className="space-y-2 md:col-span-2">
+              <Label htmlFor="js-note">{t("fields.notes")}</Label>
+              <Textarea id="js-note" value={form.note}
+                onChange={(e) => setForm({ ...form, note: e.target.value })} />
+            </div>
+            <div className="flex gap-2 md:col-span-2">
+              <Button disabled={busy} onClick={save}>{tj("save")}</Button>
+              <Button variant="outline" onClick={() => setForm(null)}>{t("ui.back")}</Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      <Card>
+        <CardHeader>
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="relative min-w-56 flex-1">
+              <Search className="absolute start-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+              <Input className="ps-10" placeholder={tj("searchPlaceholder")} value={q}
+                onChange={(e) => setQ(e.target.value)} />
+            </div>
+            <NativeSelect className="w-auto" value={classFilter}
+              onChange={(e) => setClassFilter(e.target.value)}>
+              <option value="">{tj("allClasses")}</option>
+              {CLASSES.map((c) => <option key={c} value={c}>{tj(`classes.${c}`)}</option>)}
+            </NativeSelect>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {items.length === 0 ? (
+            <p className="py-8 text-center text-sm text-muted-foreground">{tj("empty")}</p>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{t("fields.journal_name")}</TableHead>
+                  <TableHead>ISSN</TableHead>
+                  <TableHead>{t("fields.publisher")}</TableHead>
+                  <TableHead>{tj("classification")}</TableHead>
+                  <TableHead>{tj("source")}</TableHead>
+                  <TableHead />
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {items.map((entry) => {
+                  const Icon = CLASS_STYLE[entry.classification].icon;
+                  return (
+                    <TableRow key={entry.id}>
+                      <TableCell className="max-w-xs">
+                        <button type="button" className="block max-w-full truncate text-start font-medium hover:underline"
+                          title={entry.name}
+                          onClick={() => setForm({
+                            id: entry.id, issn: entry.issn ?? "", name: entry.name,
+                            publisher: entry.publisher ?? "", classification: entry.classification,
+                            note: entry.note ?? "", source: entry.source ?? "",
+                          })}>
+                          {entry.name}
+                        </button>
+                        {entry.note && (
+                          <span className="block truncate text-xs text-muted-foreground" title={entry.note}>{entry.note}</span>
+                        )}
+                      </TableCell>
+                      <TableCell dir="ltr">{entry.issn ?? "—"}</TableCell>
+                      <TableCell>{entry.publisher ?? "—"}</TableCell>
+                      <TableCell>
+                        <Badge variant="secondary" className={CLASS_STYLE[entry.classification].badge}>
+                          <Icon className="size-3" />
+                          {tj(`classes.${entry.classification}`)}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="max-w-40 truncate" title={entry.source ?? ""}>{entry.source ?? "—"}</TableCell>
+                      <TableCell>
+                        <Button variant="ghost" size="icon-sm" aria-label={t("ui.remove")}
+                          onClick={() => remove(entry.id)}>
+                          <Trash2 className="size-3.5 text-red-600" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+export default function Page() {
+  return (
+    <RequireAuth>
+      <JournalsPage />
+    </RequireAuth>
+  );
+}

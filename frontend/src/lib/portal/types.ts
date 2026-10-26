@@ -64,6 +64,14 @@ export interface RequestEvent {
   created_at: string;
 }
 
+export interface JournalFlag {
+  matched: boolean;
+  classification?: "accredited" | "predatory" | "suspended";
+  name?: string;
+  note?: string | null;
+  matched_by?: string;
+}
+
 export interface RequestDetail {
   request: PortalRequest;
   attachments: Attachment[];
@@ -71,6 +79,7 @@ export interface RequestDetail {
   allowed_transitions: RequestStatus[];
   can_edit: boolean;
   letter_id: string | null;
+  journal_flag?: JournalFlag;
 }
 
 export interface StatCount {

@@ -112,7 +112,10 @@
       "newRequest": "New request",
       "templates": "Letter templates",
       "users": "Users & roles",
-      "import": "Import faculty"
+      "import": "Import faculty",
+      "activities": "Activities",
+      "journals": "Journal watchlist",
+      "reports": "Reports"
     },
     "kinds": {
       "research_plan": "Research plan registration",
@@ -203,7 +206,12 @@
       "signer_name": "Signer name",
       "signer_title": "Signer title",
       "attachment_key": "attachment",
-      "decision": "Decision"
+      "decision": "Decision",
+      "approval_no": "Approval letter no.",
+      "classification": "Classification",
+      "activity_type": "Activity type",
+      "activity_date": "Activity date",
+      "attendees_count": "Attendees"
     },
     "options": {
       "individual": "Individual",
@@ -232,7 +240,8 @@
       "asset_not_found": "Template file not found",
       "generic": "Something went wrong, please try again",
       "validationFailed": "Complete the following before continuing:",
-      "decision_mismatch": "The decision no longer matches the recommendation; reload the page"
+      "decision_mismatch": "The decision no longer matches the recommendation; reload the page",
+      "duplicate_issn": "This ISSN is already in the watchlist"
     },
     "ui": {
       "newRequest": "Submit a new request",
@@ -396,7 +405,75 @@
         "file_too_large": "File exceeds 10MB"
       }
     },
-    "university": "University of Turath"
+    "university": "University of Turath",
+    "activities": {
+      "title": "Scientific activities",
+      "subtitle": "Seminars, workshops and panels — approved by scientific affairs with the official letter number",
+      "new": "New activity",
+      "decide": "Decide",
+      "approve": "Approve with letter no.",
+      "searchPlaceholder": "Search by title, presenter or letter no.",
+      "allTypes": "All types",
+      "allYears": "All years",
+      "approvalPlaceholder": "e.g. 1234/2026",
+      "types": {
+        "seminar": "Seminar",
+        "workshop": "Workshop",
+        "panel": "Panel",
+        "lecture": "Lecture",
+        "course": "Course",
+        "conference": "Conference",
+        "other": "Other"
+      },
+      "statuses": {
+        "pending": "Awaiting approval",
+        "approved": "Approved",
+        "returned": "Returned",
+        "rejected": "Rejected"
+      },
+      "fields": {
+        "title": "Activity title",
+        "type": "Type",
+        "date": "Date",
+        "presenter": "Presenter",
+        "location": "Location",
+        "attendees": "Attendees",
+        "description": "Description",
+        "approvalNo": "Approval letter no."
+      }
+    },
+    "journals": {
+      "title": "Journal watchlist",
+      "subtitle": "Accredited and predatory journals — verification requests are checked automatically",
+      "new": "Add journal",
+      "save": "Save",
+      "classification": "Classification",
+      "source": "List source",
+      "sourceHint": "e.g. Ministry list 2026",
+      "searchPlaceholder": "Search by name, ISSN or publisher",
+      "allClasses": "All classifications",
+      "empty": "No entries yet",
+      "classes": {
+        "accredited": "Accredited",
+        "predatory": "Predatory",
+        "suspended": "Publication suspended"
+      },
+      "flag": {
+        "predatory": "Warning: predatory journal",
+        "suspended": "Notice: publication in this journal is suspended",
+        "accredited": "Accredited journal",
+        "hint": "Automatic watchlist check — the final call rests with scientific affairs"
+      }
+    },
+    "reports": {
+      "title": "Reports",
+      "subtitle": "Ministry-ready Excel reports",
+      "annual": "Comprehensive annual report",
+      "annualDesc": "One Excel workbook with four sheets: publications, appreciation letters, research plan and scientific activities — per college, per year.",
+      "year": "Year",
+      "download": "Download report",
+      "preparing": "Preparing..."
+    }
   },
   "notifications": {
     "title": "Notifications",

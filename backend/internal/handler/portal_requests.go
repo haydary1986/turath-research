@@ -580,6 +580,7 @@ type requestDetail struct {
 	AllowedTransitions []string         `json:"allowed_transitions"`
 	CanEdit            bool             `json:"can_edit"`
 	LetterID           *string          `json:"letter_id"`
+	JournalFlag        *journalFlag     `json:"journal_flag,omitempty"`
 }
 
 // Get returns one request with its attachments, history and the actions the caller may take.
@@ -613,6 +614,17 @@ func (h *PortalHandler) Get(w http.ResponseWriter, r *http.Request) {
 	if err := h.db.QueryRow(ctx, `SELECT id FROM issued_letters WHERE request_id = $1`, rec.ID).Scan(&detail.LetterID); err != nil && !isNoRows(err) {
 		serverError(w, "Failed to load letter", err)
 		return
+	}
+
+	if rec.Kind != portal.KindResearchPlan {
+		var details map[string]any
+		if json.Unmarshal(rec.Details, &details) == nil {
+			issn, _ := details["issn"].(string)
+			name, _ := details["journal_name"].(string)
+			if flag, err := h.screenJournal(ctx, issn, name); err == nil && flag.Matched {
+				detail.JournalFlag = &flag
+			}
+		}
 	}
 
 	detail.CanEdit = rec.ApplicantID == user.UserID && isEditable(rec.Status)

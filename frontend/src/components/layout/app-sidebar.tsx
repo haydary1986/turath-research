@@ -16,6 +16,9 @@ import {
   Mail,
   UserCog,
   FileUp,
+  CalendarDays,
+  ShieldAlert,
+  FileSpreadsheet,
 } from "lucide-react";
 import {
   Sidebar,
@@ -76,8 +79,13 @@ export function AppSidebar() {
   const portalItems: NavItem[] = [
     { href: "/portal", label: pt("dashboard"), icon: ClipboardList },
     { href: "/portal/requests", label: pt("requests"), icon: FilePlus2 },
+    { href: "/portal/activities", label: pt("activities"), icon: CalendarDays },
     ...(mounted && isStaffRole(role)
-      ? [{ href: "/portal/templates", label: pt("templates"), icon: Mail }]
+      ? [
+          { href: "/portal/templates", label: pt("templates"), icon: Mail },
+          { href: "/portal/journals", label: pt("journals"), icon: ShieldAlert },
+          { href: "/portal/reports", label: pt("reports"), icon: FileSpreadsheet },
+        ]
       : []),
     ...(mounted && role === "admin"
       ? [

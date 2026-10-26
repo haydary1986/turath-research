@@ -8,6 +8,7 @@ import { api } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AttachmentsPanel } from "@/components/portal/attachments-panel";
+import { JournalFlagBanner } from "@/components/portal/journal-flag-banner";
 import { RequireAuth } from "@/components/portal/require-auth";
 import { RequestSummary } from "@/components/portal/request-summary";
 import { ReviewActions } from "@/components/portal/review-actions";
@@ -76,6 +77,8 @@ function RequestPage() {
       {request.status === "returned" && isApplicant && (
         <div className="rounded bg-orange-50 p-3 text-sm text-orange-800">{t("ui.returnedBanner")}</div>
       )}
+      <JournalFlagBanner flag={detail.journal_flag} />
+
       {request.decision_note && (
         <div className="rounded border-s-4 border-primary bg-muted p-3 text-sm">
           <p className="mb-1 text-xs text-muted-foreground">{t("ui.decisionNote")}</p>

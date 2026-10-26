@@ -85,6 +85,23 @@ async function upload<T>(path: string, file: File): Promise<APIResponse<T>> {
   return json;
 }
 
+/** Downloads a protected file to the user's disk with the given filename. */
+export async function downloadFile(path: string, filename: string): Promise<void> {
+  const res = await authedFetch(path);
+  if (!res.ok) {
+    throw new Error(`Request failed: ${res.status}`);
+  }
+  const url = URL.createObjectURL(await res.blob());
+  try {
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = filename;
+    anchor.click();
+  } finally {
+    setTimeout(() => URL.revokeObjectURL(url), 10_000);
+  }
+}
+
 /** Fetches a protected binary file and returns a temporary object URL for it. */
 export async function fetchObjectUrl(path: string): Promise<string> {
   const res = await authedFetch(path);

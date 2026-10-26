@@ -10,7 +10,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { fieldsFor, type FieldDef } from "@/lib/portal/fields";
-import { requestTitle, type Org, type PortalRequest, type RequestKind } from "@/lib/portal/types";
+import { requestTitle, type JournalFlag, type Org, type PortalRequest, type RequestKind } from "@/lib/portal/types";
+import { JournalFlagBanner } from "./journal-flag-banner";
 import { NativeSelect, Textarea } from "./form-controls";
 import { usePortalErrors } from "./use-portal-errors";
 
@@ -57,6 +58,30 @@ export function RequestForm({ kind, existing }: RequestFormProps) {
   const [verifications, setVerifications] = useState<PortalRequest[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [flag, setFlag] = useState<JournalFlag | null>(null);
+
+  // Live watchlist check while the journal fields are being filled.
+  const issn = form.details.issn ?? "";
+  const journalName = form.details.journal_name ?? "";
+  useEffect(() => {
+    if (kind === "research_plan" || (!issn.trim() && !journalName.trim())) {
+      setFlag(null);
+      return;
+    }
+    let active = true;
+    const timer = setTimeout(() => {
+      api
+        .get<JournalFlag>(
+          `/api/v1/screening/check?issn=${encodeURIComponent(issn)}&name=${encodeURIComponent(journalName)}`
+        )
+        .then((res) => active && setFlag(res.data ?? null))
+        .catch(() => undefined);
+    }, 400);
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
+  }, [kind, issn, journalName]);
 
   useEffect(() => {
     let active = true;
@@ -159,6 +184,8 @@ export function RequestForm({ kind, existing }: RequestFormProps) {
           </CardContent>
         </Card>
       )}
+
+      <JournalFlagBanner flag={flag} />
 
       <Card>
         <CardHeader>

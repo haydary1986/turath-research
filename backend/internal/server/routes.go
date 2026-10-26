@@ -174,6 +174,14 @@ func NewRouter(cfg *config.Config, db *pgxpool.Pool, rdb *redis.Client) *chi.Mux
 			r.Post("/portal/requests/{id}/transition", portalH.Transition)
 			r.Post("/portal/requests/{id}/issue-letter", portalH.IssueLetter)
 
+			// ── Scientific activities ─────────────
+			r.Get("/activities", portalH.ListActivities)
+			r.Post("/activities", portalH.CreateActivity)
+			r.Put("/activities/{id}", portalH.UpdateActivity)
+
+			// Live journal-watchlist check (used by request forms)
+			r.Get("/screening/check", portalH.CheckJournal)
+
 			r.Group(func(r chi.Router) {
 				r.Use(staffOnly)
 				r.Get("/portal/templates", portalH.ListTemplates)
@@ -181,6 +189,12 @@ func NewRouter(cfg *config.Config, db *pgxpool.Pool, rdb *redis.Client) *chi.Mux
 				r.Put("/portal/templates/{id}", portalH.UpdateTemplate)
 				r.Post("/portal/templates/{id}/activate", portalH.ActivateTemplate)
 				r.Post("/portal/template-assets", portalH.UploadTemplateAsset)
+				r.Post("/activities/{id}/decide", portalH.DecideActivity)
+				r.Get("/screening", portalH.ListScreening)
+				r.Post("/screening", portalH.UpsertScreening)
+				r.Put("/screening/{id}", portalH.UpsertScreening)
+				r.Delete("/screening/{id}", portalH.DeleteScreening)
+				r.Get("/reports/annual.xlsx", portalH.AnnualReport)
 			})
 
 			r.Group(func(r chi.Router) {

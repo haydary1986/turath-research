@@ -129,6 +129,41 @@ call GET "/portal/letters/$LETTER" "$RES"; expect "applicant reads own letter" 2
 call GET "/portal/letters/$LETTER" "$OTHER"; expect "other researcher cannot read letter" 404
 call GET "/verify/letter/$LETTER" ""; expect "public verification" 200
 
+
+echo "== scientific activities =="
+call POST /activities "$RES" '{"activity_type":"party","title_ar":"x","activity_date":"2026-11-02"}'; expect "unknown activity type rejected" 422
+call POST /activities "$RES" "{\"activity_type\":\"workshop\",\"title_ar\":\"ورشة الذكاء الاصطناعي\",\"presenter\":\"د. أحمد\",\"activity_date\":\"2026-11-02\",\"location\":\"قاعة المؤتمرات\",\"attendees_count\":40,\"college_id\":\"$COLLEGE\"}"; expect "activity created" 201
+ACT=$(echo "$BODY" | jq_ "d['data']['id']")
+call POST "/activities/$ACT/decide" "$RES" '{"status":"approved","approval_no":"77/2026"}'; expect "researcher cannot decide activity" 403
+call POST "/activities/$ACT/decide" "$SA" '{"status":"approved"}'; expect "approval needs letter number" 422
+call POST "/activities/$ACT/decide" "$SA" '{"status":"approved","approval_no":"77/2026"}'; expect "activity approved with letter no" 200
+call POST "/activities/$ACT/decide" "$SA" '{"status":"rejected","note":"x"}'; expect "decided activity is final" 409
+call GET "/activities?year=2026&type=workshop" "$SA"
+[ "$(echo "$BODY" | jq_ "[a['approval_no'] for a in d['data'] if a['id']=='$ACT'][0]")" = "77/2026" ] && ok "approval number stored" || bad "approval no" "$BODY"
+call GET /activities "$OTHER"
+[ "$(echo "$BODY" | jq_ "sum(1 for a in d['data'] if a['id']=='$ACT')")" = "0" ] && ok "activities scoped per user" || bad "activity scope" "$BODY"
+
+echo "== journal watchlist =="
+PRED_ISSN="2049-3630"
+call POST /screening "$RES" "{\"name\":\"x\",\"classification\":\"predatory\"}"; expect "researcher cannot manage watchlist" 403
+call POST /screening "$SA" "{\"name\":\"Predatory Journal of Everything\",\"issn\":\"$PRED_ISSN\",\"classification\":\"fake\"}"; expect "bad classification rejected" 422
+call POST /screening "$SA" "{\"name\":\"Predatory Journal of Everything\",\"issn\":\"$PRED_ISSN\",\"classification\":\"predatory\",\"note\":\"قائمة الوزارة\"}"; expect "predatory journal added" 200
+call POST /screening "$SA" "{\"name\":\"Another Name\",\"issn\":\"2049 3630\",\"classification\":\"suspended\"}"; expect "duplicate ISSN blocked (normalized)" 409
+call GET "/screening/check?issn=20493630" "$RES"
+[ "$(echo "$BODY" | jq_ "d['data']['classification']")" = "predatory" ] && ok "live check matches normalized ISSN" || bad "check" "$BODY"
+call GET "/screening/check?name=predatory  journal OF everything" "$RES"
+[ "$(echo "$BODY" | jq_ "d['data']['matched']")" = "True" ] && ok "live check matches folded name" || bad "name check" "$BODY"
+PRED_DETAILS='{"journal_name":"Predatory Journal of Everything","publisher":"X","index_db":"scopus","publication_date":"2024-03-15","issn":"2049-3630"}'
+call POST /portal/requests "$RES" "{\"kind\":\"journal_verification\",\"title_en\":\"Flagged paper\",\"doi\":\"10.9999/flag.$RUN\",\"college_id\":\"$COLLEGE\",\"details\":$PRED_DETAILS}"; expect "flagged journal draft saved" 201
+FLAGREQ=$(echo "$BODY" | jq_ "d['data']['id']")
+call GET "/portal/requests/$FLAGREQ" "$RES"
+[ "$(echo "$BODY" | jq_ "d['data']['journal_flag']['classification']")" = "predatory" ] && ok "request detail carries predatory flag" || bad "flag on detail" "$BODY"
+
+echo "== annual report =="
+CODE=$(curl -s -o "$TMP/report.xlsx" -w "%{http_code}" "$API/reports/annual.xlsx?year=2026" -H "Authorization: Bearer $RES"); [ "$CODE" = "403" ] && ok "researcher cannot download report" || bad "report rbac" "$CODE"
+CODE=$(curl -s -o "$TMP/report.xlsx" -w "%{http_code}" "$API/reports/annual.xlsx?year=2026" -H "Authorization: Bearer $SA")
+[ "$CODE" = "200" ] && head -c2 "$TMP/report.xlsx" | grep -q "PK" && ok "annual xlsx downloads" || bad "report" "HTTP $CODE"
+
 echo "== visibility, templates, admin =="
 call GET "/portal/requests/$PLAN" "$DEAN"; expect "dean views his college's request" 200
 call GET "/portal/requests/$PLAN" "$DEAN2"; expect "other dean cannot view" 404

@@ -185,10 +185,10 @@ func (h *PublicationHandler) Get(w http.ResponseWriter, r *http.Request) {
 	if err == nil {
 		defer authorRows.Close()
 		type author struct {
-			Name           string  `json:"name"`
-			Order          int     `json:"order"`
-			IsCorresponding bool   `json:"is_corresponding"`
-			ResearcherID   *string `json:"researcher_id"`
+			Name            string  `json:"name"`
+			Order           int     `json:"order"`
+			IsCorresponding bool    `json:"is_corresponding"`
+			ResearcherID    *string `json:"researcher_id"`
 		}
 		authors := []author{}
 		for authorRows.Next() {

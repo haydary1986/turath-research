@@ -62,6 +62,11 @@ services:
       # Auth
       JWT_SECRET: ${JWT_SECRET:?required}
       JWT_EXPIRY: ${JWT_EXPIRY:-24h}
+      # Sign in with Google (university accounts only). Create an OAuth "Web" client in Google Cloud Console.
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_ALLOWED_DOMAIN: ${GOOGLE_ALLOWED_DOMAIN:-uoturath.edu.iq}
+      # Open email+password sign-up. Leave false in production.
+      ALLOW_PASSWORD_REGISTER: ${ALLOW_PASSWORD_REGISTER:-false}
       # AI
       DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
       DEEPSEEK_BASE_URL: ${DEEPSEEK_BASE_URL:-https://api.deepseek.com}
@@ -73,8 +78,12 @@ services:
       SERPAPI_KEY: ${SERPAPI_KEY:-}
       # Run migrations on startup
       RUN_MIGRATIONS: "true"
+      UPLOAD_DIR: /data/uploads
+      RATE_LIMIT_PER_MIN: ${RATE_LIMIT_PER_MIN:-300}
+    volumes:
+      - uploads:/data/uploads
     ports:
-      - "8090:8080"
+      - "8091:8080"
     depends_on:
       postgres:
         condition: service_healthy
@@ -95,10 +104,12 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-/api}
+        NEXT_PUBLIC_API_URL: ""
+        BACKEND_URL: http://backend:8080
     restart: unless-stopped
     environment:
-      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-/api}
+      NEXT_PUBLIC_API_URL: ""
+      BACKEND_URL: http://backend:8080
     ports:
       - "3001:3000"
     depends_on:
@@ -111,6 +122,8 @@ volumes:
   pgdata:
     driver: local
   redisdata:
+    driver: local
+  uploads:
     driver: local
 
 networks:

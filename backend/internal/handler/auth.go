@@ -15,15 +15,21 @@ import (
 	"github.com/haydary1986/turath-research/backend/internal/config"
 	"github.com/haydary1986/turath-research/backend/internal/middleware"
 	"github.com/haydary1986/turath-research/backend/internal/model"
+	"github.com/haydary1986/turath-research/backend/internal/service/googleauth"
 )
 
 type AuthHandler struct {
-	db  *pgxpool.Pool
-	cfg *config.Config
+	db       *pgxpool.Pool
+	cfg      *config.Config
+	verifier *googleauth.Verifier // nil when Google sign-in is not configured
 }
 
 func NewAuthHandler(db *pgxpool.Pool, cfg *config.Config) *AuthHandler {
-	return &AuthHandler{db: db, cfg: cfg}
+	h := &AuthHandler{db: db, cfg: cfg}
+	if cfg.Google.ClientID != "" {
+		h.verifier = googleauth.NewVerifier(cfg.Google.ClientID, cfg.Google.AllowedDomain, googleauth.NewKeySource().Key)
+	}
+	return h
 }
 
 type loginRequest struct {
@@ -103,6 +109,10 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
+	if !h.cfg.Auth.AllowPasswordRegister {
+		model.RespondError(w, http.StatusForbidden, "registration_disabled")
+		return
+	}
 	var req registerRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		model.RespondError(w, http.StatusBadRequest, "Invalid request body")
@@ -141,11 +151,11 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	}
 
 	user := userInfo{
-		ID:    id,
-		Email: req.Email,
+		ID:     id,
+		Email:  req.Email,
 		NameAr: ptrIfNotEmpty(req.NameAr),
 		NameEn: ptrIfNotEmpty(req.NameEn),
-		Role:  "researcher",
+		Role:   "researcher",
 	}
 
 	token, err := h.generateToken(user)

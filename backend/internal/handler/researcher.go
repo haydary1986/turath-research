@@ -23,17 +23,17 @@ func NewResearcherHandler(db *pgxpool.Pool) *ResearcherHandler {
 }
 
 type researcherRow struct {
-	ID               string  `json:"id"`
-	NameAr           string  `json:"name_ar"`
-	NameEn           *string `json:"name_en"`
-	Email            string  `json:"email"`
-	TitleAr          *string `json:"title_ar"`
-	TitleEn          *string `json:"title_en"`
-	DepartmentID     *string `json:"department_id"`
-	HIndex           int     `json:"h_index"`
-	TotalCitations   int     `json:"total_citations"`
-	TotalPublications int    `json:"total_publications"`
-	Status           string  `json:"status"`
+	ID                string  `json:"id"`
+	NameAr            string  `json:"name_ar"`
+	NameEn            *string `json:"name_en"`
+	Email             string  `json:"email"`
+	TitleAr           *string `json:"title_ar"`
+	TitleEn           *string `json:"title_en"`
+	DepartmentID      *string `json:"department_id"`
+	HIndex            int     `json:"h_index"`
+	TotalCitations    int     `json:"total_citations"`
+	TotalPublications int     `json:"total_publications"`
+	Status            string  `json:"status"`
 }
 
 type createResearcherReq struct {

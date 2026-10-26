@@ -24,17 +24,17 @@ func NewMetricsHandler(db *pgxpool.Pool) *MetricsHandler {
 // ── Institution-wide dashboard KPIs ──────────────
 
 type institutionKPIs struct {
-	TotalResearchers    int     `json:"total_researchers"`
-	ActiveResearchers   int     `json:"active_researchers"`
-	TotalPublications   int     `json:"total_publications"`
-	TotalCitations      int     `json:"total_citations"`
-	AvgHIndex           float64 `json:"avg_h_index"`
-	Q1Publications      int     `json:"q1_publications"`
-	Q2Publications      int     `json:"q2_publications"`
-	TotalJournalArticles int    `json:"total_journal_articles"`
-	Q1Ratio             float64 `json:"q1_ratio"`
-	PublicationsThisYear int    `json:"publications_this_year"`
-	CitationsThisYear   int     `json:"citations_this_year"`
+	TotalResearchers     int     `json:"total_researchers"`
+	ActiveResearchers    int     `json:"active_researchers"`
+	TotalPublications    int     `json:"total_publications"`
+	TotalCitations       int     `json:"total_citations"`
+	AvgHIndex            float64 `json:"avg_h_index"`
+	Q1Publications       int     `json:"q1_publications"`
+	Q2Publications       int     `json:"q2_publications"`
+	TotalJournalArticles int     `json:"total_journal_articles"`
+	Q1Ratio              float64 `json:"q1_ratio"`
+	PublicationsThisYear int     `json:"publications_this_year"`
+	CitationsThisYear    int     `json:"citations_this_year"`
 }
 
 func (h *MetricsHandler) InstitutionKPIs(w http.ResponseWriter, r *http.Request) {
@@ -85,16 +85,16 @@ func (h *MetricsHandler) InstitutionKPIs(w http.ResponseWriter, r *http.Request)
 // ── Researcher stats ─────────────────────────────
 
 type researcherStats struct {
-	ID                 string `json:"id"`
-	NameAr             string `json:"name_ar"`
-	HIndex             int    `json:"h_index"`
-	TotalCitations     int    `json:"total_citations"`
-	TotalPublications  int    `json:"total_publications"`
-	PublicationsByYear []yearCount `json:"publications_by_year"`
-	CitationsByYear    []yearCount `json:"citations_by_year"`
+	ID                  string      `json:"id"`
+	NameAr              string      `json:"name_ar"`
+	HIndex              int         `json:"h_index"`
+	TotalCitations      int         `json:"total_citations"`
+	TotalPublications   int         `json:"total_publications"`
+	PublicationsByYear  []yearCount `json:"publications_by_year"`
+	CitationsByYear     []yearCount `json:"citations_by_year"`
 	JournalDistribution []rankCount `json:"journal_distribution"`
-	TopPublications    []topPub    `json:"top_publications"`
-	CoAuthors          []coAuthor  `json:"co_authors"`
+	TopPublications     []topPub    `json:"top_publications"`
+	CoAuthors           []coAuthor  `json:"co_authors"`
 }
 
 type yearCount struct {
@@ -108,11 +108,11 @@ type rankCount struct {
 }
 
 type topPub struct {
-	ID           string  `json:"id"`
-	Title        string  `json:"title"`
-	DOI          *string `json:"doi"`
-	CitationCount int    `json:"citation_count"`
-	Year         *int    `json:"year"`
+	ID            string  `json:"id"`
+	Title         string  `json:"title"`
+	DOI           *string `json:"doi"`
+	CitationCount int     `json:"citation_count"`
+	Year          *int    `json:"year"`
 }
 
 type coAuthor struct {
@@ -270,13 +270,13 @@ func (h *MetricsHandler) DepartmentComparison(w http.ResponseWriter, r *http.Req
 // ── Top researchers leaderboard ──────────────────
 
 type leaderboardEntry struct {
-	ID               string `json:"id"`
-	NameAr           string `json:"name_ar"`
-	NameEn           *string `json:"name_en"`
-	DepartmentID     *string `json:"department_id"`
-	HIndex           int    `json:"h_index"`
-	TotalCitations   int    `json:"total_citations"`
-	TotalPublications int   `json:"total_publications"`
+	ID                string  `json:"id"`
+	NameAr            string  `json:"name_ar"`
+	NameEn            *string `json:"name_en"`
+	DepartmentID      *string `json:"department_id"`
+	HIndex            int     `json:"h_index"`
+	TotalCitations    int     `json:"total_citations"`
+	TotalPublications int     `json:"total_publications"`
 }
 
 func (h *MetricsHandler) TopResearchers(w http.ResponseWriter, r *http.Request) {

@@ -18,18 +18,18 @@ import (
 )
 
 type ScientificAffairsHandler struct {
-	db          *pgxpool.Pool
-	eligibility *promotion.EligibilityService
+	db            *pgxpool.Pool
+	eligibility   *promotion.EligibilityService
 	incentiveCalc *incentive.Calculator
-	perfEval    *performance.Evaluator
+	perfEval      *performance.Evaluator
 }
 
 func NewScientificAffairsHandler(db *pgxpool.Pool) *ScientificAffairsHandler {
 	return &ScientificAffairsHandler{
-		db:          db,
-		eligibility: promotion.NewEligibilityService(db),
+		db:            db,
+		eligibility:   promotion.NewEligibilityService(db),
 		incentiveCalc: incentive.NewCalculator(db),
-		perfEval:    performance.NewEvaluator(db),
+		perfEval:      performance.NewEvaluator(db),
 	}
 }
 
@@ -113,15 +113,15 @@ func (h *ScientificAffairsHandler) ListPromotionApplications(w http.ResponseWrit
 	defer rows.Close()
 
 	type appRow struct {
-		ID              string  `json:"id"`
-		ResearcherID    string  `json:"researcher_id"`
-		ResearcherName  string  `json:"researcher_name"`
-		CurrentRank     string  `json:"current_rank"`
-		TargetRank      string  `json:"target_rank"`
+		ID               string  `json:"id"`
+		ResearcherID     string  `json:"researcher_id"`
+		ResearcherName   string  `json:"researcher_name"`
+		CurrentRank      string  `json:"current_rank"`
+		TargetRank       string  `json:"target_rank"`
 		EligibilityScore float64 `json:"eligibility_score"`
-		Status          string  `json:"status"`
-		SubmittedAt     *string `json:"submitted_at"`
-		CreatedAt       string  `json:"created_at"`
+		Status           string  `json:"status"`
+		SubmittedAt      *string `json:"submitted_at"`
+		CreatedAt        string  `json:"created_at"`
 	}
 
 	apps := []appRow{}
@@ -184,13 +184,13 @@ func (h *ScientificAffairsHandler) ListIncentiveRules(w http.ResponseWriter, r *
 	defer rows.Close()
 
 	type ruleRow struct {
-		ID                     string  `json:"id"`
-		JournalClassification  string  `json:"journal_classification"`
-		BaseAmount             float64 `json:"base_amount"`
-		CorrespondingBonus     float64 `json:"corresponding_bonus"`
-		MaxAuthorsShare        int     `json:"max_authors_share"`
-		EffectiveFrom          string  `json:"effective_from"`
-		EffectiveTo            *string `json:"effective_to"`
+		ID                    string  `json:"id"`
+		JournalClassification string  `json:"journal_classification"`
+		BaseAmount            float64 `json:"base_amount"`
+		CorrespondingBonus    float64 `json:"corresponding_bonus"`
+		MaxAuthorsShare       int     `json:"max_authors_share"`
+		EffectiveFrom         string  `json:"effective_from"`
+		EffectiveTo           *string `json:"effective_to"`
 	}
 
 	rules := []ruleRow{}
@@ -312,16 +312,16 @@ func (h *ScientificAffairsHandler) ListSabbaticals(w http.ResponseWriter, r *htt
 
 func (h *ScientificAffairsHandler) SubmitConference(w http.ResponseWriter, r *http.Request) {
 	var req struct {
-		ResearcherID    string  `json:"researcher_id"`
-		ConferenceName  string  `json:"conference_name"`
-		Location        string  `json:"conference_location"`
-		Country         string  `json:"conference_country"`
-		StartDate       string  `json:"start_date"`
-		EndDate         string  `json:"end_date"`
-		PaperTitle      string  `json:"paper_title"`
-		ParticipationType string `json:"participation_type"`
-		IsInternational bool    `json:"is_international"`
-		EstimatedCost   float64 `json:"estimated_cost"`
+		ResearcherID      string  `json:"researcher_id"`
+		ConferenceName    string  `json:"conference_name"`
+		Location          string  `json:"conference_location"`
+		Country           string  `json:"conference_country"`
+		StartDate         string  `json:"start_date"`
+		EndDate           string  `json:"end_date"`
+		PaperTitle        string  `json:"paper_title"`
+		ParticipationType string  `json:"participation_type"`
+		IsInternational   bool    `json:"is_international"`
+		EstimatedCost     float64 `json:"estimated_cost"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		model.RespondError(w, http.StatusBadRequest, "Invalid request body")
@@ -372,23 +372,27 @@ func (h *ScientificAffairsHandler) ListAgreements(w http.ResponseWriter, r *http
 	defer rows.Close()
 
 	type row struct {
-		ID         string `json:"id"`
-		PartnerAr  string `json:"partner_name_ar"`
-		PartnerEn  string `json:"partner_name_en"`
-		Type       string `json:"agreement_type"`
-		TitleAr    string `json:"title_ar"`
-		StartDate  string `json:"start_date"`
-		EndDate    string `json:"end_date"`
-		Status     string `json:"status"`
-		Outputs    int    `json:"outputs_count"`
+		ID        string `json:"id"`
+		PartnerAr string `json:"partner_name_ar"`
+		PartnerEn string `json:"partner_name_en"`
+		Type      string `json:"agreement_type"`
+		TitleAr   string `json:"title_ar"`
+		StartDate string `json:"start_date"`
+		EndDate   string `json:"end_date"`
+		Status    string `json:"status"`
+		Outputs   int    `json:"outputs_count"`
 	}
 	items := []row{}
 	for rows.Next() {
 		var i row
 		var sd, ed *time.Time
 		rows.Scan(&i.ID, &i.PartnerAr, &i.PartnerEn, &i.Type, &i.TitleAr, &sd, &ed, &i.Status, &i.Outputs)
-		if sd != nil { i.StartDate = sd.Format("2006-01-02") }
-		if ed != nil { i.EndDate = ed.Format("2006-01-02") }
+		if sd != nil {
+			i.StartDate = sd.Format("2006-01-02")
+		}
+		if ed != nil {
+			i.EndDate = ed.Format("2006-01-02")
+		}
 		items = append(items, i)
 	}
 	model.RespondJSON(w, http.StatusOK, items)

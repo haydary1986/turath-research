@@ -20,10 +20,10 @@ func NewSearchHandler(db *pgxpool.Pool) *SearchHandler {
 }
 
 type searchResult struct {
-	Type  string `json:"type"` // researcher, publication, journal
-	ID    string `json:"id"`
-	Title string `json:"title"`
-	Sub   string `json:"sub"`
+	Type  string  `json:"type"` // researcher, publication, journal
+	ID    string  `json:"id"`
+	Title string  `json:"title"`
+	Sub   string  `json:"sub"`
 	Score float64 `json:"score"`
 }
 

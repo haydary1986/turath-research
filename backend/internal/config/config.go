@@ -3,6 +3,8 @@ package config
 import (
 	"fmt"
 	"os"
+	"strconv"
+	"strings"
 	"time"
 )
 
@@ -15,12 +17,17 @@ type Config struct {
 	Scopus   ScopusConfig
 	CrossRef CrossRefConfig
 	ORCID    ORCIDConfig
+	Google   GoogleConfig
+	SMTP     SMTPConfig
+	Auth     AuthConfig
 }
 
 type ServerConfig struct {
-	Port           string
-	FrontendURL    string
-	AllowedOrigins string
+	Port            string
+	FrontendURL     string
+	AllowedOrigins  string
+	UploadDir       string
+	RateLimitPerMin int
 }
 
 type DatabaseConfig struct {
@@ -49,6 +56,28 @@ type CrossRefConfig struct {
 	Mailto string
 }
 
+// GoogleConfig enables "Sign in with Google" restricted to one institutional domain.
+type GoogleConfig struct {
+	ClientID      string
+	AllowedDomain string
+}
+
+// SMTPConfig enables outgoing notification email; empty Host disables it.
+type SMTPConfig struct {
+	Host     string
+	Port     string
+	Username string
+	Password string
+	From     string
+	FromName string
+}
+
+type AuthConfig struct {
+	// AllowPasswordRegister enables open self-registration with email + password.
+	// Keep it off in production: faculty sign in with their university Google account.
+	AllowPasswordRegister bool
+}
+
 type ORCIDConfig struct {
 	ClientID     string
 	ClientSecret string
@@ -62,9 +91,11 @@ func Load() (*Config, error) {
 
 	cfg := &Config{
 		Server: ServerConfig{
-			Port:           getEnv("SERVER_PORT", "8080"),
-			FrontendURL:    getEnv("FRONTEND_URL", "http://localhost:3000"),
-			AllowedOrigins: getEnv("ALLOWED_ORIGINS", "*"),
+			Port:            getEnv("SERVER_PORT", "8080"),
+			FrontendURL:     getEnv("FRONTEND_URL", "http://localhost:3000"),
+			AllowedOrigins:  getEnv("ALLOWED_ORIGINS", "*"),
+			UploadDir:       getEnv("UPLOAD_DIR", "/data/uploads"),
+			RateLimitPerMin: getEnvInt("RATE_LIMIT_PER_MIN", 300),
 		},
 		Database: DatabaseConfig{
 			URL: getEnv("DATABASE_URL", ""),
@@ -90,6 +121,21 @@ func Load() (*Config, error) {
 			ClientID:     getEnv("ORCID_CLIENT_ID", ""),
 			ClientSecret: getEnv("ORCID_CLIENT_SECRET", ""),
 		},
+		Google: GoogleConfig{
+			ClientID:      getEnv("GOOGLE_CLIENT_ID", ""),
+			AllowedDomain: strings.ToLower(getEnv("GOOGLE_ALLOWED_DOMAIN", "uoturath.edu.iq")),
+		},
+		SMTP: SMTPConfig{
+			Host:     getEnv("SMTP_HOST", ""),
+			Port:     getEnv("SMTP_PORT", "587"),
+			Username: getEnv("SMTP_USER", ""),
+			Password: getEnv("SMTP_PASS", ""),
+			From:     getEnv("SMTP_FROM", ""),
+			FromName: getEnv("SMTP_FROM_NAME", "بوابة الشؤون العلمية — جامعة التراث"),
+		},
+		Auth: AuthConfig{
+			AllowPasswordRegister: getEnv("ALLOW_PASSWORD_REGISTER", "false") == "true",
+		},
 	}
 
 	if cfg.JWT.Secret == "" {
@@ -100,6 +146,15 @@ func Load() (*Config, error) {
 	}
 
 	return cfg, nil
+}
+
+func getEnvInt(key string, fallback int) int {
+	if v := os.Getenv(key); v != "" {
+		if n, err := strconv.Atoi(v); err == nil && n > 0 {
+			return n
+		}
+	}
+	return fallback
 }
 
 func getEnv(key, fallback string) string {

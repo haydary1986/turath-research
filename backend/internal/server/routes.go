@@ -11,6 +11,7 @@ import (
 	"github.com/haydary1986/turath-research/backend/internal/config"
 	"github.com/haydary1986/turath-research/backend/internal/handler"
 	"github.com/haydary1986/turath-research/backend/internal/middleware"
+	"github.com/haydary1986/turath-research/backend/internal/service/mailer"
 )
 
 func NewRouter(cfg *config.Config, db *pgxpool.Pool, rdb *redis.Client) *chi.Mux {
@@ -24,7 +25,7 @@ func NewRouter(cfg *config.Config, db *pgxpool.Pool, rdb *redis.Client) *chi.Mux
 	r.Use(chimw.Timeout(30 * time.Second))
 	r.Use(middleware.SecurityHeaders)
 	r.Use(middleware.CORS(cfg.Server.AllowedOrigins))
-	r.Use(middleware.RateLimit(100, time.Minute))
+	r.Use(middleware.RateLimit(cfg.Server.RateLimitPerMin, time.Minute))
 
 	// ── Handlers ─────────────────────────────────
 	healthH := handler.NewHealthHandler(db, rdb)
@@ -41,6 +42,15 @@ func NewRouter(cfg *config.Config, db *pgxpool.Pool, rdb *redis.Client) *chi.Mux
 	accredH := handler.NewAccreditationHandler(db)
 	workflowH := handler.NewWorkflowHandler(db)
 	roleDashH := handler.NewRoleDashboardHandler(db)
+	mail := mailer.New(mailer.Config{
+		Host: cfg.SMTP.Host, Port: cfg.SMTP.Port, Username: cfg.SMTP.Username,
+		Password: cfg.SMTP.Password, From: cfg.SMTP.From, FromName: cfg.SMTP.FromName,
+	})
+	portalH := handler.NewPortalHandler(db, cfg.Server.UploadDir, mail, cfg.Server.FrontendURL)
+	adminUsersH := handler.NewAdminUserHandler(db)
+	adminImportH := handler.NewAdminImportHandler(db)
+	staffOnly := middleware.RequireRole(middleware.RoleScientificAffairs, middleware.RoleVPResearch)
+	adminOnly := middleware.RequireRole(middleware.RoleAdmin)
 
 	// ── Routes ───────────────────────────────────
 	r.Route("/api/v1", func(r chi.Router) {
@@ -48,6 +58,9 @@ func NewRouter(cfg *config.Config, db *pgxpool.Pool, rdb *redis.Client) *chi.Mux
 		r.Get("/health", healthH.Check)
 		r.Post("/auth/login", authH.Login)
 		r.Post("/auth/register", authH.Register)
+		r.Get("/auth/config", authH.Config)
+		r.Post("/auth/google", authH.GoogleLogin)
+		r.Get("/verify/letter/{id}", portalH.VerifyLetter)
 
 		// Protected
 		r.Group(func(r chi.Router) {
@@ -143,6 +156,39 @@ func NewRouter(cfg *config.Config, db *pgxpool.Pool, rdb *redis.Client) *chi.Mux
 
 			// ── Role-based Dashboard ──────────────
 			r.Get("/dashboard/me", roleDashH.MyDashboard)
+
+			// ── Scientific Affairs Portal ─────────
+			r.Get("/portal/stats", portalH.Stats)
+			r.Get("/portal/requests", portalH.List)
+			r.Post("/portal/requests", portalH.Create)
+			r.Get("/portal/requests/{id}", portalH.Get)
+			r.Put("/portal/requests/{id}", portalH.Update)
+			r.Post("/portal/requests/{id}/submit", portalH.Submit)
+			r.Post("/portal/requests/{id}/files", portalH.UploadAttachment)
+			r.Get("/portal/files/{id}", portalH.DownloadFile)
+			r.Delete("/portal/files/{id}", portalH.DeleteAttachment)
+			r.Get("/portal/letters/{id}", portalH.GetLetter)
+
+			// Stage actions gate themselves per role inside the handler
+			// (the dean acts too, so these cannot sit behind staffOnly).
+			r.Post("/portal/requests/{id}/transition", portalH.Transition)
+			r.Post("/portal/requests/{id}/issue-letter", portalH.IssueLetter)
+
+			r.Group(func(r chi.Router) {
+				r.Use(staffOnly)
+				r.Get("/portal/templates", portalH.ListTemplates)
+				r.Post("/portal/templates", portalH.CreateTemplate)
+				r.Put("/portal/templates/{id}", portalH.UpdateTemplate)
+				r.Post("/portal/templates/{id}/activate", portalH.ActivateTemplate)
+				r.Post("/portal/template-assets", portalH.UploadTemplateAsset)
+			})
+
+			r.Group(func(r chi.Router) {
+				r.Use(adminOnly)
+				r.Get("/admin/users", adminUsersH.List)
+				r.Put("/admin/users/{id}", adminUsersH.Update)
+				r.Post("/admin/import/researchers", adminImportH.ImportResearchers)
+			})
 		})
 	})
 

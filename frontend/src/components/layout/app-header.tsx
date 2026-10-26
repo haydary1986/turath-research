@@ -5,6 +5,7 @@ import { useRouter, usePathname } from "@/i18n/routing";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Languages } from "lucide-react";
+import { NotificationsBell } from "@/components/layout/notifications-bell";
 
 export function AppHeader() {
   const t = useTranslations("common");
@@ -18,11 +19,12 @@ export function AppHeader() {
   }
 
   return (
-    <header className="flex h-14 items-center gap-4 border-b bg-background px-6">
+    <header className="flex h-14 items-center gap-4 border-b bg-background px-6 print:hidden">
       <SidebarTrigger />
       <div className="flex-1" />
       <span className="text-sm font-medium">{t("appName")}</span>
       <div className="flex-1" />
+      <NotificationsBell />
       <Button variant="ghost" size="sm" onClick={toggleLocale}>
         <Languages className="size-4" />
         <span className="ms-2 text-xs">

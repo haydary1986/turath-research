@@ -11,6 +11,11 @@ import {
   Search,
   Settings,
   RefreshCw,
+  ClipboardList,
+  FilePlus2,
+  Mail,
+  UserCog,
+  FileUp,
 } from "lucide-react";
 import {
   Sidebar,
@@ -24,6 +29,9 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { Link, usePathname } from "@/i18n/routing";
+import { useHydrated } from "@/hooks/use-hydrated";
+import { useAuth } from "@/lib/auth";
+import { isStaffRole } from "@/lib/portal/types";
 import type { LucideIcon } from "lucide-react";
 
 interface NavItem {
@@ -60,6 +68,24 @@ function NavGroup({ title, items }: { title: string; items: NavItem[] }) {
 export function AppSidebar() {
   const nav = useTranslations("nav");
   const sb = useTranslations("sidebar");
+  const pt = useTranslations("portal.nav");
+  const role = useAuth((state) => state.user?.role);
+  // Role comes from localStorage, so wait for hydration to keep server and client markup identical.
+  const mounted = useHydrated();
+
+  const portalItems: NavItem[] = [
+    { href: "/portal", label: pt("dashboard"), icon: ClipboardList },
+    { href: "/portal/requests", label: pt("requests"), icon: FilePlus2 },
+    ...(mounted && isStaffRole(role)
+      ? [{ href: "/portal/templates", label: pt("templates"), icon: Mail }]
+      : []),
+    ...(mounted && role === "admin"
+      ? [
+          { href: "/portal/users", label: pt("users"), icon: UserCog },
+          { href: "/portal/import", label: pt("import"), icon: FileUp },
+        ]
+      : []),
+  ];
 
   const mainItems: NavItem[] = [
     { href: "/dashboard", label: nav("dashboard"), icon: LayoutDashboard },
@@ -81,11 +107,19 @@ export function AppSidebar() {
 
   return (
     <Sidebar>
-      <SidebarHeader className="border-b px-6 py-4">
-        <h1 className="text-lg font-bold">{sb("brand")}</h1>
-        <p className="text-xs text-muted-foreground">{sb("subtitle")}</p>
+      <SidebarHeader className="border-b border-sidebar-border px-4 py-4">
+        <div className="flex items-center gap-3">
+          <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-sidebar-primary text-sidebar-primary-foreground">
+            <GraduationCap className="size-5" aria-hidden />
+          </div>
+          <div className="min-w-0">
+            <h1 className="truncate text-base font-bold">{sb("brand")}</h1>
+            <p className="truncate text-xs opacity-70">{sb("subtitle")}</p>
+          </div>
+        </div>
       </SidebarHeader>
       <SidebarContent>
+        <NavGroup title={pt("group")} items={portalItems} />
         <NavGroup title={sb("main")} items={mainItems} />
         <NavGroup title={sb("insights")} items={insightItems} />
         <NavGroup title={sb("admin")} items={adminItems} />

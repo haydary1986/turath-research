@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useTranslations } from "next-intl";
 import { api } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -41,7 +40,6 @@ const directionLabels = {
 };
 
 export default function TrendingTopicsPage() {
-  const ct = useTranslations("common");
   const [topics, setTopics] = useState<TrendingTopic[]>([]);
   const [loading, setLoading] = useState(false);
   const [cached, setCached] = useState(false);
@@ -132,7 +130,7 @@ export default function TrendingTopicsPage() {
           <CardContent className="py-12 text-center">
             <Sparkles className="mx-auto size-10 text-muted-foreground" />
             <p className="mt-4 text-muted-foreground">
-              اضغط "تحليل الاتجاهات" لبدء تحليل AI للمواضيع البحثية الرائجة
+              اضغط «تحليل الاتجاهات» لبدء تحليل AI للمواضيع البحثية الرائجة
             </p>
           </CardContent>
         </Card>

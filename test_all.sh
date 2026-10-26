@@ -5,7 +5,7 @@
 # ══════════════════════════════════════════════════
 
 set -e
-API="http://localhost:8080/api/v1"
+API="http://localhost:${API_PORT:-8091}/api/v1"
 PASS=0
 FAIL=0
 TOTAL=0

@@ -16,6 +16,10 @@ COPY . .
 ARG NEXT_PUBLIC_API_URL=/api
 ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
 
+# Rewrites in next.config.ts are resolved at build time
+ARG BACKEND_URL=http://backend:8080
+ENV BACKEND_URL=${BACKEND_URL}
+
 RUN npm run build
 
 # ── Run ───────────────────────────────────────────

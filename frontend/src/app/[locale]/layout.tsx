@@ -8,6 +8,7 @@ import { routing } from "@/i18n/routing";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ServiceWorkerRegister } from "@/components/pwa/service-worker-register";
 import { BRAND_NAVY } from "@/lib/site/brand";
+import { SITE_URL } from "@/lib/seo/site";
 import "../globals.css";
 
 const cairo = Cairo({
@@ -37,6 +38,7 @@ export async function generateMetadata({ params }: Pick<Props, "params">): Promi
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: "site.meta" });
   return {
+    metadataBase: new URL(SITE_URL),
     title: { default: t("appName"), template: `%s | ${t("appName")}` },
     description: t("description"),
     applicationName: t("appName"),

@@ -8,22 +8,27 @@ import { cn } from "@/lib/utils";
 import { PortalEntryButton } from "./portal-entry-button";
 
 const NAV = [
-  { href: "/", key: "home" },
-  { href: "/news", key: "news" },
+  { href: "/", label: "site.nav.home" },
+  { href: "/news", label: "site.nav.news" },
+  { href: "/journals/predatory", label: "landing.nav.journalsGuide" },
+  { href: "/journals/check", label: "landing.nav.journalCheck" },
 ] as const;
 
 function isActive(pathname: string, href: string): boolean {
   return href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(`${href}/`);
 }
 
-/** Public header: university logo, navigation, language switch and the portal button. */
+/** Public header: university logo, navigation, language switch and a compact portal button. */
 export function SiteHeader() {
   const t = useTranslations("site");
+  const tAll = useTranslations();
   const locale = useLocale();
   const pathname = usePathname();
   const otherLocale = locale === "ar" ? "en" : "ar";
+  // The landing page's hero carries the sign-in action; other pages get a compact one here.
+  const onLanding = pathname === "/";
 
-  const links = NAV.map(({ href, key }) => (
+  const links = NAV.map(({ href, label }) => (
     <Link
       key={href}
       href={href}
@@ -34,7 +39,7 @@ export function SiteHeader() {
         "aria-[current=page]:text-primary aria-[current=page]:shadow-[inset_0_-2px_0_var(--accent)]"
       )}
     >
-      {t(`nav.${key}`)}
+      {tAll(label)}
     </Link>
   ));
 
@@ -50,7 +55,7 @@ export function SiteHeader() {
         <Link href="/" className="shrink-0 rounded-md focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none">
           <UniversityLogo variant="color" height={52} alt={t("logoAlt")} priority />
         </Link>
-        <nav aria-label={t("nav.label")} className="ms-4 hidden items-center gap-1 md:flex">
+        <nav aria-label={t("nav.label")} className="ms-4 hidden items-center gap-1 lg:flex">
           {links}
         </nav>
         <div className="ms-auto flex items-center gap-2">
@@ -63,10 +68,10 @@ export function SiteHeader() {
             <Languages className="size-4" aria-hidden />
             {t("nav.switchLanguage")}
           </Link>
-          <PortalEntryButton />
+          {!onLanding && <PortalEntryButton size="sm" />}
         </div>
       </div>
-      <nav aria-label={t("nav.label")} className="mx-auto flex max-w-6xl gap-1 overflow-x-auto px-2 pb-1 md:hidden">
+      <nav aria-label={t("nav.label")} className="mx-auto flex max-w-6xl gap-1 overflow-x-auto px-2 pb-1 lg:hidden">
         {links}
       </nav>
     </header>

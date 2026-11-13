@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 import { NewsList } from "@/components/site/news-list";
+import { pageMetadata } from "@/lib/seo/site";
 import { isAnnouncementType } from "@/lib/site/types";
 
 type Props = {
@@ -11,7 +12,9 @@ type Props = {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: "site.meta" });
-  return { title: t("newsTitle"), description: t("newsDescription") };
+  return pageMetadata({
+    locale, path: "/news", title: t("newsTitle"), description: t("newsDescription"), siteName: t("appName"),
+  });
 }
 
 function single(value: string | string[] | undefined): string | undefined {

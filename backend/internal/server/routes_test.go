@@ -65,6 +65,7 @@ var managerRoutes = []route{
 	{"POST", "/announcements/x/publish"}, {"POST", "/announcements/x/pin"},
 	{"POST", "/announcements/x/attachment"}, {"DELETE", "/announcements/x/attachment"},
 	{"POST", "/activities/x/announce"},
+	{"GET", "/site/stats"}, {"POST", "/site/director-photo"}, {"DELETE", "/site/director-photo"},
 }
 
 var staffRoutes = []route{
@@ -155,9 +156,36 @@ func TestBulkSyncAndImportAreAdminOnly(t *testing.T) {
 // Public site reads need no token and reject malformed ids before touching the database.
 func TestPublicSiteRoutesNeedNoToken(t *testing.T) {
 	router := testRouter()
-	for _, path := range []string{"/public/announcements/not-a-uuid", "/public/files/not-a-uuid"} {
+	for _, path := range []string{
+		"/public/announcements/not-a-uuid", "/public/files/not-a-uuid",
+		"/public/site/director-photo/not-a-uuid", "/public/journals/entries/Not_A_Slug",
+	} {
 		if got := status(t, router, "GET", path, ""); got != http.StatusNotFound {
 			t.Errorf("GET %s without a token = %d, want 404", path, got)
 		}
+	}
+}
+
+// Public journal reads validate their list type before touching the database.
+func TestPublicJournalListsNeedAValidType(t *testing.T) {
+	router := testRouter()
+	for _, path := range []string{"/public/journals/entries?type=x", "/public/journals/letters", "/public/journals/sitemap?type=users"} {
+		if got := status(t, router, "GET", path, ""); got != http.StatusBadRequest {
+			t.Errorf("GET %s = %d, want 400", path, got)
+		}
+	}
+}
+
+// The anonymous journal check has its own per-IP request limit.
+func TestPublicJournalCheckIsRateLimited(t *testing.T) {
+	router := testRouter()
+	long := "/public/journals/check?name=" + strings.Repeat("x", 600)
+	for i := range publicCheckRequestsPerMin {
+		if got := status(t, router, "GET", long, ""); got != http.StatusUnprocessableEntity {
+			t.Fatalf("request %d = %d, want 422", i+1, got)
+		}
+	}
+	if got := status(t, router, "GET", long, ""); got != http.StatusTooManyRequests {
+		t.Fatalf("request over the limit = %d, want 429", got)
 	}
 }

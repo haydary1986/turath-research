@@ -16,6 +16,9 @@ import (
 	syncsvc "github.com/haydary1986/turath-research/backend/internal/service/sync"
 )
 
+// publicCheckRequestsPerMin bounds anonymous journal checks per IP, cached or not.
+const publicCheckRequestsPerMin = 20
+
 func NewRouter(cfg *config.Config, db *pgxpool.Pool, rdb *redis.Client, journals *journalcheck.Service) *chi.Mux {
 	orchestrator := syncsvc.NewOrchestrator(db, cfg.CrossRef.Mailto, cfg.OpenAlex.APIKey)
 	return newRouter(cfg, db, rdb, journals, orchestrator, newBulkSync(cfg, db, orchestrator))
@@ -62,6 +65,7 @@ func newRouter(cfg *config.Config, db *pgxpool.Pool, rdb *redis.Client, journals
 		Password: cfg.SMTP.Password, From: cfg.SMTP.From, FromName: cfg.SMTP.FromName,
 	})
 	portalH := handler.NewPortalHandler(db, cfg.Server.UploadDir, mail, cfg.Server.FrontendURL, journals)
+	publicH := handler.NewPublicHandler(db, journals)
 	adminUsersH := handler.NewAdminUserHandler(db)
 	adminImportH := handler.NewAdminImportHandler(db)
 	bulkSyncH := handler.NewBulkSyncHandler(bulkSync)
@@ -85,6 +89,19 @@ func newRouter(cfg *config.Config, db *pgxpool.Pool, rdb *redis.Client, journals
 		r.Get("/public/announcements", portalH.ListPublicAnnouncements)
 		r.Get("/public/announcements/{id}", portalH.GetPublicAnnouncement)
 		r.Get("/public/files/{id}", portalH.DownloadPublicFile)
+		r.Get("/public/site/director-photo/{id}", portalH.DownloadDirectorPhoto)
+		// Aggregates only (cached ~10 min) and the public journal pages.
+		r.Get("/public/stats", publicH.PublicStats)
+		r.Get("/public/publications/latest", publicH.LatestPublications)
+		r.Get("/public/journals/status", publicH.PublicJournalStatus)
+		r.Get("/public/journals/entries", publicH.PublicJournalEntries)
+		r.Get("/public/journals/entries/{slug}", publicH.PublicJournalEntry)
+		r.Get("/public/journals/letters", publicH.PublicJournalLetters)
+		r.Get("/public/journals/sitemap", publicH.PublicJournalSitemap)
+		// Anonymous checks reach external indexes: a tight per-IP request limit on top
+		// of the handler's per-IP and overall allowance for uncached lookups.
+		r.With(middleware.RateLimit(publicCheckRequestsPerMin, time.Minute)).
+			Get("/public/journals/check", publicH.PublicJournalCheck)
 
 		// Protected
 		r.Group(func(r chi.Router) {
@@ -215,6 +232,9 @@ func newRouter(cfg *config.Config, db *pgxpool.Pool, rdb *redis.Client, journals
 
 				// The public site speaks for the department: its content and announcements.
 				r.Put("/site", portalH.UpdateSiteContent)
+				r.Get("/site/stats", publicH.StaffStats)
+				r.Post("/site/director-photo", portalH.UploadDirectorPhoto)
+				r.Delete("/site/director-photo", portalH.DeleteDirectorPhoto)
 				r.Get("/announcements", portalH.ListAnnouncements)
 				r.Post("/announcements", portalH.CreateAnnouncement)
 				r.Get("/announcements/{id}", portalH.GetAnnouncement)

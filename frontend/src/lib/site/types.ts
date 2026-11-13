@@ -3,9 +3,49 @@
 export const ANNOUNCEMENT_TYPES = ["circular", "activity"] as const;
 export type AnnouncementType = (typeof ANNOUNCEMENT_TYPES)[number];
 
+export const SERVICE_ICONS = ["research", "verify", "award", "calendar", "search", "shield", "file", "users", "book", "chart"] as const;
+export type ServiceIcon = (typeof SERVICE_ICONS)[number];
+
 export interface SiteService {
   title: string;
   description: string;
+  /** A key of SERVICE_ICONS, or "" for the default icon. */
+  icon: string;
+  /** A site-relative path under /portal, /journals or /news, or "". */
+  link: string;
+}
+
+export const STAT_KEYS = ["academics", "publications", "indexed", "colleges", "activities"] as const;
+export type StatKey = (typeof STAT_KEYS)[number];
+
+/** How one live statistic is shown; a non-empty value replaces the computed number. */
+export interface StatSetting {
+  key: StatKey;
+  label: string;
+  value: string;
+  hidden: boolean;
+}
+
+export interface SiteDirector {
+  title: string;
+  name: string;
+  position: string;
+  message: string;
+  /** Managed by the photo endpoints; "" when there is no photo. */
+  photo_id: string;
+}
+
+export const SOCIAL_PLATFORMS = ["facebook", "instagram", "x", "youtube", "linkedin", "telegram", "tiktok", "whatsapp", "website"] as const;
+export type SocialPlatform = (typeof SOCIAL_PLATFORMS)[number];
+
+export interface SiteSocial {
+  platform: SocialPlatform;
+  url: string;
+}
+
+export interface SiteFAQItem {
+  question: string;
+  answer: string;
 }
 
 export interface SiteContact {
@@ -27,7 +67,42 @@ export interface SiteContent {
   services: SiteService[];
   contact: SiteContact;
   links: SiteLink[];
+  stats: StatSetting[];
+  director: SiteDirector;
+  colleges: SiteLink[];
+  socials: SiteSocial[];
+  faq: SiteFAQItem[];
+  hide_publications: boolean;
   updated_at?: string;
+}
+
+/** A statistic as visitors see it: number is null when staff set a manual value. */
+export interface PublicStat {
+  key: StatKey;
+  label: string;
+  value: string;
+  number: number | null;
+}
+
+/** The editor's view of a statistic: its setting plus the computed number. */
+export interface StaffStat extends StatSetting {
+  computed: number;
+}
+
+export interface LocalizedName {
+  ar: string;
+  en: string | null;
+}
+
+export interface PublicPublication {
+  id: string;
+  title_ar: string | null;
+  title_en: string | null;
+  journal: string | null;
+  year: number | null;
+  doi: string | null;
+  author: LocalizedName;
+  college: LocalizedName | null;
 }
 
 export interface AnnouncementAttachment {
@@ -82,6 +157,18 @@ export const SITE_LIMITS = {
   title: 300,
   body: 20000,
   referenceNo: 100,
+  statLabel: 80,
+  statValue: 20,
+  directorTitle: 150,
+  directorName: 150,
+  directorPosition: 200,
+  directorMessage: 5000,
+  colleges: 30,
+  socials: 10,
+  faq: 20,
+  faqQuestion: 300,
+  faqAnswer: 3000,
+  serviceLink: 200,
 } as const;
 
 export const PUBLIC_API = {
@@ -89,7 +176,32 @@ export const PUBLIC_API = {
   announcements: "/api/v1/public/announcements",
   announcement: (id: string): string => `/api/v1/public/announcements/${encodeURIComponent(id)}`,
   file: (id: string): string => `/api/v1/public/files/${encodeURIComponent(id)}`,
+  directorPhoto: (id: string): string => `/api/v1/public/site/director-photo/${encodeURIComponent(id)}`,
+  stats: "/api/v1/public/stats",
+  latestPublications: "/api/v1/public/publications/latest",
 } as const;
+
+/** Staff endpoints of the site editor. */
+export const SITE_ADMIN_API = {
+  content: "/api/v1/site",
+  stats: "/api/v1/site/stats",
+  directorPhoto: "/api/v1/site/director-photo",
+} as const;
+
+const SERVICE_LINK_ROOTS = ["/portal", "/journals", "/news"];
+
+/** Mirrors publicsite.IsSafeServiceLink: a site path under the portal, the journal pages or the news page. */
+export function isSafeServiceLink(link: string): boolean {
+  if (link.length > SITE_LIMITS.serviceLink || !/^\/[a-z0-9_\-/]*$/.test(link) || link.includes("//") || link.includes("..")) {
+    return false;
+  }
+  return SERVICE_LINK_ROOTS.some((root) => link === root || link.startsWith(`${root}/`));
+}
+
+/** Portal pages need a session; visitors are sent to sign in instead. */
+export function requiresSignIn(link: string): boolean {
+  return link === "/portal" || link.startsWith("/portal/");
+}
 
 export function isAnnouncementType(value: string | null | undefined): value is AnnouncementType {
   return !!value && (ANNOUNCEMENT_TYPES as readonly string[]).includes(value);

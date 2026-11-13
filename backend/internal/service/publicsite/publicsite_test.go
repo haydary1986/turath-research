@@ -112,7 +112,7 @@ func TestAnnouncementValidation(t *testing.T) {
 		in   AnnouncementInput
 		want []string
 	}{
-		{"valid circular", AnnouncementInput{Type: TypeCircular, Title: "اعمام", ReferenceNo: "12/2026"}, nil},
+		{"valid circular", AnnouncementInput{Type: TypeCircular, Title: "تعميم", ReferenceNo: "12/2026"}, nil},
 		{"valid activity", AnnouncementInput{Type: TypeActivity, Title: "ندوة", EventDate: "2026-11-20"}, nil},
 		{"unknown type", AnnouncementInput{Type: "news", Title: "x"}, []string{"type:invalid"}},
 		{"missing title", AnnouncementInput{Type: TypeCircular}, []string{"title:required"}},

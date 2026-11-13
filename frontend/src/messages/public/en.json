@@ -1,0 +1,305 @@
+{
+  "landing": {
+    "hero": {
+      "primaryCta": "Sign in with your university account",
+      "enterPortal": "Enter the portal",
+      "secondaryCta": "Circulars & activities",
+      "signInHint": "With your university Google Workspace account (@uoturath.edu.iq)"
+    },
+    "stats": {
+      "title": "Scientific Affairs in numbers",
+      "labels": {
+        "academics": "Faculty & researchers",
+        "publications": "Published papers",
+        "indexed": "Papers in Scopus & Web of Science",
+        "colleges": "Colleges",
+        "activities": "Approved activities this year"
+      }
+    },
+    "services": {
+      "open": "Go to the service",
+      "signInFirst": "Requires sign-in"
+    },
+    "howTo": {
+      "title": "How do I submit a request?",
+      "intro": "Three steps from signing in to receiving the official letter.",
+      "stepN": "Step {n}",
+      "step1Title": "Sign in with your university account",
+      "step1Body": "Use your university email ending in @uoturath.edu.iq through the Google button.",
+      "step2Title": "Fill in the request and upload the signed form",
+      "step2Body": "Choose the request type, complete its details and upload the official form once it is signed by the responsible body.",
+      "step3Title": "Follow the approval stages",
+      "step3Body": "The request goes to the college dean, then Scientific Affairs, then the Vice President for Research, with a notification at every stage."
+    },
+    "publications": {
+      "title": "Latest research published by our faculty",
+      "year": "Year",
+      "journal": "Journal",
+      "openDoi": "Open the paper via DOI",
+      "opensInNewTab": "(opens in a new tab)"
+    },
+    "journalsPromo": {
+      "title": "Before you submit, check the journal",
+      "body": "A free public guide to predatory journals, predatory publishers and hijacked journals, with a check that matches a journal's name, ISSN or website against the lists and open sources.",
+      "guideCta": "Predatory journals guide",
+      "checkCta": "Check a journal now",
+      "listCta": "Browse the lists"
+    },
+    "director": {
+      "defaultTitle": "Director's message",
+      "photoAlt": "Photo of {name}"
+    },
+    "faq": {
+      "title": "Frequently asked questions"
+    },
+    "footer": {
+      "contactTitle": "Contact us",
+      "collegesTitle": "University colleges",
+      "linksTitle": "Useful links",
+      "journalsTitle": "Journals & publishing",
+      "followUs": "Follow us",
+      "email": "Email",
+      "phone": "Phone",
+      "location": "Address",
+      "hours": "Working hours",
+      "opensInNewTab": "(opens in a new tab)",
+      "social": {
+        "facebook": "Facebook",
+        "instagram": "Instagram",
+        "x": "X (Twitter)",
+        "youtube": "YouTube",
+        "linkedin": "LinkedIn",
+        "telegram": "Telegram",
+        "tiktok": "TikTok",
+        "whatsapp": "WhatsApp",
+        "website": "Website"
+      }
+    },
+    "nav": {
+      "journalsGuide": "Predatory journals",
+      "journalCheck": "Journal check"
+    }
+  },
+  "journals": {
+    "siteName": "Scientific Affairs — Al-Turath University",
+    "crumbs": {
+      "label": "Breadcrumb",
+      "home": "Home",
+      "hub": "Journals & publishing",
+      "guide": "Predatory journals guide",
+      "list": "Predatory journals lists",
+      "check": "Journal check"
+    },
+    "hub": {
+      "title": "Journals & Publishing: Guides and Tools for Researchers",
+      "description": "Practical guides on predatory and hijacked journals and on verifying Scopus and Web of Science indexing, with a predatory journals list and a free journal check.",
+      "intro": "Choose the right place to publish. Short guides and free tools, open to everyone without signing in.",
+      "topicsTitle": "Guide topics",
+      "toolsTitle": "Tools",
+      "readMore": "Read the guide"
+    },
+    "guide": {
+      "faqTitle": "Predatory journals FAQ",
+      "topicsTitle": "Go deeper",
+      "toolsTitle": "Search and check",
+      "lastUpdated": "Content last reviewed: {date}",
+      "sourcesTitle": "Further reading",
+      "onThisPage": "On this page"
+    },
+    "lists": {
+      "predatory_journal": "Predatory journals",
+      "predatory_publisher": "Predatory publishers",
+      "hijacked": "Hijacked journals"
+    },
+    "listHelp": {
+      "predatory_journal": "Standalone journals listed in the source list as potentially predatory.",
+      "predatory_publisher": "Publishers listed as potentially predatory; any journal they publish calls for caution.",
+      "hijacked": "Fake sites impersonating a real journal; each page shows the fake site and, when known, the authentic journal."
+    },
+    "listPage": {
+      "title": "Predatory Journals List and Hijacked Journals (Beall's list)",
+      "description": "Browse the predatory journals, predatory publishers and hijacked journals lists A–Z or by search, with the last refresh date and source of every entry.",
+      "intro": "The lists are refreshed daily from the Stop Predatory Journals project, which builds on Beall's list. Browse each list A–Z or search it directly.",
+      "count": "{count, plural, =0 {No entries} one {# entry} other {# entries}}",
+      "lastRefresh": "Last refreshed: {date}",
+      "browse": "Browse A–Z",
+      "searchTitle": "Search the lists"
+    },
+    "index": {
+      "title": "{list}: A–Z index",
+      "titleLetter": "{list} — letter {letter}",
+      "titleOther": "{list} — names starting with a digit or symbol",
+      "description": "{list} in the source list, sorted A–Z, with a page for every entry and the last refresh date.",
+      "lettersLabel": "Letters",
+      "all": "All",
+      "other": "#",
+      "pageOf": "Page {page} of {pages}",
+      "previous": "Previous",
+      "next": "Next",
+      "empty": "No entries here.",
+      "pagination": "Pagination"
+    },
+    "entry": {
+      "metaTitle": "{name} — listed in {list}",
+      "metaDescription": "\"{name}\" is listed in the Stop Predatory Journals {list} list (as of {date}). Check the journal before you publish.",
+      "statement": {
+        "predatory_journal": "\"{name}\" is listed in the Stop Predatory Journals list as a potential predatory journal.",
+        "predatory_publisher": "\"{name}\" is listed in the Stop Predatory Journals list as a potential predatory publisher.",
+        "hijacked": "\"{name}\" is listed in the Stop Predatory Journals hijacked journals list: one or more websites impersonate this journal."
+      },
+      "factsTitle": "Listing details",
+      "listedName": "Name as listed",
+      "listType": "List",
+      "host": "Listed domain",
+      "fakeHost": "Listed fake site",
+      "authenticJournal": "Authentic journal",
+      "authenticSite": "Authentic journal's site",
+      "source": "Source",
+      "lastRefresh": "List last refreshed",
+      "noHost": "Not given",
+      "meaningTitle": "What does this listing mean?",
+      "meaning": {
+        "predatory_journal": "The list's maintainers noted practices at this journal that are considered signs of predatory publishing, such as weak peer review or false indexing claims. A listing is a warning that calls for checking, and a journal's practices can change over time.",
+        "predatory_publisher": "The list's maintainers noted practices at this publisher that are considered signs of predatory publishing. Its journals call for caution; check each journal on its own.",
+        "hijacked": "A website uses the name of a real journal without being its official site. Papers sent to the fake site are not published in the real journal. Confirm the official site before you submit."
+      },
+      "whatToDoTitle": "What should I do?",
+      "whatToDo": "Run the journal check, verify indexing on the official Scopus and Web of Science sites, and talk to Scientific Affairs if you will rely on the paper for promotion or another official procedure.",
+      "disclaimer": "This page shows what a volunteer-run, unofficial public list contains; it is not Al-Turath University's judgement of the journal or publisher. The lists of the Ministry of Higher Education and Scientific Research and the decision of Scientific Affairs prevail.",
+      "correction": "Request a correction",
+      "correctionSubject": "Correction request for entry: {name}",
+      "correctionBody": "Page: {url}\n\nPlease describe the correction and the evidence for it:",
+      "correctionHint": "Think these details are inaccurate? Send a correction request to Scientific Affairs.",
+      "checkCta": "Check this journal now",
+      "sameHost": "Other entries on the same domain",
+      "neighbours": "Nearby entries (A–Z)",
+      "backToIndex": "Back to the {list} index"
+    },
+    "notFound": {
+      "title": "Entry not found",
+      "body": "This entry is no longer in the current lists, or the link is wrong.",
+      "back": "Back to the lists"
+    },
+    "checkPage": {
+      "title": "Journal Check: Is This Journal Reputable or Predatory?",
+      "description": "A free pre-submission journal check that matches a name, ISSN or website against predatory and hijacked journal lists and OpenAlex, Crossref and DOAJ.",
+      "intro": "Enter a journal name, ISSN or website. The check compares it with the predatory journal, predatory publisher and hijacked journal lists and with open sources, then shows the result and its reasons.",
+      "howTitle": "How to read the result",
+      "how1": "\"Danger\" means a match with a predatory or hijacked list or the department's list; do not submit before consulting Scientific Affairs.",
+      "how2": "\"Caution\" means signs that call for a manual check.",
+      "how3": "\"Found in sources\" only means the journal is known to the open sources; it is not a quality certificate.",
+      "how4": "The Scopus status always shows \"unknown\" because no Scopus API is available; check Scopus manually.",
+      "advisory": "The result is advisory. The Ministry's lists and the Scientific Affairs decision prevail."
+    }
+  },
+  "siteEditor": {
+    "tabs": {
+      "content": "Main content",
+      "blocks": "Page sections",
+      "footer": "Footer"
+    },
+    "serviceIcon": "Icon",
+    "serviceLink": "Service link",
+    "serviceLinkHint": "A site path starting with /portal, /journals or /news, e.g. /portal/new/research_plan. Leave empty for a card without a link.",
+    "icons": {
+      "default": "Default",
+      "research": "Research",
+      "verify": "Verification",
+      "award": "Award",
+      "calendar": "Activity",
+      "search": "Search",
+      "shield": "Shield",
+      "file": "File",
+      "users": "People",
+      "book": "Book",
+      "chart": "Statistics"
+    },
+    "stats": {
+      "title": "Statistics bar",
+      "intro": "Values are computed from portal data every 10 minutes. You can enter a manual value shown instead of the computed one, change the label, or hide any statistic.",
+      "automatic": "Computed value: {value}",
+      "computedAt": "Computed {date}",
+      "loadFailed": "Could not load the computed values.",
+      "label": "Displayed label",
+      "labelPlaceholder": "Default label: {label}",
+      "value": "Manual value",
+      "valuePlaceholder": "Automatic",
+      "useAutomatic": "Use the computed value",
+      "visible": "Shown on the page",
+      "manualBadge": "Manual",
+      "autoBadge": "Automatic",
+      "preview": "Bar preview",
+      "what": {
+        "academics": "Active faculty members and researchers.",
+        "publications": "Published papers with a title, linked to the university's academics.",
+        "indexed": "Papers of approved journal-verification requests (verified onward) in Scopus or Web of Science, plus papers carrying a Scopus id, without duplicates.",
+        "colleges": "Colleges registered in the portal.",
+        "activities": "Approved scientific activities dated in the current year."
+      }
+    },
+    "publications": {
+      "title": "Latest publications",
+      "show": "Show the \"Latest research published by our faculty\" section",
+      "hint": "Shows the latest 8 published papers linked to the university's academics (title, journal, year, college, author name and DOI link)."
+    },
+    "director": {
+      "title": "Director's message",
+      "hint": "The section appears once a name or message is entered.",
+      "blockTitle": "Section title",
+      "name": "Name",
+      "position": "Position",
+      "message": "Message",
+      "photo": "Photo",
+      "photoHint": "A PNG or JPG image up to 3 MB. It is public.",
+      "upload": "Upload photo",
+      "replace": "Replace photo",
+      "remove": "Remove photo",
+      "removeConfirm": "Remove the director's photo from the public page?",
+      "uploaded": "Photo saved.",
+      "removed": "Photo removed.",
+      "noPhoto": "No photo"
+    },
+    "faq": {
+      "title": "FAQ",
+      "hint": "The section is hidden when there are no questions.",
+      "add": "Add question",
+      "question": "Question",
+      "answer": "Answer"
+    },
+    "colleges": {
+      "title": "College links",
+      "hint": "Shown in the site footer.",
+      "add": "Add college",
+      "name": "College name",
+      "url": "College website (https://)"
+    },
+    "socials": {
+      "title": "Social media accounts",
+      "hint": "https links only, shown as icons in the footer.",
+      "add": "Add account",
+      "platform": "Platform",
+      "url": "Link (https://)"
+    },
+    "previewTitle": "Preview",
+    "unsavedHint": "Changes are not public until you save.",
+    "fields": {
+      "service_icon": "Service icon",
+      "service_link": "Service link",
+      "stat_label": "Statistic label",
+      "stat_value": "Manual statistic value",
+      "director_title": "Director section title",
+      "director_name": "Director's name",
+      "director_position": "Director's position",
+      "director_message": "Director's message",
+      "colleges": "College links",
+      "college_label": "College name",
+      "college_url": "College website",
+      "socials": "Social accounts",
+      "social_platform": "Social platform",
+      "social_url": "Social account link",
+      "faq": "FAQ",
+      "faq_question": "Question",
+      "faq_answer": "Answer"
+    }
+  }
+}

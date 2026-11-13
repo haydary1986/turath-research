@@ -101,6 +101,8 @@ services:
     environment:
       NEXT_PUBLIC_API_URL: ""
       BACKEND_URL: http://backend:8080
+      # Public origin used in canonical URLs, sitemaps, robots.txt and Open Graph tags.
+      SITE_URL: ${SITE_URL:-https://research.uoturath.edu.iq}
     ports:
       - "127.0.0.1:${FRONTEND_PORT:-3320}:3000"
     depends_on:

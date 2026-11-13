@@ -9,62 +9,78 @@ import (
 
 type visitor struct {
 	lastSeen time.Time
-	tokens   int
+	tokens   float64
 }
 
-// RateLimit returns a simple in-memory token-bucket rate limiter.
-// maxRequests per window per IP.
+// bucket is a per-key token bucket refilled continuously at limit tokens per window.
+type bucket struct {
+	mu       sync.Mutex
+	limit    float64
+	window   time.Duration
+	now      func() time.Time
+	visitors map[string]*visitor
+}
+
+func newBucket(limit int, window time.Duration) *bucket {
+	return &bucket{limit: float64(limit), window: window, now: time.Now, visitors: map[string]*visitor{}}
+}
+
+// allow spends one token of key and reports whether one was available. Tokens refill
+// in proportion to the time since the key's last request, so steady traffic below the
+// rate is never refused (the previous version only refilled after a full idle window).
+func (b *bucket) allow(key string) bool {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	now := b.now()
+	v, exists := b.visitors[key]
+	if !exists {
+		v = &visitor{tokens: b.limit, lastSeen: now}
+		b.visitors[key] = v
+	}
+	elapsed := now.Sub(v.lastSeen)
+	v.tokens = min(b.limit, v.tokens+b.limit*elapsed.Seconds()/b.window.Seconds())
+	v.lastSeen = now
+	if v.tokens < 1 {
+		return false
+	}
+	v.tokens--
+	return true
+}
+
+// sweep forgets keys idle for more than two windows (their bucket would be full anyway).
+func (b *bucket) sweep() {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	for key, v := range b.visitors {
+		if b.now().Sub(v.lastSeen) > 2*b.window {
+			delete(b.visitors, key)
+		}
+	}
+}
+
+// RateLimit returns an in-memory token-bucket rate limiter:
+// maxRequests per window per IP, refilled continuously.
 func RateLimit(maxRequests int, window time.Duration) func(http.Handler) http.Handler {
-	var (
-		mu       sync.Mutex
-		visitors = make(map[string]*visitor)
-	)
+	b := newBucket(maxRequests, window)
 
 	// Cleanup stale entries every minute.
 	go func() {
 		for {
 			time.Sleep(time.Minute)
-			mu.Lock()
-			for ip, v := range visitors {
-				if time.Since(v.lastSeen) > 2*window {
-					delete(visitors, ip)
-				}
-			}
-			mu.Unlock()
+			b.sweep()
 		}
 	}()
 
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			ip, _, _ := net.SplitHostPort(r.RemoteAddr)
-		if ip == "" {
-			ip = r.RemoteAddr
-		}
-
-			mu.Lock()
-			v, exists := visitors[ip]
-			if !exists {
-				v = &visitor{tokens: maxRequests}
-				visitors[ip] = v
+			if ip == "" {
+				ip = r.RemoteAddr
 			}
-
-			// Refill tokens based on elapsed time.
-			elapsed := time.Since(v.lastSeen)
-			refill := int(elapsed / window) * maxRequests
-			v.tokens += refill
-			if v.tokens > maxRequests {
-				v.tokens = maxRequests
-			}
-			v.lastSeen = time.Now()
-
-			if v.tokens <= 0 {
-				mu.Unlock()
+			if !b.allow(ip) {
 				http.Error(w, `{"success":false,"error":"rate limit exceeded"}`, http.StatusTooManyRequests)
 				return
 			}
-			v.tokens--
-			mu.Unlock()
-
 			next.ServeHTTP(w, r)
 		})
 	}

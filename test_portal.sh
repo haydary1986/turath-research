@@ -730,7 +730,7 @@ call POST /announcements "$RES" '{"type":"circular","title":"x"}'; expect "resea
 call POST /announcements "$VP" '{"type":"circular","title":"x"}'; expect "VP cannot publish announcements" 403
 call POST /announcements "$SA" '{"type":"news","title":""}'; expect "invalid announcement rejected" 422
 echo "$BODY" | grep -q "type:invalid" && echo "$BODY" | grep -q "title:required" && ok "announcement problems reported by field" || bad "ann codes" "$BODY"
-call POST /announcements "$SA" "{\"type\":\"circular\",\"title\":\"اعمام اختبار $RUN\",\"body\":\"نص الاعمام\\n\\n- بند\",\"reference_no\":\"$RUN/ع\",\"event_date\":\"2026-01-01\"}"; expect "SA drafts a circular" 201
+call POST /announcements "$SA" "{\"type\":\"circular\",\"title\":\"تعميم اختبار $RUN\",\"body\":\"نص التعميم\\n\\n- بند\",\"reference_no\":\"$RUN/ع\",\"event_date\":\"2026-01-01\"}"; expect "SA drafts a circular" 201
 ANN=$(echo "$BODY" | jq_ "d['data']['id']")
 [ "$(echo "$BODY" | jq_ "d['data']['published']")" = "False" ] && ok "new announcement starts unpublished" || bad "draft state" "$BODY"
 [ "$(echo "$BODY" | jq_ "d['data']['event_date']")" = "None" ] && ok "circular drops an event date" || bad "circular date" "$BODY"
@@ -759,7 +759,7 @@ echo "$BODY" | grep -q -e "$SA_ID" -e "$SA_EMAIL" && bad "list leak" "$BODY" || 
 [ "$(echo "$BODY" | jq_ "all(a['type']=='circular' for a in d['data'])")" = "True" ] && ok "public list filters by type" || bad "type filter" "$BODY"
 CODE=$(curl -s -o "$TMP/pubdl" -w "%{http_code}" "$API/public/files/$ANNFILE"); [ "$CODE" = "200" ] && head -c4 "$TMP/pubdl" | grep -q '%PDF' && ok "published attachment downloads without a token" || bad "public download" "$CODE"
 CODE=$(curl -s -o /dev/null -w "%{http_code}" "$API/public/files/$FILE"); [ "$CODE" = "404" ] && ok "request files never served publicly" || bad "request file public" "$CODE"
-call PUT "/announcements/$ANN" "$SA" "{\"type\":\"circular\",\"title\":\"اعمام معدل $RUN\",\"body\":\"\",\"reference_no\":\"1\"}"; expect "SA edits the announcement" 200
+call PUT "/announcements/$ANN" "$SA" "{\"type\":\"circular\",\"title\":\"تعميم معدل $RUN\",\"body\":\"\",\"reference_no\":\"1\"}"; expect "SA edits the announcement" 200
 call POST "/announcements/$ANN/publish" "$SA" '{"published":false}'; expect "SA unpublishes" 200
 pub "/public/announcements/$ANN"; expect "withdrawn announcement hidden again" 404
 CODE=$(curl -s -o /dev/null -w "%{http_code}" "$API/public/files/$ANNFILE"); [ "$CODE" = "404" ] && ok "withdrawn attachment 404 publicly" || bad "withdrawn file" "$CODE"
@@ -778,6 +778,110 @@ call DELETE "/announcements/$ANN" "$SA"; expect "SA deletes the announcement" 20
 call GET "/announcements/$ANN" "$SA"; expect "deleted announcement gone" 404
 [ "$(sqlv "SELECT COUNT(*) FROM portal_files WHERE id='$ANNFILE'")" = "0" ] && ok "attachment removed with its announcement" || bad "orphan file" "left behind"
 call DELETE "/announcements/$FROMACT" "$SA"; expect "activity draft cleaned up" 200
+
+echo "== public site v2: statistics, publications, director photo, blocks =="
+pub /public/stats; expect "public statistics readable without a token" 200
+[ "$(echo "$BODY" | jq_ "all(sorted(s.keys())==['key','label','number','value'] for s in d['data'])")" = "True" ] && ok "statistics are aggregates only" || bad "stats shape" "$BODY"
+call GET /site/stats "$RES"; expect "researcher cannot read the stats editor" 403
+call GET /site/stats "$SA"; expect "SA reads computed statistics" 200
+[ "$(echo "$BODY" | jq_ "len(d['data']['items'])")" = "5" ] && ok "editor lists all five statistics" || bad "staff stats" "$BODY"
+pub /public/site; BASE_SITE=$(echo "$BODY" | jq_ "json.dumps(d['data'], ensure_ascii=False)")
+OVERRIDE=$(echo "$BASE_SITE" | python3 -c "
+import sys,json; d=json.load(sys.stdin)
+for s in d['stats']:
+    if s['key']=='academics': s['value']='999+'; s['label']='E2E label'
+    if s['key']=='activities': s['hidden']=True
+d['director']['photo_id']='00000000-0000-0000-0000-000000000000'
+print(json.dumps(d, ensure_ascii=False))")
+call PUT /site "$SA" "$OVERRIDE"; expect "SA overrides statistics" 200
+pub /public/stats
+[ "$(echo "$BODY" | jq_ "[s for s in d['data'] if s['key']=='academics'][0]['value']")" = "999+" ] && ok "manual value shown instead of the computed one" || bad "override value" "$BODY"
+[ "$(echo "$BODY" | jq_ "[s for s in d['data'] if s['key']=='academics'][0]['number']")" = "None" ] && ok "overridden statistic carries no number" || bad "override number" "$BODY"
+[ "$(echo "$BODY" | jq_ "any(s['key']=='activities' for s in d['data'])")" = "False" ] && ok "hidden statistic left out" || bad "hidden stat" "$BODY"
+pub /public/site
+[ "$(echo "$BODY" | jq_ "d['data']['director']['photo_id']")" = "" ] && ok "editor cannot set the photo id by hand" || bad "photo id forged" "$BODY"
+RESET=$(echo "$OVERRIDE" | python3 -c "
+import sys,json; d=json.load(sys.stdin)
+for s in d['stats']: s['value']=''; s['hidden']=False
+print(json.dumps(d, ensure_ascii=False))")
+call PUT /site "$SA" "$RESET"; expect "statistics reset to automatic" 200
+pub /public/stats
+[ "$(echo "$BODY" | jq_ "[s for s in d['data'] if s['key']=='academics'][0]['number'] is not None")" = "True" ] && ok "reset statistic shows the computed number" || bad "reset" "$BODY"
+BAD_SITE=$(echo "$BASE_SITE" | python3 -c "
+import sys,json; d=json.load(sys.stdin)
+d['services']=[{'title':'x','description':'','icon':'rocket','link':'https://evil.example'}]
+d['socials']=[{'platform':'x','url':'http://x.com/u'}]; d['faq']=[{'question':'q','answer':''}]
+print(json.dumps(d, ensure_ascii=False))")
+call PUT /site "$SA" "$BAD_SITE"; expect "invalid blocks rejected" 422
+for code in service_icon:invalid service_link:invalid social_url:https_required faq_answer:required; do
+  echo "$BODY" | grep -q "$code" && ok "block problem reported: $code" || bad "block code $code" "$BODY"
+done
+pub /public/site
+[ "$(echo "$BODY" | jq_ "len(d['data']['colleges'])")" -ge 14 ] 2>/dev/null && ok "college sites seeded" || bad "colleges" "$BODY"
+[ "$(echo "$BODY" | jq_ "len(d['data']['faq'])")" -ge 1 ] 2>/dev/null && ok "FAQ seeded" || bad "faq" "$BODY"
+
+pub /public/publications/latest; expect "latest publications readable without a token" 200
+echo "$BODY" | grep -q -e '"email"' -e '"orcid' -e '"h_index"' && bad "publication leak" "$BODY" || ok "publications expose no researcher contact data"
+
+upload /site/director-photo "$RES" "$TMP/bg.png"; expect "researcher cannot upload the director photo" 403
+upload /site/director-photo "$SA" "$TMP/doc.pdf"; expect "a PDF is not accepted as the photo" 415
+upload /site/director-photo "$SA" "$TMP/bg.png"; expect "SA uploads the director photo" 201
+PHOTO=$(echo "$BODY" | jq_ "d['data']['director']['photo_id']")
+CT=$(curl -s -o /dev/null -w "%{http_code} %{content_type}" "$API/public/site/director-photo/$PHOTO"); [ "$CT" = "200 image/png" ] && ok "director photo served publicly" || bad "photo serve" "$CT"
+call PUT /site "$SA" "$RESET"; expect "saving the page keeps the photo" 200
+[ "$(echo "$BODY" | jq_ "d['data']['director']['photo_id']")" = "$PHOTO" ] && ok "photo id survives a content save" || bad "photo kept" "$BODY"
+CODE=$(curl -s -o /dev/null -w "%{http_code}" "$API/public/site/director-photo/$FILE"); [ "$CODE" = "404" ] && ok "other files never served as the photo" || bad "photo route leak" "$CODE"
+call DELETE /site/director-photo "$SA"; expect "SA removes the director photo" 200
+CODE=$(curl -s -o /dev/null -w "%{http_code}" "$API/public/site/director-photo/$PHOTO"); [ "$CODE" = "404" ] && ok "removed photo no longer served" || bad "removed photo" "$CODE"
+call PUT /site "$SA" "$BASE_SITE"; expect "site content restored after v2 checks" 200
+
+echo "== public journal pages =="
+JNAME="E2E Predatory Test Journal $RUN"
+sqlv "INSERT INTO journal_reference_list (name_key, name, url, url_host, list_type, source, fetched_at)
+      VALUES ('e2e predatory test journal $RUN', '$JNAME', 'https://e2e-$RUN.example', 'e2e-$RUN.example', 'predatory_journal', 'stop-predatory-journals', NOW())" >/dev/null
+JSLUG=$(sqlv "SELECT slug FROM journal_reference_list WHERE name='$JNAME' LIMIT 1")
+[ -n "$JSLUG" ] && ok "reference entry has a slug" || bad "slug" "empty"
+pub /public/journals/status; expect "list status readable without a token" 200
+pub "/public/journals/entries?type=users"; expect "unknown list type rejected" 400
+pub "/public/journals/entries?type=predatory_journal&q=E2E%20Predatory%20Test%20Journal%20$RUN"; expect "list search without a token" 200
+[ "$(echo "$BODY" | jq_ "d['data'][0]['slug']")" = "$JSLUG" ] && ok "search returns the entry with its slug" || bad "entry search" "$BODY"
+pub "/public/journals/entries?type=predatory_journal&letter=e&q=$RUN"
+echo "$BODY" | grep -q "$JSLUG" && ok "A–Z index lists the entry under its letter" || bad "letter index" "${BODY:0:200}"
+pub "/public/journals/letters?type=predatory_journal"; expect "letter counts readable" 200
+pub "/public/journals/entries/$JSLUG"; expect "entry page data readable" 200
+[ "$(echo "$BODY" | jq_ "d['data']['entry']['name']")" = "$JNAME" ] && ok "entry carries its listed name" || bad "entry name" "$BODY"
+pub "/public/journals/entries/no-such-entry-0000000000"; expect "unknown slug 404" 404
+pub "/public/journals/sitemap?type=predatory_journal&limit=5000"
+echo "$BODY" | grep -q "$JSLUG" && ok "sitemap feed includes the entry" || bad "sitemap feed" "${BODY:0:200}"
+# ISSN 2049-3630 is on the staff watchlist (see the screening section above).
+call GET "/screening/check?issn=20493630" "$RES"
+[ "$(echo "$BODY" | jq_ "d['data']['classification']")" = "predatory" ] && ok "portal check keeps the watchlist details" || bad "portal check" "$BODY"
+pub "/public/journals/check?issn=20493630"; expect "anonymous journal check" 200
+[ "$(echo "$BODY" | jq_ "d['data']['verdict']")" = "danger" ] && ok "watchlist still drives the public verdict" || bad "public verdict" "$BODY"
+[ "$(echo "$BODY" | jq_ "[d['data'].get(k) for k in ('classification','name','note','matched_by')]")" = "[None, None, None, None]" ] && ok "public check hides the watchlist entry" || bad "watchlist leak" "$BODY"
+echo "$BODY" | grep -q "قائمة الوزارة" && bad "watchlist note leaked" "$BODY" || ok "watchlist note not in the public answer"
+
+FRONT="${FRONT:-http://localhost:3001}"
+CODE=$(curl -s -o "$TMP/robots" -w "%{http_code}" "$FRONT/robots.txt"); [ "$CODE" = "200" ] && grep -q "Disallow: /\*/portal" "$TMP/robots" && grep -q "Sitemap: .*/sitemap.xml" "$TMP/robots" && ok "robots.txt served with portal disallowed and sitemaps" || bad "robots" "$CODE"
+CODE=$(curl -s -o "$TMP/sitemap" -w "%{http_code}" "$FRONT/sitemap.xml"); [ "$CODE" = "200" ] && grep -q "/ar/journals/predatory</loc>" "$TMP/sitemap" && ok "sitemap.xml lists the journal guide" || bad "sitemap" "$CODE"
+CODE=$(curl -s -o "$TMP/jsitemap" -w "%{http_code}" "$FRONT/journals-sitemap/sitemap/predatory_journal.xml"); [ "$CODE" = "200" ] && grep -q "$JSLUG" "$TMP/jsitemap" && ok "journal sitemap lists the entry page" || bad "journal sitemap" "$CODE"
+CODE=$(curl -s -o "$TMP/entry.html" -w "%{http_code}" "$FRONT/ar/journals/predatory/$JSLUG"); [ "$CODE" = "200" ] && grep -q "<h1[^>]*>$JNAME</h1>" "$TMP/entry.html" && ok "entry page server-renders the journal name" || bad "entry SSR" "$CODE"
+grep -q 'application/ld+json' "$TMP/entry.html" && grep -q '"BreadcrumbList"' "$TMP/entry.html" && ok "entry page has JSON-LD breadcrumbs" || bad "entry json-ld" "missing"
+grep -q 'rel="canonical"' "$TMP/entry.html" && grep -q 'hrefLang="en"' "$TMP/entry.html" && ok "entry page has canonical and hreflang" || bad "entry alternates" "missing"
+grep -q 'noindex' "$TMP/entry.html" && bad "entry noindex" "found" || ok "entry page is indexable"
+CODE=$(curl -s -o /dev/null -w "%{http_code}" "$FRONT/ar/journals/predatory/no-such-entry-0000000000"); [ "$CODE" = "404" ] && ok "unknown entry slug is a 404 page" || bad "entry 404" "$CODE"
+CODE=$(curl -s -o "$TMP/guide.html" -w "%{http_code}" "$FRONT/ar/journals/predatory"); [ "$CODE" = "200" ] && grep -q '"FAQPage"' "$TMP/guide.html" && ok "guide page has FAQPage structured data" || bad "guide" "$CODE"
+CODE=$(curl -s -o "$TMP/home.html" -w "%{http_code}" "$FRONT/ar"); [ "$CODE" = "200" ] && grep -q 'id="stats-title"' "$TMP/home.html" && grep -q 'href="/ar/journals/predatory"' "$TMP/home.html" && ok "homepage renders statistics and links the journal guide" || bad "home" "$CODE"
+sqlv "DELETE FROM journal_reference_list WHERE name='$JNAME'" >/dev/null
+CODE=$(curl -s -o /dev/null -w "%{http_code}" "$API/public/journals/entries/$JSLUG"); [ "$CODE" = "404" ] && ok "entry removed from the list stops resolving" || bad "removed entry" "$CODE"
+
+# Last: it spends this IP's anonymous check allowance.
+LIMITED=0
+for _ in $(seq 1 25); do
+  C=$(curl -s -o /dev/null -w "%{http_code}" "$API/public/journals/check?name=$(printf 'x%.0s' $(seq 1 600))")
+  [ "$C" = "429" ] && LIMITED=1 && break
+done
+[ "$LIMITED" = "1" ] && ok "anonymous journal check is rate limited per IP" || bad "check rate limit" "never 429"
 
 echo
 echo "Passed: $PASS  Failed: $FAIL"

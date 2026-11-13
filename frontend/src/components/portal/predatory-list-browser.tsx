@@ -4,6 +4,9 @@ import { useEffect, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { Search } from "lucide-react";
 import { api } from "@/lib/api";
+import { Link } from "@/i18n/routing";
+import { PORTAL_JOURNAL_ENDPOINTS, type JournalEndpoints } from "@/lib/journals/endpoints";
+import { JOURNAL_PATHS } from "@/lib/journals/lists";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,9 +18,12 @@ const LIST_TYPES = ["predatory_journal", "predatory_publisher", "hijacked"] as c
 type ListType = (typeof LIST_TYPES)[number];
 const PAGE_SIZE = 50;
 
+/** A list row from either endpoint: the portal sends `url`, the public one `hosts` and `slug`. */
 interface Entry {
   name: string;
-  url: string | null;
+  url?: string | null;
+  hosts?: string[];
+  slug?: string;
   list_type: ListType;
   authentic_name: string | null;
   authentic_url: string | null;
@@ -25,7 +31,7 @@ interface Entry {
   fetched_at: string;
 }
 
-function hostOf(url: string | null): string {
+function hostOf(url: string | null | undefined): string {
   if (!url) return "";
   try {
     return new URL(url).host.replace(/^www\./, "");
@@ -34,8 +40,12 @@ function hostOf(url: string | null): string {
   }
 }
 
+function listedHosts(e: Entry): string {
+  return e.hosts ? e.hosts.join("، ") : hostOf(e.url);
+}
+
 /** Searchable view of the predatory journals, publishers and hijacked-journal lists. */
-export function PredatoryListBrowser() {
+export function PredatoryListBrowser({ endpoints = PORTAL_JOURNAL_ENDPOINTS }: { endpoints?: JournalEndpoints }) {
   const t = useTranslations("portal.predatory");
   const locale = useLocale();
   const [type, setType] = useState<ListType>("predatory_journal");
@@ -53,7 +63,7 @@ export function PredatoryListBrowser() {
       if (query.trim()) params.set("q", query.trim());
       setLoading(true);
       api
-        .get<Entry[]>(`/api/v1/screening/reference-list?${params}`)
+        .get<Entry[]>(`${endpoints.list}?${params}`)
         .then((res) => {
           if (!active) return;
           setItems(res.data ?? []);
@@ -67,7 +77,7 @@ export function PredatoryListBrowser() {
       active = false;
       clearTimeout(timer);
     };
-  }, [type, query, page]);
+  }, [type, query, page, endpoints.list]);
 
   return (
     <div className="space-y-4">
@@ -120,14 +130,20 @@ export function PredatoryListBrowser() {
       ) : (
         <ul className="divide-y rounded-lg border">
           {items.map((e, i) => (
-            <li key={`${e.name}-${i}`} className="space-y-1 p-3 text-sm">
+            <li key={e.slug ?? `${e.name}-${i}`} className="space-y-1 p-3 text-sm">
               <p className="font-medium" dir="ltr">
-                {e.name}
+                {e.slug ? (
+                  <Link href={JOURNAL_PATHS.entry(e.slug)} className="text-primary hover:text-accent hover:underline">
+                    {e.name}
+                  </Link>
+                ) : (
+                  e.name
+                )}
               </p>
-              {e.url && (
+              {listedHosts(e) && (
                 <p className="text-xs text-muted-foreground" dir="ltr">
                   {type === "hijacked" ? `${t("fakeSite")}: ` : ""}
-                  <span className={cn(type === "hijacked" && "text-status-danger-fg")}>{hostOf(e.url)}</span>
+                  <span className={cn(type === "hijacked" && "text-status-danger-fg")}>{listedHosts(e)}</span>
                 </p>
               )}
               {type === "hijacked" && (e.authentic_name || e.authentic_url) && (

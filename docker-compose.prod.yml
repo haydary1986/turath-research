@@ -1,0 +1,119 @@
+# Turath Research — production on a shared Plesk server.
+# Differs from docker-compose.yml: nothing is published to the internet. Docker
+# rules bypass the host firewall, so the only published port is the frontend,
+# bound to 127.0.0.1 and reached through the web server's reverse proxy.
+# Run: docker compose -p turath-research-prod -f docker-compose.prod.yml --env-file .env up -d --build
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-turath}
+      POSTGRES_USER: ${POSTGRES_USER:-turath}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?required}
+      POSTGRES_INITDB_ARGS: "--locale=en_US.UTF-8"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - turath-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-turath} -d ${POSTGRES_DB:-turath}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: >
+      redis-server
+      --appendonly yes
+      --maxmemory 256mb
+      --maxmemory-policy allkeys-lru
+      --save 60 1000
+    volumes:
+      - redisdata:/data
+    networks:
+      - turath-net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-turath}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-turath}?sslmode=disable
+      REDIS_URL: redis://redis:6379
+      SERVER_PORT: "8080"
+      FRONTEND_URL: ${FRONTEND_URL:?required}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:?required}
+      JWT_SECRET: ${JWT_SECRET:?required}
+      JWT_EXPIRY: ${JWT_EXPIRY:-24h}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_ALLOWED_DOMAIN: ${GOOGLE_ALLOWED_DOMAIN:-uoturath.edu.iq}
+      ALLOW_PASSWORD_REGISTER: "false"
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
+      DEEPSEEK_BASE_URL: ${DEEPSEEK_BASE_URL:-https://api.deepseek.com}
+      SCOPUS_API_KEY: ${SCOPUS_API_KEY:-}
+      CROSSREF_MAILTO: ${CROSSREF_MAILTO:-}
+      OPENALEX_API_KEY: ${OPENALEX_API_KEY:-}
+      BULK_SYNC_DELAY_SECONDS: ${BULK_SYNC_DELAY_SECONDS:-5}
+      BULK_SYNC_DAILY_LIMIT: ${BULK_SYNC_DAILY_LIMIT:-300}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      SMTP_FROM: ${SMTP_FROM:-}
+      RUN_MIGRATIONS: "true"
+      UPLOAD_DIR: /data/uploads
+      RATE_LIMIT_PER_MIN: ${RATE_LIMIT_PER_MIN:-300}
+    volumes:
+      - uploads:/data/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - turath-net
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:8080/api/v1/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: ""
+        BACKEND_URL: http://backend:8080
+    restart: unless-stopped
+    environment:
+      NEXT_PUBLIC_API_URL: ""
+      BACKEND_URL: http://backend:8080
+    ports:
+      - "127.0.0.1:${FRONTEND_PORT:-3320}:3000"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - turath-net
+
+volumes:
+  pgdata:
+  redisdata:
+  uploads:
+
+networks:
+  turath-net:
+    driver: bridge

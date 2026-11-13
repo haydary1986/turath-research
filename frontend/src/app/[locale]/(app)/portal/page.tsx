@@ -91,10 +91,10 @@ function Dashboard() {
   return (
     <div className="space-y-6">
       {/* Identity band */}
-      <section className="overflow-hidden rounded-2xl border border-sidebar-border bg-gradient-to-l from-sidebar to-[oklch(0.33_0.05_195)] text-sidebar-foreground dark:to-[oklch(0.26_0.04_200)]">
+      <section className="overflow-hidden rounded-2xl border border-sidebar-border bg-gradient-to-l from-sidebar to-[oklch(0.239_0.101_263.3)] text-sidebar-foreground dark:to-[oklch(0.2_0.07_260)]">
         <div className="flex flex-wrap items-center justify-between gap-6 p-6 md:p-8">
           <div className="min-w-0">
-            <p className="text-sm font-medium text-sidebar-primary">{t("university")}</p>
+            <p className="text-sm font-medium text-sidebar-foreground/85">{t("university")}</p>
             <h1 className="mt-1 text-2xl font-bold md:text-3xl">{t("title")}</h1>
             <p className="mt-2 max-w-xl text-sm leading-relaxed opacity-80">{t("subtitle")}</p>
           </div>

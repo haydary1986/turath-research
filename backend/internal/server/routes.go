@@ -80,6 +80,12 @@ func newRouter(cfg *config.Config, db *pgxpool.Pool, rdb *redis.Client, journals
 		r.Post("/auth/google", authH.GoogleLogin)
 		r.Get("/verify/letter/{id}", portalH.VerifyLetter)
 
+		// Public site: landing-page content and published announcements only.
+		r.Get("/public/site", portalH.GetSiteContent)
+		r.Get("/public/announcements", portalH.ListPublicAnnouncements)
+		r.Get("/public/announcements/{id}", portalH.GetPublicAnnouncement)
+		r.Get("/public/files/{id}", portalH.DownloadPublicFile)
+
 		// Protected
 		r.Group(func(r chi.Router) {
 			r.Use(middleware.RequireAuth(cfg.JWT.Secret))
@@ -206,6 +212,19 @@ func newRouter(cfg *config.Config, db *pgxpool.Pool, rdb *redis.Client, journals
 			r.Group(func(r chi.Router) {
 				r.Use(registryManagers)
 				r.Put("/portal/letters/{id}/diwan-no", portalH.UpdateLetterDiwanNo)
+
+				// The public site speaks for the department: its content and announcements.
+				r.Put("/site", portalH.UpdateSiteContent)
+				r.Get("/announcements", portalH.ListAnnouncements)
+				r.Post("/announcements", portalH.CreateAnnouncement)
+				r.Get("/announcements/{id}", portalH.GetAnnouncement)
+				r.Put("/announcements/{id}", portalH.UpdateAnnouncement)
+				r.Delete("/announcements/{id}", portalH.DeleteAnnouncement)
+				r.Post("/announcements/{id}/publish", portalH.PublishAnnouncement)
+				r.Post("/announcements/{id}/pin", portalH.PinAnnouncement)
+				r.Post("/announcements/{id}/attachment", portalH.UploadAnnouncementAttachment)
+				r.Delete("/announcements/{id}/attachment", portalH.DeleteAnnouncementAttachment)
+				r.Post("/activities/{id}/announce", portalH.AnnounceActivity)
 
 				// Changing a researcher's email hands over their profile, and these
 				// tables are shared by every user of the system.

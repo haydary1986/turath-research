@@ -1,6 +1,6 @@
 {
   "common": {
-    "appName": "Turath Research",
+    "appName": "Scientific Affairs Portal — Al-Turath University",
     "loading": "Loading...",
     "save": "Save",
     "cancel": "Cancel",
@@ -45,8 +45,8 @@
     "topPlaceholder": "Top researchers will appear here after data import"
   },
   "sidebar": {
-    "brand": "Turath",
-    "subtitle": "Research Performance",
+    "brand": "Al-Turath University",
+    "subtitle": "Scientific Affairs Portal",
     "main": "Main",
     "insights": "Insights",
     "admin": "Admin"
@@ -122,7 +122,8 @@
       "reviewQueue": "Awaiting my review",
       "profile": "My research profile",
       "journalCheck": "Check a journal",
-      "predatory": "Predatory journals guide"
+      "predatory": "Predatory journals guide",
+      "site": "Public site"
     },
     "kinds": {
       "research_plan": "Research plan registration",
@@ -295,7 +296,9 @@
       "wrong_college": "The department does not belong to the chosen college",
       "invalid_phone": "Must be an Iraqi number in the form 07XXXXXXXXX",
       "invalid_email": "Invalid email address",
-      "bulk_sync_not_active": "No sync is running"
+      "bulk_sync_not_active": "No sync is running",
+      "too_many": "Too many items",
+      "activity_not_approved": "Only approved activities can be published."
     },
     "ui": {
       "newRequest": "Submit a new request",
@@ -573,7 +576,8 @@
         "approval_note_too_long": "The note is longer than 2000 characters.",
         "note_required": "Write the reason so the organizer knows what is needed.",
         "note_too_long": "The reason is longer than 2000 characters."
-      }
+      },
+      "announce": "Publish as announcement"
     },
     "journals": {
       "new": "Add journal",
@@ -920,11 +924,183 @@
         "pjPublishers": "Predatory Journals: publishers"
       },
       "disclaimer": "These lists are volunteer-run and unofficial; being listed or not is a warning, not a ruling. Ministry of Higher Education lists and instructions and the Scientific Affairs decision prevail."
+    },
+    "site": {
+      "title": "Public site",
+      "intro": "Edit the department's public page and publish circulars and scientific activities.",
+      "viewSite": "View the public site",
+      "tabs": {
+        "content": "Page content",
+        "announcements": "Circulars & activities"
+      },
+      "formatHint": "Plain text: leave a blank line to start a new paragraph, start a line with “- ” for a bulleted list, and links starting with https:// become clickable.",
+      "content": {
+        "hero": "Hero",
+        "heroTitle": "Main title",
+        "heroSubtitle": "Subtitle",
+        "about": "About the department",
+        "services": "Services",
+        "addService": "Add service",
+        "serviceTitle": "Service name",
+        "serviceDescription": "Service description",
+        "contact": "Contact details",
+        "contactHint": "Leave any field empty to hide it from the page.",
+        "email": "Email",
+        "phone": "Phone",
+        "location": "Address",
+        "hours": "Working hours",
+        "links": "Quick links",
+        "addLink": "Add link",
+        "linkLabel": "Label",
+        "linkUrl": "URL (https://)",
+        "remove": "Remove",
+        "moveUp": "Move up",
+        "moveDown": "Move down",
+        "save": "Save content",
+        "saving": "Saving...",
+        "saved": "Content saved and published to the public page.",
+        "lastUpdated": "Last updated: {date}",
+        "itemN": "Item {n}"
+      },
+      "ann": {
+        "new": "New announcement",
+        "newTitle": "New announcement",
+        "editTitle": "Edit announcement",
+        "type": "Type",
+        "title": "Title",
+        "body": "Text",
+        "eventDate": "Activity date",
+        "referenceNo": "Circular number",
+        "save": "Save",
+        "saving": "Saving...",
+        "cancel": "Cancel",
+        "publish": "Publish",
+        "unpublish": "Unpublish",
+        "pin": "Pin",
+        "unpin": "Unpin",
+        "edit": "Edit",
+        "delete": "Delete",
+        "deleteConfirm": "Permanently delete this announcement and its attachment?",
+        "published": "Published",
+        "draft": "Draft",
+        "pinned": "Pinned",
+        "attachment": "Attachment",
+        "uploadAttachment": "Upload attachment",
+        "replaceAttachment": "Replace attachment",
+        "removeAttachment": "Remove attachment",
+        "removeAttachmentConfirm": "Remove the attachment from this announcement?",
+        "attachmentHint": "One PDF or PNG/JPG image, up to 5 MB.",
+        "saveFirst": "Save the announcement first, then add the attachment.",
+        "empty": "No announcements yet.",
+        "filterAll": "All",
+        "filterPublished": "Published",
+        "filterDrafts": "Drafts",
+        "savedDraft": "Announcement saved. The public will not see it until you publish it.",
+        "savedPublished": "Changes to the published announcement were saved.",
+        "fromActivity": "From the activities register",
+        "createdAt": "Created {date}",
+        "publishedAt": "Published {date}",
+        "view": "View",
+        "statusFilter": "Status",
+        "typeFilter": "Type"
+      },
+      "fields": {
+        "hero_title": "Main title",
+        "hero_subtitle": "Subtitle",
+        "about": "About",
+        "services": "Services",
+        "service_title": "Service name",
+        "service_description": "Service description",
+        "contact_email": "Email",
+        "contact_phone": "Phone",
+        "contact_location": "Address",
+        "contact_hours": "Working hours",
+        "links": "Quick links",
+        "link_label": "Link label",
+        "link_url": "Link URL",
+        "type": "Type",
+        "title": "Title",
+        "body": "Text",
+        "event_date": "Activity date",
+        "reference_no": "Circular number",
+        "published": "Publication state",
+        "pinned": "Pinning"
+      },
+      "forbidden": "This page is available to administrators and scientific affairs staff only."
     }
   },
   "notifications": {
     "title": "Notifications",
     "markAll": "Mark all read",
     "empty": "No notifications"
+  },
+  "site": {
+    "meta": {
+      "appName": "Scientific Affairs Portal — Al-Turath University",
+      "shortName": "Scientific Affairs",
+      "description": "The Scientific Affairs Department portal of Al-Turath University: announcements, circulars, scientific activities and services for faculty and researchers.",
+      "homeTitle": "Scientific Affairs Department",
+      "newsTitle": "Circulars and scientific activities",
+      "newsDescription": "The latest circulars and scientific activities from the Scientific Affairs Department of Al-Turath University.",
+      "announcementTitle": "Announcement",
+      "announcementDescription": "An announcement from the Scientific Affairs Department of Al-Turath University."
+    },
+    "logoAlt": "Al-Turath University logo",
+    "nav": {
+      "label": "Main navigation",
+      "home": "Home",
+      "news": "Circulars & activities",
+      "signIn": "Sign in",
+      "signInHint": "with your university Google Workspace account",
+      "enterPortal": "Enter the portal",
+      "switchLanguage": "العربية",
+      "skipToContent": "Skip to content"
+    },
+    "home": {
+      "about": "About the department",
+      "services": "Our services",
+      "latestCirculars": "Latest circulars",
+      "latestActivities": "Latest scientific activities",
+      "viewAll": "View all",
+      "quickLinks": "Quick links",
+      "contact": "Contact us",
+      "noCirculars": "No circulars published yet.",
+      "noActivities": "No activities published yet.",
+      "loadError": "Could not load the content. Check your connection and try again.",
+      "retry": "Try again",
+      "email": "Email",
+      "phone": "Phone",
+      "location": "Address",
+      "hours": "Working hours",
+      "opensInNewTab": "(opens in a new tab)"
+    },
+    "news": {
+      "intro": "Circulars and scientific activities issued by the Scientific Affairs Department.",
+      "filterLabel": "Filter by type",
+      "all": "All",
+      "circular": "Circulars",
+      "activity": "Scientific activities",
+      "empty": "Nothing published yet.",
+      "pageOf": "Page {page} of {pages}",
+      "previous": "Previous",
+      "next": "Next",
+      "pinned": "Pinned",
+      "readMore": "Read more",
+      "circularNo": "Circular no. {no}",
+      "eventDate": "Activity date: {date}",
+      "publishedOn": "Published {date}",
+      "attachment": "Attachment",
+      "download": "Download attachment",
+      "back": "Back to the list",
+      "notFound": "This announcement was not found or is no longer published."
+    },
+    "types": {
+      "circular": "Circular",
+      "activity": "Scientific activity"
+    },
+    "footer": {
+      "rights": "© {year} Al-Turath University — Scientific Affairs Department",
+      "portal": "Scientific Affairs Portal"
+    }
   }
 }

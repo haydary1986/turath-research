@@ -199,9 +199,14 @@ func (h *PortalHandler) DownloadFile(w http.ResponseWriter, r *http.Request) {
 	defer cancel()
 
 	var requestID *string
-	var originalName, storedName, mimeType string
-	err := h.db.QueryRow(ctx, `SELECT request_id, original_name, stored_name, mime_type FROM portal_files WHERE id = $1`, fileID).
-		Scan(&requestID, &originalName, &storedName, &mimeType)
+	var role, originalName, storedName, mimeType string
+	err := h.db.QueryRow(ctx, `SELECT request_id, role, original_name, stored_name, mime_type FROM portal_files WHERE id = $1`, fileID).
+		Scan(&requestID, &role, &originalName, &storedName, &mimeType)
+	// Announcement drafts are staff business; the public reach published ones through /public/files.
+	if err == nil && role == RoleAnnouncement && !portal.IsStaff(user.Role) {
+		model.RespondError(w, http.StatusNotFound, "File not found")
+		return
+	}
 	if isNoRows(err) {
 		model.RespondError(w, http.StatusNotFound, "File not found")
 		return

@@ -706,6 +706,79 @@ else
   sqlv "DELETE FROM researchers WHERE id='$PROBE'" >/dev/null
 fi
 
+echo "== public site: content and announcements =="
+pub() { # PATH -> sets CODE and BODY without any token
+  CODE=$(curl -s -o "$TMP/body" -w "%{http_code}" "$API$1"); BODY=$(cat "$TMP/body")
+}
+SA_ID=$(sqlv "SELECT id FROM users WHERE email='$SA_EMAIL'")
+pub /public/site; expect "public site readable without a token" 200
+[ -n "$(echo "$BODY" | jq_ "d['data']['hero_title']")" ] && ok "site content has a hero title" || bad "site content" "$BODY"
+ORIG_SITE=$(echo "$BODY" | jq_ "json.dumps(d['data'], ensure_ascii=False)")
+SITE_JSON="{\"hero_title\":\"قسم الشؤون العلمية $RUN\",\"hero_subtitle\":\"x\",\"about\":\"نبذة\",\"services\":[{\"title\":\"خدمة\",\"description\":\"وصف\"}],\"contact\":{\"email\":\"\",\"phone\":\"\",\"location\":\"\",\"hours\":\"\"},\"links\":[{\"label\":\"الجامعة\",\"url\":\"https://uoturath.edu.iq\"}]}"
+call PUT /site "$RES" "$SITE_JSON"; expect "researcher cannot edit the public site" 403
+call PUT /site "$VP" "$SITE_JSON"; expect "VP cannot edit the public site" 403
+call PUT /site "$SA" "${SITE_JSON/https:\/\/uoturath/javascript:\/\/uoturath}"; expect "non-https quick link rejected" 422
+echo "$BODY" | grep -q "link_url:https_required" && ok "bad link reported by field and code" || bad "link code" "$BODY"
+call PUT /site "$SA" "${SITE_JSON/قسم الشؤون العلمية $RUN/}"; expect "empty hero title rejected" 422
+call PUT /site "$SA" "$SITE_JSON"; expect "scientific affairs edits the public site" 200
+pub /public/site
+[ "$(echo "$BODY" | jq_ "d['data']['hero_title']")" = "قسم الشؤون العلمية $RUN" ] && ok "public site shows the edit" || bad "site edit" "$BODY"
+echo "$BODY" | grep -q "$SA_ID" && bad "site leaks editor" "$BODY" || ok "public site names no editor"
+call PUT /site "$SA" "$ORIG_SITE"; expect "original site content restored" 200
+
+call POST /announcements "$RES" '{"type":"circular","title":"x"}'; expect "researcher cannot publish announcements" 403
+call POST /announcements "$VP" '{"type":"circular","title":"x"}'; expect "VP cannot publish announcements" 403
+call POST /announcements "$SA" '{"type":"news","title":""}'; expect "invalid announcement rejected" 422
+echo "$BODY" | grep -q "type:invalid" && echo "$BODY" | grep -q "title:required" && ok "announcement problems reported by field" || bad "ann codes" "$BODY"
+call POST /announcements "$SA" "{\"type\":\"circular\",\"title\":\"اعمام اختبار $RUN\",\"body\":\"نص الاعمام\\n\\n- بند\",\"reference_no\":\"$RUN/ع\",\"event_date\":\"2026-01-01\"}"; expect "SA drafts a circular" 201
+ANN=$(echo "$BODY" | jq_ "d['data']['id']")
+[ "$(echo "$BODY" | jq_ "d['data']['published']")" = "False" ] && ok "new announcement starts unpublished" || bad "draft state" "$BODY"
+[ "$(echo "$BODY" | jq_ "d['data']['event_date']")" = "None" ] && ok "circular drops an event date" || bad "circular date" "$BODY"
+upload "/announcements/$ANN/attachment" "$RES" "$TMP/doc.pdf"; expect "researcher cannot attach to an announcement" 403
+upload "/announcements/$ANN/attachment" "$SA" "$TMP/evil.pdf"; expect "fake PDF attachment rejected" 415
+upload "/announcements/$ANN/attachment" "$SA" "$TMP/doc.pdf"; expect "SA attaches a PDF" 201
+ANNFILE=$(echo "$BODY" | jq_ "d['data']['attachment']['id']")
+pub "/public/announcements/$ANN"; expect "unpublished announcement hidden publicly" 404
+pub "/public/announcements?type=circular&limit=50"
+[ "$(echo "$BODY" | jq_ "sum(1 for a in d['data'] if a['id']=='$ANN')")" = "0" ] && ok "unpublished announcement not listed" || bad "public list" "$BODY"
+CODE=$(curl -s -o /dev/null -w "%{http_code}" "$API/public/files/$ANNFILE"); [ "$CODE" = "404" ] && ok "draft attachment 404 publicly" || bad "draft file" "$CODE"
+CODE=$(curl -s -o /dev/null -w "%{http_code}" "$API/portal/files/$ANNFILE" -H "Authorization: Bearer $RES"); [ "$CODE" = "404" ] && ok "researcher cannot fetch a draft attachment" || bad "draft file authed" "$CODE"
+CODE=$(curl -s -o /dev/null -w "%{http_code}" "$API/portal/files/$ANNFILE" -H "Authorization: Bearer $SA"); [ "$CODE" = "200" ] && ok "staff preview the draft attachment" || bad "staff preview" "$CODE"
+call POST "/announcements/$ANN/publish" "$RES" '{"published":true}'; expect "researcher cannot publish" 403
+call POST "/announcements/$ANN/publish" "$SA" '{}'; expect "publish needs a state" 422
+call POST "/announcements/$ANN/publish" "$SA" '{"published":true}'; expect "SA publishes" 200
+call POST "/announcements/$ANN/pin" "$SA" '{"pinned":true}'; expect "SA pins" 200
+pub "/public/announcements/$ANN"; expect "published announcement visible without a token" 200
+KEYS=$(echo "$BODY" | jq_ "','.join(sorted(d['data'].keys()))")
+[ "$KEYS" = "attachment,body,event_date,id,pinned,published_at,reference_no,title,type" ] && ok "public announcement carries no personal or editorial fields" || bad "public keys" "$KEYS"
+echo "$BODY" | grep -q -e "$SA_ID" -e "$SA_EMAIL" -e "uploaded_by" -e "created_by" && bad "public leak" "$BODY" || ok "no author id or email in public JSON"
+[ "$(echo "$BODY" | jq_ "','.join(sorted(d['data']['attachment'].keys()))")" = "id,mime_type,name,size_bytes" ] && ok "public attachment has no uploader" || bad "attachment keys" "$BODY"
+pub "/public/announcements?type=circular"
+[ "$(echo "$BODY" | jq_ "d['data'][0]['id']")" = "$ANN" ] && ok "pinned circular listed first" || bad "pinned order" "$BODY"
+echo "$BODY" | grep -q -e "$SA_ID" -e "$SA_EMAIL" && bad "list leak" "$BODY" || ok "no personal data in the public list"
+[ "$(echo "$BODY" | jq_ "all(a['type']=='circular' for a in d['data'])")" = "True" ] && ok "public list filters by type" || bad "type filter" "$BODY"
+CODE=$(curl -s -o "$TMP/pubdl" -w "%{http_code}" "$API/public/files/$ANNFILE"); [ "$CODE" = "200" ] && head -c4 "$TMP/pubdl" | grep -q '%PDF' && ok "published attachment downloads without a token" || bad "public download" "$CODE"
+CODE=$(curl -s -o /dev/null -w "%{http_code}" "$API/public/files/$FILE"); [ "$CODE" = "404" ] && ok "request files never served publicly" || bad "request file public" "$CODE"
+call PUT "/announcements/$ANN" "$SA" "{\"type\":\"circular\",\"title\":\"اعمام معدل $RUN\",\"body\":\"\",\"reference_no\":\"1\"}"; expect "SA edits the announcement" 200
+call POST "/announcements/$ANN/publish" "$SA" '{"published":false}'; expect "SA unpublishes" 200
+pub "/public/announcements/$ANN"; expect "withdrawn announcement hidden again" 404
+CODE=$(curl -s -o /dev/null -w "%{http_code}" "$API/public/files/$ANNFILE"); [ "$CODE" = "404" ] && ok "withdrawn attachment 404 publicly" || bad "withdrawn file" "$CODE"
+
+call POST "/activities/$ACT/announce" "$RES" '{}'; expect "researcher cannot announce an activity" 403
+call POST "/activities/$ACT/announce" "$SA" '{}'; expect "approved activity drafted as announcement" 201
+FROMACT=$(echo "$BODY" | jq_ "d['data']['id']")
+[ "$(echo "$BODY" | jq_ "d['data']['type']")" = "activity" ] && [ "$(echo "$BODY" | jq_ "d['data']['event_date']")" = "2026-11-02" ] && [ "$(echo "$BODY" | jq_ "d['data']['published']")" = "False" ] && ok "activity prefill: type, date, unpublished" || bad "prefill" "$BODY"
+call POST "/activities/$ACT/announce" "$SA" '{}'; expect "announcing again returns the same draft" 200
+[ "$(echo "$BODY" | jq_ "d['data']['id']")" = "$FROMACT" ] && ok "one announcement per activity" || bad "dup announce" "$BODY"
+call POST /activities "$RES" "{\"activity_type\":\"seminar\",\"title_ar\":\"ندوة معلقة\",\"activity_date\":\"2026-11-03\",\"college_id\":\"$COLLEGE\"}"; PENDACT=$(echo "$BODY" | jq_ "d['data']['id']")
+call POST "/activities/$PENDACT/announce" "$SA" '{}'; expect "pending activity cannot be announced" 409
+
+call DELETE "/announcements/$ANN" "$RES"; expect "researcher cannot delete announcements" 403
+call DELETE "/announcements/$ANN" "$SA"; expect "SA deletes the announcement" 200
+call GET "/announcements/$ANN" "$SA"; expect "deleted announcement gone" 404
+[ "$(sqlv "SELECT COUNT(*) FROM portal_files WHERE id='$ANNFILE'")" = "0" ] && ok "attachment removed with its announcement" || bad "orphan file" "left behind"
+call DELETE "/announcements/$FROMACT" "$SA"; expect "activity draft cleaned up" 200
+
 echo
 echo "Passed: $PASS  Failed: $FAIL"
 [ "$FAIL" -eq 0 ]

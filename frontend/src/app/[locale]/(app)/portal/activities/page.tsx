@@ -23,6 +23,8 @@ import { formatDate, isStaffRole, type Org } from "@/lib/portal/types";
 import { Alert } from "@/components/ui/alert";
 import { activityStatusKey, currentDecisionNote, type Activity } from "@/lib/portal/activity";
 import { ACTIVITY_STATUS_FAMILY, FAMILY_TINT } from "@/lib/portal/status";
+import { canManageSite, type StaffAnnouncement } from "@/lib/site/types";
+import { useRouter } from "@/i18n/routing";
 
 const TYPES = ["seminar", "workshop", "panel", "lecture", "course", "conference", "other"] as const;
 const STATUSES = ["pending", "approved", "returned", "rejected"] as const;
@@ -345,6 +347,7 @@ function ActivitiesPage() {
                       hydrated && staff && (a.status === "pending" || a.status === "returned") &&
                       (user?.role === "admin" || user?.id !== a.created_by)
                     }
+                    canAnnounce={hydrated && canManageSite(user?.role) && a.status === "approved"}
                     locale={locale}
                     onEdit={() => startEdit(a)}
                     onChanged={load}
@@ -375,15 +378,32 @@ interface ActivityRowProps {
   viewerIsOwner: boolean;
   canEdit: boolean;
   canDecide: boolean;
+  canAnnounce: boolean;
   locale: string;
   onEdit: () => void;
   onChanged: () => void;
 }
 
-function ActivityRow({ activity: a, viewerIsOwner, canEdit, canDecide, locale, onEdit, onChanged }: ActivityRowProps) {
+function ActivityRow({ activity: a, viewerIsOwner, canEdit, canDecide, canAnnounce, locale, onEdit, onChanged }: ActivityRowProps) {
   const t = useTranslations("portal");
   const ta = useTranslations("portal.activities");
+  const toMessage = usePortalErrors();
+  const router = useRouter();
   const [reviewing, setReviewing] = useState(false);
+  const [announcing, setAnnouncing] = useState(false);
+
+  // Drafts an unpublished announcement from the approved activity and opens it for review.
+  async function announce() {
+    setAnnouncing(true);
+    try {
+      const res = await api.post<StaffAnnouncement>(`/api/v1/activities/${a.id}/announce`, {});
+      if (res.data) router.push(`/portal/site?edit=${res.data.id}`);
+    } catch (err) {
+      window.alert(toMessage(err));
+    } finally {
+      setAnnouncing(false);
+    }
+  }
   const note = currentDecisionNote(a.status, a.decision_note);
 
   return (
@@ -418,7 +438,10 @@ function ActivityRow({ activity: a, viewerIsOwner, canEdit, canDecide, locale, o
         <div className="flex items-center gap-2">
           {canEdit && <Button size="xs" variant="outline" onClick={onEdit}>{t("ui.edit")}</Button>}
           {canDecide && <Button size="xs" onClick={() => setReviewing(true)}>{ta("reviewAction")}</Button>}
-          {!canEdit && !canDecide && <span className="text-muted-foreground">—</span>}
+          {canAnnounce && (
+            <Button size="xs" variant="outline" disabled={announcing} onClick={announce}>{ta("announce")}</Button>
+          )}
+          {!canEdit && !canDecide && !canAnnounce && <span className="text-muted-foreground">—</span>}
         </div>
         {reviewing && (
           <ActivityReviewDialog

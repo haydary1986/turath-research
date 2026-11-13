@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useTranslations } from "next-intl";
-import { useRouter } from "@/i18n/routing";
+import { Link, useRouter } from "@/i18n/routing";
 import { useAuth } from "@/lib/auth";
 import { api } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,10 +11,11 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Alert } from "@/components/ui/alert";
 import { GoogleSignIn } from "@/components/auth/google-sign-in";
-import { GraduationCap } from "lucide-react";
+import { UniversityLogo } from "@/components/brand/university-logo";
 
 export default function LoginPage() {
   const t = useTranslations("auth");
+  const ts = useTranslations("site");
   const router = useRouter();
   const { setAuth } = useAuth();
   const [email, setEmail] = useState("");
@@ -57,10 +58,10 @@ export default function LoginPage() {
     <div className="mx-auto w-full max-w-md">
       <Card className="w-full border-t-4 border-t-primary shadow-lg">
         <CardHeader className="items-center text-center">
-          <div className="mx-auto flex size-14 items-center justify-center rounded-2xl bg-primary text-primary-foreground">
-            <GraduationCap className="size-7" aria-hidden />
-          </div>
-          <CardTitle className="mt-3 text-xl">{t("portalName")}</CardTitle>
+          <Link href="/" className="mx-auto rounded-md focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none">
+            <UniversityLogo variant="color" height={96} alt={ts("logoAlt")} priority />
+          </Link>
+          <CardTitle className="mt-3 text-xl text-primary">{t("portalName")}</CardTitle>
           <p className="text-sm text-muted-foreground">{t("universityName")}</p>
         </CardHeader>
         <CardContent className="space-y-6">

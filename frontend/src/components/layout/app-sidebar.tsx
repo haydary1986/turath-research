@@ -5,7 +5,6 @@ import {
   LayoutDashboard,
   Users,
   FileText,
-  GraduationCap,
   TrendingUp,
   Search,
   ClipboardList,
@@ -20,6 +19,7 @@ import {
   FileSpreadsheet,
   Inbox,
   BookUser,
+  Globe,
 } from "lucide-react";
 import {
   Sidebar,
@@ -36,6 +36,8 @@ import { Link, usePathname } from "@/i18n/routing";
 import { useHydrated } from "@/hooks/use-hydrated";
 import { useAuth } from "@/lib/auth";
 import { isStaffRole } from "@/lib/portal/types";
+import { canManageSite } from "@/lib/site/types";
+import { UniversityLogo } from "@/components/brand/university-logo";
 import type { LucideIcon } from "lucide-react";
 
 interface NavItem {
@@ -58,6 +60,7 @@ function NavGroup({ title, items }: { title: string; items: NavItem[] }) {
           {items.map((item) => (
             <SidebarMenuItem key={item.href}>
               <SidebarMenuButton
+                className="relative data-active:before:absolute data-active:before:inset-y-1.5 data-active:before:start-0 data-active:before:w-1 data-active:before:rounded-full data-active:before:bg-sidebar-primary"
                 isActive={pathname === item.href.split("?")[0] && !item.href.includes("?")}
                 render={<Link href={item.href} />}
               >
@@ -76,6 +79,7 @@ export function AppSidebar() {
   const locale = useLocale();
   const nav = useTranslations("nav");
   const sb = useTranslations("sidebar");
+  const site = useTranslations("site");
   const pt = useTranslations("portal.nav");
   const role = useAuth((state) => state.user?.role);
   // Role comes from localStorage, so wait for hydration to keep server and client markup identical.
@@ -99,6 +103,7 @@ export function AppSidebar() {
           { href: "/portal/reports", label: pt("reports"), icon: FileSpreadsheet },
         ]
       : []),
+    ...(mounted && canManageSite(role) ? [{ href: "/portal/site", label: pt("site"), icon: Globe }] : []),
     ...(mounted && role === "admin"
       ? [
           { href: "/portal/users", label: pt("users"), icon: UserCog },
@@ -119,15 +124,13 @@ export function AppSidebar() {
   return (
     <Sidebar side={locale === "ar" ? "right" : "left"}>
       <SidebarHeader className="border-b border-sidebar-border px-4 py-4">
-        <div className="flex items-center gap-3">
-          <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-sidebar-primary text-sidebar-primary-foreground">
-            <GraduationCap className="size-5" aria-hidden />
-          </div>
+        <Link href="/" className="flex items-center gap-3 rounded-md outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring">
+          <UniversityLogo variant="crest" height={44} alt={site("logoAlt")} priority />
           <div className="min-w-0">
-            <h1 className="truncate text-base font-bold">{sb("brand")}</h1>
+            <p className="truncate text-base font-bold">{sb("brand")}</p>
             <p className="truncate text-xs text-sidebar-foreground/80">{sb("subtitle")}</p>
           </div>
-        </div>
+        </Link>
       </SidebarHeader>
       <SidebarContent>
         <NavGroup title={pt("group")} items={portalItems} />

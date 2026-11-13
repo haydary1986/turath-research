@@ -7,12 +7,14 @@ import { Button } from "@/components/ui/button";
 import { RequireAuth } from "@/components/portal/require-auth";
 import { RequestSummary } from "@/components/portal/request-summary";
 import { useRequestDetail } from "@/components/portal/use-request-detail";
+import { UniversityLogo } from "@/components/brand/university-logo";
 
 const COMMITTEE_SLOTS = [1, 2, 3];
 
 function PrintForm() {
   const params = useParams<{ id: string }>();
   const t = useTranslations("portal");
+  const ts = useTranslations("site");
   const { detail, loading, notFound } = useRequestDetail(params.id);
 
   if (loading) return <p className="text-center text-muted-foreground">{t("ui.loading")}</p>;
@@ -32,6 +34,9 @@ function PrintForm() {
 
       <div className="mx-auto bg-white p-10 text-black shadow print:p-0 print:shadow-none" style={{ width: "210mm", minHeight: "297mm" }}>
         <div className="mb-8 text-center">
+          <div className="mb-4 flex justify-center">
+            <UniversityLogo variant="color" height={84} alt={ts("logoAlt")} priority />
+          </div>
           <h1 className="text-2xl font-bold">{t(`kinds.${request.kind}`)}</h1>
           <p className="text-sm">{t("title")}</p>
         </div>

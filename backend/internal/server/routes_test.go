@@ -60,6 +60,11 @@ var managerRoutes = []route{
 	{"POST", "/performance/generate/x"},
 	{"POST", "/accreditation/evidence"}, {"PUT", "/accreditation/recommendations/x"},
 	{"POST", "/workflows/initiate"},
+	{"PUT", "/site"}, {"GET", "/announcements"}, {"POST", "/announcements"},
+	{"GET", "/announcements/x"}, {"PUT", "/announcements/x"}, {"DELETE", "/announcements/x"},
+	{"POST", "/announcements/x/publish"}, {"POST", "/announcements/x/pin"},
+	{"POST", "/announcements/x/attachment"}, {"DELETE", "/announcements/x/attachment"},
+	{"POST", "/activities/x/announce"},
 }
 
 var staffRoutes = []route{
@@ -112,6 +117,11 @@ func TestManagersPassTheRoleCheck(t *testing.T) {
 		{"PUT", "/researchers/not-a-uuid", http.StatusNotFound},
 		{"POST", "/sync/doi", http.StatusBadRequest},
 		{"POST", "/sync/researcher/not-a-uuid", http.StatusNotFound},
+		{"PUT", "/site", http.StatusBadRequest},
+		{"POST", "/announcements", http.StatusBadRequest},
+		{"PUT", "/announcements/not-a-uuid", http.StatusNotFound},
+		{"DELETE", "/announcements/not-a-uuid", http.StatusNotFound},
+		{"POST", "/announcements/not-a-uuid/publish", http.StatusNotFound},
 	}
 	for _, role := range []string{middleware.RoleAdmin, middleware.RoleScientificAffairs} {
 		token := tokenFor(t, role)
@@ -138,6 +148,16 @@ func TestBulkSyncAndImportAreAdminOnly(t *testing.T) {
 			if code := status(t, router, rt.method, rt.path, token); code != http.StatusForbidden {
 				t.Errorf("%s %s as %s: got %d", rt.method, rt.path, role, code)
 			}
+		}
+	}
+}
+
+// Public site reads need no token and reject malformed ids before touching the database.
+func TestPublicSiteRoutesNeedNoToken(t *testing.T) {
+	router := testRouter()
+	for _, path := range []string{"/public/announcements/not-a-uuid", "/public/files/not-a-uuid"} {
+		if got := status(t, router, "GET", path, ""); got != http.StatusNotFound {
+			t.Errorf("GET %s without a token = %d, want 404", path, got)
 		}
 	}
 }

@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -53,15 +54,17 @@ function UserMenu() {
         <span className="hidden max-w-36 truncate text-sm font-medium md:inline">{name}</span>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-64">
-        <DropdownMenuLabel className="space-y-1">
-          <p className="truncate font-semibold">{name}</p>
-          <p className="truncate text-xs font-normal text-muted-foreground" dir="ltr">
-            {user.email}
-          </p>
-          <Badge variant="secondary" className="mt-1">
-            {roles.has(user.role) ? roles(user.role) : user.role}
-          </Badge>
-        </DropdownMenuLabel>
+        <DropdownMenuGroup>
+          <DropdownMenuLabel className="space-y-1">
+            <p className="truncate font-semibold">{name}</p>
+            <p className="truncate text-xs font-normal text-muted-foreground" dir="ltr">
+              {user.email}
+            </p>
+            <Badge variant="secondary" className="mt-1">
+              {roles.has(user.role) ? roles(user.role) : user.role}
+            </Badge>
+          </DropdownMenuLabel>
+        </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleLogout} className="text-destructive">
           <LogOut className="size-4" aria-hidden />

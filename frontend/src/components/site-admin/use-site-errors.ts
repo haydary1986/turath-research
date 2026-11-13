@@ -8,6 +8,7 @@ import { parseValidation } from "@/lib/portal/types";
 export function useSiteErrors(): (error: unknown) => string {
   const errors = useTranslations("portal.errors");
   const fields = useTranslations("portal.site.fields");
+  const blockFields = useTranslations("siteEditor.fields");
 
   return useCallback(
     (error: unknown): string => {
@@ -15,7 +16,7 @@ export function useSiteErrors(): (error: unknown) => string {
       const problems = parseValidation(message);
       if (problems) {
         const lines = problems.map(({ field, code }) => {
-          const label = fields.has(field) ? fields(field) : field;
+          const label = fields.has(field) ? fields(field) : blockFields.has(field) ? blockFields(field) : field;
           const reason = errors.has(code) ? errors(code) : errors("invalid");
           return `${label}: ${reason}`;
         });
@@ -23,6 +24,6 @@ export function useSiteErrors(): (error: unknown) => string {
       }
       return errors.has(message) ? errors(message) : errors("generic");
     },
-    [errors, fields]
+    [errors, fields, blockFields]
   );
 }

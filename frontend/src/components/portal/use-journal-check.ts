@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { api } from "@/lib/api";
+import { PORTAL_JOURNAL_ENDPOINTS } from "@/lib/journals/endpoints";
 import { journalCheckParams, type JournalQuery } from "@/lib/portal/journal-query";
 import type { JournalCheck } from "@/lib/portal/types";
 
@@ -14,7 +15,7 @@ interface CheckState {
 }
 
 /** Runs the automatic check for the query, debounced and ignoring stale answers. */
-export function useJournalCheck(query: JournalQuery, debounceMs = 700) {
+export function useJournalCheck(query: JournalQuery, debounceMs = 700, endpoint = PORTAL_JOURNAL_ENDPOINTS.check) {
   const key = journalCheckParams(query);
   const [attempt, setAttempt] = useState(0);
   const [state, setState] = useState<CheckState>({ requestId: "", result: null, failed: false });
@@ -26,7 +27,7 @@ export function useJournalCheck(query: JournalQuery, debounceMs = 700) {
     let active = true;
     const timer = setTimeout(() => {
       api
-        .get<JournalCheck>(`/api/v1/screening/check?${key}`)
+        .get<JournalCheck>(`${endpoint}?${key}`)
         .then((res) => {
           if (active) setState({ requestId, result: res.data ?? null, failed: !res.data });
         })
@@ -38,7 +39,7 @@ export function useJournalCheck(query: JournalQuery, debounceMs = 700) {
       active = false;
       clearTimeout(timer);
     };
-  }, [key, requestId, debounceMs]);
+  }, [key, requestId, debounceMs, endpoint]);
 
   const retry = useCallback(() => setAttempt((current) => current + 1), []);
   const settled = state.requestId === requestId;

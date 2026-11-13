@@ -8,8 +8,15 @@ export default getRequestConfig(async ({ requestLocale }) => {
     locale = routing.defaultLocale;
   }
 
+  // The public site's strings live in their own file under separate top-level
+  // namespaces (landing, journals, siteEditor), so the two never collide.
+  const [main, publicSite] = await Promise.all([
+    import(`../messages/${locale}.json`),
+    import(`../messages/public/${locale}.json`),
+  ]);
+
   return {
     locale,
-    messages: (await import(`../messages/${locale}.json`)).default,
+    messages: { ...main.default, ...publicSite.default },
   };
 });

@@ -30,10 +30,13 @@ var (
 	phoneShape = regexp.MustCompile(`^\+?[0-9٠-٩ ()\-]{5,}$`)
 )
 
-// Service is one item of the "what we offer" list.
+// Service is one item of the "what we offer" list. Icon is a key from ServiceIcons
+// and Link a site-relative path (see IsSafeServiceLink); both are optional.
 type Service struct {
 	Title       string `json:"title"`
 	Description string `json:"description"`
+	Icon        string `json:"icon"`
+	Link        string `json:"link"`
 }
 
 // Contact holds the department's public contact details; every field is optional.
@@ -58,17 +61,23 @@ type Content struct {
 	Services     []Service `json:"services"`
 	Contact      Contact   `json:"contact"`
 	Links        []Link    `json:"links"`
+	// Blocks added with the second version of the landing page (content_blocks.go).
+	Stats            []StatSetting `json:"stats"`
+	Director         Director      `json:"director"`
+	Colleges         []Link        `json:"colleges"`
+	Socials          []Social      `json:"socials"`
+	FAQ              []FAQItem     `json:"faq"`
+	HidePublications bool          `json:"hide_publications"`
 }
 
 // NormalizeContent returns a cleaned copy of c; the input is not modified.
 func NormalizeContent(c Content) Content {
 	services := make([]Service, 0, len(c.Services))
 	for _, s := range c.Services {
-		services = append(services, Service{Title: cleanLine(s.Title), Description: cleanText(s.Description)})
-	}
-	links := make([]Link, 0, len(c.Links))
-	for _, l := range c.Links {
-		links = append(links, Link{Label: cleanLine(l.Label), URL: cleanLine(l.URL)})
+		services = append(services, Service{
+			Title: cleanLine(s.Title), Description: cleanText(s.Description),
+			Icon: cleanLine(s.Icon), Link: cleanLine(s.Link),
+		})
 	}
 	return Content{
 		HeroTitle:    cleanLine(c.HeroTitle),
@@ -81,8 +90,22 @@ func NormalizeContent(c Content) Content {
 			Location: cleanLine(c.Contact.Location),
 			Hours:    cleanLine(c.Contact.Hours),
 		},
-		Links: links,
+		Links:            normalizeLinks(c.Links),
+		Stats:            normalizeStats(c.Stats),
+		Director:         normalizeDirector(c.Director),
+		Colleges:         normalizeLinks(c.Colleges),
+		Socials:          normalizeSocials(c.Socials),
+		FAQ:              normalizeFAQ(c.FAQ),
+		HidePublications: c.HidePublications,
 	}
+}
+
+func normalizeLinks(in []Link) []Link {
+	out := make([]Link, 0, len(in))
+	for _, l := range in {
+		out = append(out, Link{Label: cleanLine(l.Label), URL: cleanLine(l.URL)})
+	}
+	return out
 }
 
 // ValidateContent returns one "field:code" entry per problem in an already normalised document.
@@ -98,25 +121,41 @@ func ValidateContent(c Content) []string {
 	for _, s := range c.Services {
 		p.text("service_title", s.Title, true, MaxServiceTitle)
 		p.text("service_description", s.Description, false, MaxServiceDesc)
+		if s.Icon != "" && !IsServiceIcon(s.Icon) {
+			p.add("service_icon", CodeInvalid)
+		}
+		if s.Link != "" && !IsSafeServiceLink(s.Link) {
+			p.add("service_link", CodeInvalid)
+		}
 	}
 
 	validateContact(&p, c.Contact)
-
-	if len(c.Links) > MaxLinks {
-		p.add("links", CodeTooMany)
-	}
-	for _, l := range c.Links {
-		p.text("link_label", l.Label, true, MaxLinkLabel)
-		switch {
-		case l.URL == "":
-			p.add("link_url", CodeRequired)
-		case tooLong(l.URL, MaxLinkURL):
-			p.add("link_url", CodeTooLong)
-		case !IsSafeHTTPSURL(l.URL):
-			p.add("link_url", CodeHTTPSRequired)
-		}
-	}
+	validateLinks(&p, "links", "link", c.Links, MaxLinks)
+	validateBlocks(&p, c)
 	return p.list
+}
+
+// validateLinks checks a list of labelled https links; fields are reported as
+// "<list>" for the count and "<item>_label" / "<item>_url" for each entry.
+func validateLinks(p *problems, list, item string, links []Link, limit int) {
+	if len(links) > limit {
+		p.add(list, CodeTooMany)
+	}
+	for _, l := range links {
+		p.text(item+"_label", l.Label, true, MaxLinkLabel)
+		validateHTTPS(p, item+"_url", l.URL)
+	}
+}
+
+func validateHTTPS(p *problems, field, value string) {
+	switch {
+	case value == "":
+		p.add(field, CodeRequired)
+	case tooLong(value, MaxLinkURL):
+		p.add(field, CodeTooLong)
+	case !IsSafeHTTPSURL(value):
+		p.add(field, CodeHTTPSRequired)
+	}
 }
 
 func validateContact(p *problems, c Contact) {

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { Search } from "lucide-react";
 import { api } from "@/lib/api";
+import { PORTAL_JOURNAL_ENDPOINTS, type JournalEndpoints } from "@/lib/journals/endpoints";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,7 +16,7 @@ import type { JournalListStatus } from "@/lib/portal/types";
 import { JournalEvidencePanel } from "./journal-evidence-panel";
 import { useJournalCheck } from "./use-journal-check";
 
-function ListStatusCard() {
+function ListStatusCard({ endpoint }: { endpoint: string }) {
   const t = useTranslations("portal.journals.check");
   const locale = useLocale();
   const [statuses, setStatuses] = useState<JournalListStatus[] | null>(null);
@@ -24,13 +25,13 @@ function ListStatusCard() {
   useEffect(() => {
     let active = true;
     api
-      .get<JournalListStatus[]>("/api/v1/screening/status")
+      .get<JournalListStatus[]>(endpoint)
       .then((res) => active && setStatuses(res.data ?? []))
       .catch(() => active && setFailed(true));
     return () => {
       active = false;
     };
-  }, []);
+  }, [endpoint]);
 
   return (
     <Card>
@@ -59,13 +60,20 @@ function ListStatusCard() {
   );
 }
 
-/** The "check a journal" search, open to every signed-in role. */
-export function JournalCheckSearch() {
+/** The "check a journal" search: in the portal for signed-in roles, and on the public site. */
+export function JournalCheckSearch({
+  endpoints = PORTAL_JOURNAL_ENDPOINTS,
+  initialText = "",
+}: {
+  endpoints?: JournalEndpoints;
+  /** Prefills the search box (e.g. from an entry page); nothing runs until the user submits. */
+  initialText?: string;
+}) {
   const t = useTranslations("portal.journals.check");
-  const [text, setText] = useState("");
+  const [text, setText] = useState(initialText);
   const [query, setQuery] = useState<JournalQuery>({});
   const [tooShort, setTooShort] = useState(false);
-  const { result, loading, failed, retry } = useJournalCheck(query, 0);
+  const { result, loading, failed, retry } = useJournalCheck(query, 0, endpoints.check);
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -102,7 +110,7 @@ export function JournalCheckSearch() {
         </CardContent>
       </Card>
       <JournalEvidencePanel result={result} loading={loading} failed={failed} onRetry={retry} />
-      <ListStatusCard />
+      <ListStatusCard endpoint={endpoints.status} />
     </div>
   );
 }

@@ -2,10 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
+import QRCode from "qrcode";
 import { fetchObjectUrl } from "@/lib/api";
 
 export interface LetterData {
   letter_no: string;
+  diwan_no?: string | null;
   issued_date: string;
   recipient_name: string;
   college_name: string;
@@ -48,6 +50,24 @@ function useProtectedImage(fileId: string | null): string | null {
   return fileId ? url : null;
 }
 
+/** Renders the verification URL as a QR data-URL (empty while generating). */
+function useQrCode(text: string | undefined): string | null {
+  const [url, setUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!text) return;
+    let active = true;
+    QRCode.toDataURL(text, { margin: 1, width: 160 })
+      .then((dataUrl) => active && setUrl(dataUrl))
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, [text]);
+
+  return text ? url : null;
+}
+
 function formatLetterDate(iso: string): string {
   const [y, m, d] = iso.split("-");
   return y && m && d ? `${d}/${m}/${y}` : iso;
@@ -64,6 +84,7 @@ export function LetterView({ letter, verifyUrl }: LetterViewProps) {
   const t = useTranslations("portal.letter");
   const background = useProtectedImage(letter.background_file_id);
   const signature = useProtectedImage(letter.signature_file_id);
+  const qr = useQrCode(verifyUrl);
 
   return (
     <div
@@ -82,9 +103,16 @@ export function LetterView({ letter, verifyUrl }: LetterViewProps) {
         </div>
 
         <div className="mt-8 flex justify-between text-sm">
-          <p>
-            {t("number")}: <span dir="ltr">{letter.letter_no}</span>
-          </p>
+          <div>
+            <p>
+              {t("number")}: <span dir="ltr">{letter.diwan_no || letter.letter_no}</span>
+            </p>
+            {letter.diwan_no && (
+              <p className="text-xs text-gray-600">
+                {t("internalNo")}: <span dir="ltr">{letter.letter_no}</span>
+              </p>
+            )}
+          </div>
           <p>
             {t("date")}: <span dir="ltr">{formatLetterDate(letter.issued_date)}</span>
           </p>
@@ -123,9 +151,15 @@ export function LetterView({ letter, verifyUrl }: LetterViewProps) {
         </div>
 
         {verifyUrl && (
-          <p className="mt-auto pt-8 text-center text-[10px] text-gray-600" dir="ltr">
-            {t("verifyAt")}: {verifyUrl}
-          </p>
+          <div className="mt-auto flex items-end justify-between gap-4 pt-8">
+            <p className="text-[10px] text-gray-600" dir="ltr">
+              {t("verifyAt")}: {verifyUrl}
+            </p>
+            {qr && (
+              // eslint-disable-next-line @next/next/no-img-element -- locally generated data URL
+              <img src={qr} alt={t("verifyAt")} className="size-[20mm] shrink-0" />
+            )}
+          </div>
         )}
       </div>
     </div>

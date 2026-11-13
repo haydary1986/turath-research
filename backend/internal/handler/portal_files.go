@@ -112,7 +112,8 @@ func sanitizeFilename(name string) string {
 }
 
 // UploadAttachment attaches a PDF/image to a request.
-// Applicants upload while the request is editable; staff upload the signed form and other follow-up files.
+// Applicants upload while the request is editable; staff upload the signed form and
+// other follow-up files while the request is at an active stage.
 func (h *PortalHandler) UploadAttachment(w http.ResponseWriter, r *http.Request) {
 	user := authedUser(w, r)
 	if user == nil {
@@ -135,7 +136,7 @@ func (h *PortalHandler) UploadAttachment(w http.ResponseWriter, r *http.Request)
 	isReviewer := portal.IsStaff(user.Role) && !isApplicant
 	switch {
 	case isApplicant && isEditable(rec.Status):
-	case isReviewer && rec.Status != portal.StatusDraft:
+	case isReviewer && portal.IsActiveStage(rec.Status):
 	default:
 		model.RespondError(w, http.StatusForbidden, "Files cannot be added at this stage")
 		return
@@ -238,7 +239,8 @@ func (h *PortalHandler) DownloadFile(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// DeleteAttachment removes a request attachment. Applicants may remove their own files while the request is editable.
+// DeleteAttachment removes a request attachment. Applicants may remove their own files while the
+// request is editable; reviewers may remove files only while it is at an active stage.
 func (h *PortalHandler) DeleteAttachment(w http.ResponseWriter, r *http.Request) {
 	user := authedUser(w, r)
 	if user == nil {
@@ -277,7 +279,7 @@ func (h *PortalHandler) DeleteAttachment(w http.ResponseWriter, r *http.Request)
 
 	ownFileWhileEditable := rec.ApplicantID == user.UserID && isEditable(rec.Status) &&
 		uploadedBy != nil && *uploadedBy == user.UserID
-	reviewer := portal.IsStaff(user.Role) && rec.ApplicantID != user.UserID
+	reviewer := portal.IsStaff(user.Role) && rec.ApplicantID != user.UserID && portal.IsActiveStage(rec.Status)
 	if !ownFileWhileEditable && !reviewer {
 		model.RespondError(w, http.StatusForbidden, "File cannot be removed")
 		return

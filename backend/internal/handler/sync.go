@@ -2,12 +2,12 @@ package handler
 
 import (
 	"context"
-	"encoding/json"
-	"log/slog"
+	"errors"
 	"net/http"
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/haydary1986/turath-research/backend/internal/model"
@@ -19,53 +19,61 @@ type SyncHandler struct {
 	orchestrator *syncsvc.Orchestrator
 }
 
-func NewSyncHandler(db *pgxpool.Pool, crossrefMailto string) *SyncHandler {
-	return &SyncHandler{
-		db:           db,
-		orchestrator: syncsvc.NewOrchestrator(db, crossrefMailto),
-	}
+func NewSyncHandler(db *pgxpool.Pool, orchestrator *syncsvc.Orchestrator) *SyncHandler {
+	return &SyncHandler{db: db, orchestrator: orchestrator}
 }
 
-// SyncResearcher triggers a sync for a single researcher.
+// respondSyncStart turns a refused start into the code the client localizes.
+func respondSyncStart(w http.ResponseWriter, err error) bool {
+	switch {
+	case err == nil:
+		return true
+	case errors.Is(err, syncsvc.ErrCooldown), errors.Is(err, syncsvc.ErrBusy):
+		model.RespondError(w, http.StatusTooManyRequests, err.Error())
+	default:
+		serverError(w, "sync start", err)
+	}
+	return false
+}
+
+// SyncResearcher starts a sync for one researcher (staff only).
 func (h *SyncHandler) SyncResearcher(w http.ResponseWriter, r *http.Request) {
 	researcherID := chi.URLParam(r, "id")
+	if _, err := uuid.Parse(researcherID); err != nil {
+		model.RespondError(w, http.StatusNotFound, "Researcher not found")
+		return
+	}
+	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
+	defer cancel()
 
-	// Run sync in background goroutine
-	go func() {
-		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
-		defer cancel()
-		if err := h.orchestrator.SyncResearcher(ctx, researcherID); err != nil {
-			slog.Error("sync researcher failed", "researcher_id", researcherID, "error", err)
-		}
-	}()
-
+	if !respondSyncStart(w, h.orchestrator.Start(ctx, researcherID)) {
+		return
+	}
 	model.RespondJSON(w, http.StatusAccepted, map[string]string{
 		"message":       "Sync started",
 		"researcher_id": researcherID,
 	})
 }
 
-// SyncByDOI enriches a publication by DOI via CrossRef.
+// SyncByDOI enriches a publication by DOI via CrossRef (staff only).
 func (h *SyncHandler) SyncByDOI(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		DOI string `json:"doi"`
 	}
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.DOI == "" {
+	if !decodeBody(w, r, &req) {
+		return
+	}
+	doi := syncsvc.NormalizeDOI(req.DOI)
+	if doi == "" {
 		model.RespondError(w, http.StatusBadRequest, "doi is required")
 		return
 	}
-
-	go func() {
-		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-		defer cancel()
-		if err := h.orchestrator.SyncByDOI(ctx, req.DOI); err != nil {
-			slog.Error("sync by DOI failed", "doi", req.DOI, "error", err)
-		}
-	}()
-
+	if !respondSyncStart(w, h.orchestrator.StartDOI(doi)) {
+		return
+	}
 	model.RespondJSON(w, http.StatusAccepted, map[string]string{
 		"message": "DOI enrichment started",
-		"doi":     req.DOI,
+		"doi":     doi,
 	})
 }
 

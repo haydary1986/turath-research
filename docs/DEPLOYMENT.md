@@ -12,11 +12,12 @@
 |---|---|---|
 | `POSTGRES_PASSWORD` | ✅ | `openssl rand -hex 24` |
 | `JWT_SECRET` | ✅ | `openssl rand -hex 32` |
-| `GOOGLE_CLIENT_ID` | ✅ للدخول الجامعي | OAuth **Web** client من مشروع `gws-dashboard-461817`، أضف نطاق الموقع في Authorized JavaScript origins |
+| `GOOGLE_CLIENT_ID` | ✅ للدخول الجامعي | معرّف عميل OAuth الخاص بـ Google Workspace للجامعة (خارج المستودع، لا يُرفع إلى Git). أضف نطاق الموقع في Authorized JavaScript origins لهذا العميل. الدخول يتحقق من ID token فلا حاجة إلى `GOOGLE_CLIENT_SECRET` |
 | `GOOGLE_ALLOWED_DOMAIN` | | الافتراضي `uoturath.edu.iq` |
 | `FRONTEND_URL` | ✅ | العنوان العام، مثل `https://research.uoturath.edu.iq` — يُستخدم في روابط البريد |
 | `ALLOWED_ORIGINS` | ✅ | نفس العنوان العام |
 | `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASS` / `SMTP_FROM` | للبريد | عبر Google Workspace: `smtp.gmail.com:587` بحساب `noreply@uoturath.edu.iq` وApp Password |
+| `OPENALEX_API_KEY` | اختياري | مفتاح OpenAlex لفحص المجلات التلقائي؛ بدونه تتشارك الطلبات رصيدًا يوميًا صغيرًا، وعند نفاده يظهر المصدر «غير متاح» |
 | `DEEPSEEK_API_KEY` | لميزات AI | |
 | `ALLOW_PASSWORD_REGISTER` | | اتركه `false` في الإنتاج |
 
@@ -27,6 +28,10 @@ docker compose exec postgres psql -U turath -d turath \
   -c "UPDATE users SET role='admin' WHERE email='بريدك@uoturath.edu.iq'"
 ```
 ثم من **البوابة → المستخدمون والصلاحيات** عيّن بقية الأدوار، ومن **استيراد التدريسيين** ارفع ملف الملاك.
+
+الاستيراد لا يبدأ أي مزامنة، والخلية الفارغة لا تمسح قيمة محفوظة. بعده شغّل **مزامنة ORCID الجماعية** من صفحة الاستيراد نفسها
+(`POST /api/v1/admin/sync/orcid`، والتقدم من `GET` على المسار نفسه، والإيقاف من `/stop`): تعالج باحثًا واحدًا كل مرة بفاصل
+`BULK_SYNC_DELAY_SECONDS` وبحد `BULK_SYNC_DAILY_LIMIT` كل 24 ساعة، وتنتظر ساعة عند نفاد رصيد OpenAlex، وتكمل من حيث توقفت بعد إعادة التشغيل.
 
 ## النسخ الاحتياطي
 ```bash

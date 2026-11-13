@@ -14,11 +14,26 @@ import (
 	"github.com/redis/go-redis/v9"
 
 	"github.com/haydary1986/turath-research/backend/internal/config"
+	"github.com/haydary1986/turath-research/backend/internal/service/journalcheck"
+	syncsvc "github.com/haydary1986/turath-research/backend/internal/service/sync"
 )
 
 // Run starts the HTTP server and blocks until shutdown.
 func Run(cfg *config.Config, db *pgxpool.Pool, rdb *redis.Client) error {
-	router := NewRouter(cfg, db, rdb)
+	journals := journalcheck.New(
+		journalcheck.NewPGStore(db),
+		journalcheck.NewHTTPLookups(cfg.OpenAlex.APIKey, cfg.CrossRef.Mailto),
+	)
+	refreshCtx, stopRefresh := context.WithCancel(context.Background())
+	defer stopRefresh()
+	go journals.Run(refreshCtx)
+
+	orchestrator := syncsvc.NewOrchestrator(db, cfg.CrossRef.Mailto, cfg.OpenAlex.APIKey)
+	bulkSync := newBulkSync(cfg, db, orchestrator)
+	// A bulk sync interrupted by a restart carries on from where it stopped.
+	bulkSync.Resume(refreshCtx)
+
+	router := newRouter(cfg, db, rdb, journals, orchestrator, bulkSync)
 
 	srv := &http.Server{
 		Addr:         ":" + cfg.Server.Port,

@@ -65,7 +65,42 @@ func ensureResearcher(ctx context.Context, tx pgx.Tx, rec requestRecord) (string
 var quartileToRanking = map[string]string{"Q1": "Q1", "Q2": "Q2", "Q3": "Q3", "Q4": "Q4"}
 
 type journalDetails struct {
-	name, publisher, issn, quartile, impactFactor, articleURL, publicationDate string
+	name, publisher, issn, indexDB, quartile, impactFactor, articleURL, publicationDate string
+	authorOrder                                                                         int
+}
+
+// authorOrderOf reads the applicant's position; 0 means absent or unusable.
+func authorOrderOf(value any) int {
+	switch v := value.(type) {
+	case string:
+		n, err := strconv.Atoi(strings.TrimSpace(v))
+		if err != nil || n < 1 {
+			return 0
+		}
+		return n
+	case float64:
+		if v < 1 || v != float64(int(v)) {
+			return 0
+		}
+		return int(v)
+	default:
+		return 0
+	}
+}
+
+// pickAuthorOrder returns the wanted position when free, otherwise the next free one after it.
+func pickAuthorOrder(wanted int, taken []int) int {
+	used := make(map[int]struct{}, len(taken))
+	for _, position := range taken {
+		used[position] = struct{}{}
+	}
+	position := max(wanted, 1)
+	for {
+		if _, busy := used[position]; !busy {
+			return position
+		}
+		position++
+	}
 }
 
 func journalDetailsOf(raw json.RawMessage) (journalDetails, error) {
@@ -81,6 +116,8 @@ func journalDetailsOf(raw json.RawMessage) (journalDetails, error) {
 		name:            get("journal_name"),
 		publisher:       get("publisher"),
 		issn:            get("issn"),
+		indexDB:         get("index_db"),
+		authorOrder:     authorOrderOf(d["author_order"]),
 		quartile:        get("quartile"),
 		impactFactor:    get("impact_factor"),
 		articleURL:      get("article_url"),
@@ -112,7 +149,7 @@ func ensureJournal(ctx context.Context, tx pgx.Tx, d journalDetails) (*string, e
 	}
 
 	ranking := "unranked"
-	if r, ok := quartileToRanking[d.quartile]; ok {
+	if r, ok := quartileToRanking[d.quartile]; ok && portal.QuartileApplies(d.indexDB) {
 		ranking = r
 	}
 	var impact *float64
@@ -129,6 +166,28 @@ func ensureJournal(ctx context.Context, tx pgx.Tx, d journalDetails) (*string, e
 		return nil, err
 	}
 	return &id, nil
+}
+
+// addAuthor records authorship without ever colliding on UNIQUE(publication_id, author_order).
+// The publication row lock serializes concurrent completions of the same paper.
+func addAuthor(ctx context.Context, tx pgx.Tx, pubID, researcherID, name string, wanted int) error {
+	if _, err := tx.Exec(ctx, `SELECT 1 FROM publications WHERE id = $1 FOR UPDATE`, pubID); err != nil {
+		return err
+	}
+	rows, err := tx.Query(ctx, `SELECT author_order FROM publication_authors WHERE publication_id = $1`, pubID)
+	if err != nil {
+		return err
+	}
+	taken, err := pgx.CollectRows(rows, pgx.RowTo[int])
+	if err != nil {
+		return err
+	}
+	position := pickAuthorOrder(wanted, taken)
+	_, err = tx.Exec(ctx, `
+		INSERT INTO publication_authors (publication_id, researcher_id, author_name, author_order, is_corresponding, source)
+		VALUES ($1, $2, $3, $4, $5, 'portal')
+	`, pubID, researcherID, name, position, position == 1)
+	return err
 }
 
 // materializePublication creates (or finds, by DOI) the publication for a completed
@@ -155,7 +214,7 @@ func materializePublication(ctx context.Context, tx pgx.Tx, rec requestRecord) e
 	var pubID string
 	found := false
 	if rec.DOI != nil {
-		err := tx.QueryRow(ctx, `SELECT id FROM publications WHERE doi = $1`, *rec.DOI).Scan(&pubID)
+		err := tx.QueryRow(ctx, `SELECT id FROM publications WHERE lower(doi) = lower($1)`, *rec.DOI).Scan(&pubID)
 		if err != nil && !isNoRows(err) {
 			return err
 		}
@@ -184,12 +243,16 @@ func materializePublication(ctx context.Context, tx pgx.Tx, rec requestRecord) e
 		return err
 	}
 	if !hasAuthor {
-		if _, err := tx.Exec(ctx, `
-			INSERT INTO publication_authors (publication_id, researcher_id, author_name, author_order, is_corresponding)
-			VALUES ($1, $2, $3, 1, TRUE)
-		`, pubID, researcherID, rec.ApplicantName); err != nil {
+		if err := addAuthor(ctx, tx, pubID, researcherID, rec.ApplicantName, details.authorOrder); err != nil {
 			return err
 		}
+	}
+	// Staff have verified this authorship now, so a later sync must not withdraw it.
+	if _, err := tx.Exec(ctx, `
+		UPDATE publication_authors SET source = 'portal'
+		WHERE publication_id = $1 AND researcher_id = $2 AND source = 'sync'
+	`, pubID, researcherID); err != nil {
+		return err
 	}
 	if _, err := tx.Exec(ctx, `
 		UPDATE researchers SET

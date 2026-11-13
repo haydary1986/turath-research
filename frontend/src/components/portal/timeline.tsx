@@ -2,7 +2,7 @@
 
 import { useLocale, useTranslations } from "next-intl";
 import { StatusBadge } from "./status-badge";
-import type { RequestEvent, RequestStatus } from "@/lib/portal/types";
+import { formatDateTime, type RequestEvent, type RequestStatus } from "@/lib/portal/types";
 
 export function Timeline({ events }: { events: RequestEvent[] }) {
   const t = useTranslations("portal.ui");
@@ -16,7 +16,7 @@ export function Timeline({ events }: { events: RequestEvent[] }) {
           <div className="flex flex-wrap items-center gap-2">
             <StatusBadge status={event.to_status as RequestStatus} />
             <span className="text-xs text-muted-foreground">
-              {new Date(event.created_at).toLocaleString(locale === "ar" ? "ar-IQ-u-nu-latn" : "en-GB")}
+              {formatDateTime(event.created_at, locale)}
             </span>
           </div>
           {event.actor_name && (

@@ -10,6 +10,9 @@ func TestNormalizeISSN(t *testing.T) {
 		"ISSN 1234-5679": "1234-5679",
 		"1234-567":       "", // 7 digits
 		"abcd-efgh":      "",
+		"٠٣٧٨-٧٧٨٨":      "0378-7788", // Arabic-Indic
+		"۰۳۷۸۷۷۸۸":       "0378-7788", // Persian
+		"٢٠٤٩-٣٦٣X":      "2049-363X",
 		"":               "",
 	}
 	for in, want := range cases {
@@ -44,6 +47,17 @@ func TestIsClassification(t *testing.T) {
 	for _, bad := range []string{"", "good", "Predatory"} {
 		if IsClassification(bad) {
 			t.Errorf("%s should be invalid", bad)
+		}
+	}
+}
+
+func TestValidISSNChecksum(t *testing.T) {
+	for issn, want := range map[string]bool{
+		"0378-7788": true, "2049-3630": true, "2434-561X": true,
+		"0378-7789": false, "03787788": false, "": false, "ABCD-1234": false,
+	} {
+		if got := ValidISSNChecksum(issn); got != want {
+			t.Errorf("ValidISSNChecksum(%q) = %v, want %v", issn, got, want)
 		}
 	}
 }

@@ -48,6 +48,10 @@ func (h *ScientificAffairsHandler) CheckEligibility(w http.ResponseWriter, r *ht
 	ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
 	defer cancel()
 
+	if !requireActsFor(ctx, w, r, h.db, researcherID) {
+		return
+	}
+
 	result, err := h.eligibility.CheckEligibility(ctx, researcherID, institutionID)
 	if err != nil {
 		model.RespondError(w, http.StatusBadRequest, err.Error())
@@ -71,6 +75,10 @@ func (h *ScientificAffairsHandler) SubmitPromotionApplication(w http.ResponseWri
 
 	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
 	defer cancel()
+
+	if !requireActsFor(ctx, w, r, h.db, req.ResearcherID) {
+		return
+	}
 
 	id := uuid.New().String()
 	_, err := h.db.Exec(ctx, `
@@ -156,6 +164,10 @@ func (h *ScientificAffairsHandler) CalculateIncentives(w http.ResponseWriter, r 
 
 	ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
 	defer cancel()
+
+	if !requireActsFor(ctx, w, r, h.db, researcherID) {
+		return
+	}
 
 	results, err := h.incentiveCalc.CalculateForResearcher(ctx, researcherID, institutionID)
 	if err != nil {
@@ -258,6 +270,10 @@ func (h *ScientificAffairsHandler) SubmitSabbatical(w http.ResponseWriter, r *ht
 	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
 	defer cancel()
 
+	if !requireActsFor(ctx, w, r, h.db, req.ResearcherID) {
+		return
+	}
+
 	id := uuid.New().String()
 	_, err := h.db.Exec(ctx, `
 		INSERT INTO sabbatical_requests (id, researcher_id, destination, destination_country, research_plan, start_date, end_date, status)
@@ -330,6 +346,10 @@ func (h *ScientificAffairsHandler) SubmitConference(w http.ResponseWriter, r *ht
 
 	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
 	defer cancel()
+
+	if !requireActsFor(ctx, w, r, h.db, req.ResearcherID) {
+		return
+	}
 
 	pType := "presenter"
 	if req.ParticipationType != "" {

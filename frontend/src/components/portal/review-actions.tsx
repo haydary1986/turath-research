@@ -2,10 +2,12 @@
 
 import { useState } from "react";
 import { useTranslations } from "next-intl";
-import { Link, useRouter } from "@/i18n/routing";
+import { useRouter } from "@/i18n/routing";
 import { api } from "@/lib/api";
+import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import type { IssuedLetter, RequestDetail, RequestStatus } from "@/lib/portal/types";
 import { NativeSelect, Textarea } from "./form-controls";
 import { usePortalErrors } from "./use-portal-errors";
@@ -33,17 +35,23 @@ export function ReviewActions({ detail, onChanged }: ReviewActionsProps) {
   const router = useRouter();
   const [note, setNote] = useState("");
   const [decision, setDecision] = useState("");
+  const [diwanNo, setDiwanNo] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
-  const { request, allowed_transitions: transitions, letter_id: letterId } = detail;
-  const canIssue = request.kind === "appreciation_letter" && request.status === "verified" &&
-    transitions.length > 0;
-  const canPrintForm = !["draft", "returned"].includes(request.status);
+  const { request, allowed_transitions: transitions } = detail;
+  const canIssue = detail.can_issue_letter;
+  const isDeanStage = request.status === "pending_dean" && transitions.length > 0;
   const isSAStage = transitions.includes("pending_vp" as RequestStatus);
   const isVPStage = request.status === "pending_vp" && transitions.length > 0;
 
-  if (transitions.length === 0 && !canIssue && !letterId && !canPrintForm) return null;
+  if (transitions.length === 0 && !canIssue) return null;
+
+  const title = isDeanStage
+    ? t("ui.deanActions")
+    : isVPStage
+      ? t("ui.vpActions")
+      : t("ui.reviewActions");
 
   async function move(to: RequestStatus, withDecision?: string) {
     setError("");
@@ -68,7 +76,8 @@ export function ReviewActions({ detail, onChanged }: ReviewActionsProps) {
     setBusy(true);
     try {
       const res = await api.post<IssuedLetter>(
-        `/api/v1/portal/requests/${request.id}/issue-letter`, {}
+        `/api/v1/portal/requests/${request.id}/issue-letter`,
+        diwanNo.trim() ? { diwan_no: diwanNo.trim() } : {}
       );
       if (res.data) router.push(`/portal/letters/${res.data.id}`);
     } catch (err) {
@@ -85,17 +94,15 @@ export function ReviewActions({ detail, onChanged }: ReviewActionsProps) {
   }
 
   return (
-    <Card>
+    <Card className="border-accent/30">
       <CardHeader>
-        <CardTitle>{t("ui.reviewActions")}</CardTitle>
+        <CardTitle>{title}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        {error && (
-          <div className="whitespace-pre-line rounded bg-red-50 p-3 text-sm text-red-600">{error}</div>
-        )}
+        {error && <Alert variant="danger">{error}</Alert>}
 
         {isVPStage && request.sa_decision && (
-          <p className="rounded bg-muted p-3 text-sm">
+          <p className="rounded-lg bg-muted p-3 text-sm">
             {t("ui.saDecision")}: <b>{t(`statuses.${request.sa_decision}`)}</b>
           </p>
         )}
@@ -106,6 +113,7 @@ export function ReviewActions({ detail, onChanged }: ReviewActionsProps) {
               {t("ui.noteLabel")}
             </label>
             <Textarea id="review-note" value={note} onChange={(e) => setNote(e.target.value)} />
+            {isVPStage && <p className="text-xs text-muted-foreground">{t("ui.noteVPHint")}</p>}
           </div>
         )}
 
@@ -155,26 +163,24 @@ export function ReviewActions({ detail, onChanged }: ReviewActionsProps) {
         </div>
 
         {canIssue && (
-          <div className="space-y-2">
+          <div className="space-y-2 rounded-lg border p-3">
+            <label htmlFor="diwan-no" className="text-sm font-medium">
+              {t("ui.diwanNoLabel")}
+            </label>
+            <Input
+              id="diwan-no"
+              dir="ltr"
+              value={diwanNo}
+              onChange={(e) => setDiwanNo(e.target.value)}
+              placeholder={t("ui.diwanNoPlaceholder")}
+            />
+            <p className="text-xs text-muted-foreground">{t("ui.diwanNoHint")}</p>
             <Button type="button" disabled={busy} onClick={issueLetter}>
               {t("ui.issueLetter")}
             </Button>
             <p className="text-xs text-muted-foreground">{t("ui.issueLetterHint")}</p>
           </div>
         )}
-
-        <div className="flex flex-wrap gap-2">
-          {letterId && (
-            <Button variant="outline" render={<Link href={`/portal/letters/${letterId}`} />}>
-              {t("ui.viewLetter")}
-            </Button>
-          )}
-          {canPrintForm && (
-            <Button variant="outline" render={<Link href={`/portal/requests/${request.id}/print`} />}>
-              {t("ui.printForm")}
-            </Button>
-          )}
-        </div>
       </CardContent>
     </Card>
   );

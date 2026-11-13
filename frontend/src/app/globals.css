@@ -46,6 +46,24 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
+  --color-status-pending: var(--status-pending);
+  --color-status-pending-fg: var(--status-pending-fg);
+  --color-status-pending-bg: var(--status-pending-bg);
+  --color-status-info: var(--status-info);
+  --color-status-info-fg: var(--status-info-fg);
+  --color-status-info-bg: var(--status-info-bg);
+  --color-status-progress: var(--status-progress);
+  --color-status-progress-fg: var(--status-progress-fg);
+  --color-status-progress-bg: var(--status-progress-bg);
+  --color-status-success: var(--status-success);
+  --color-status-success-fg: var(--status-success-fg);
+  --color-status-success-bg: var(--status-success-bg);
+  --color-status-warning: var(--status-warning);
+  --color-status-warning-fg: var(--status-warning-fg);
+  --color-status-warning-bg: var(--status-warning-bg);
+  --color-status-danger: var(--status-danger);
+  --color-status-danger-fg: var(--status-danger-fg);
+  --color-status-danger-bg: var(--status-danger-bg);
 }
 
 :root {
@@ -84,6 +102,26 @@
   --sidebar-accent-foreground: oklch(0.98 0 0);
   --sidebar-border: oklch(0.36 0.04 200);
   --sidebar-ring: oklch(0.72 0.1 180);
+
+  /* ── Status colors (workflow states, alerts, watchlist verdicts) ── */
+  --status-pending: oklch(0.66 0.13 75);          /* amber — awaiting dean */
+  --status-pending-fg: oklch(0.43 0.1 70);
+  --status-pending-bg: oklch(0.96 0.045 85);
+  --status-info: oklch(0.58 0.11 240);            /* blue — SA review / notices */
+  --status-info-fg: oklch(0.42 0.1 245);
+  --status-info-bg: oklch(0.95 0.03 240);
+  --status-progress: oklch(0.56 0.13 285);        /* indigo — VP / signatures */
+  --status-progress-fg: oklch(0.42 0.13 285);
+  --status-progress-bg: oklch(0.95 0.035 285);
+  --status-success: oklch(0.58 0.12 155);         /* green — approved/verified */
+  --status-success-fg: oklch(0.40 0.1 155);
+  --status-success-bg: oklch(0.96 0.04 155);
+  --status-warning: oklch(0.62 0.14 50);          /* orange — returned/suspended */
+  --status-warning-fg: oklch(0.44 0.12 45);
+  --status-warning-bg: oklch(0.96 0.045 55);
+  --status-danger: oklch(0.55 0.21 27);           /* red — rejected/predatory */
+  --status-danger-fg: oklch(0.45 0.17 27);
+  --status-danger-bg: oklch(0.96 0.025 25);
 }
 
 
@@ -119,6 +157,25 @@
   --sidebar-accent-foreground: oklch(0.98 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.72 0.1 180);
+
+  --status-pending: oklch(0.80 0.12 80);
+  --status-pending-fg: oklch(0.85 0.1 82);
+  --status-pending-bg: oklch(0.28 0.05 75);
+  --status-info: oklch(0.72 0.1 240);
+  --status-info-fg: oklch(0.84 0.07 240);
+  --status-info-bg: oklch(0.27 0.045 245);
+  --status-progress: oklch(0.72 0.11 285);
+  --status-progress-fg: oklch(0.84 0.08 285);
+  --status-progress-bg: oklch(0.27 0.05 285);
+  --status-success: oklch(0.76 0.12 155);
+  --status-success-fg: oklch(0.85 0.09 155);
+  --status-success-bg: oklch(0.27 0.05 155);
+  --status-warning: oklch(0.76 0.13 55);
+  --status-warning-fg: oklch(0.84 0.1 55);
+  --status-warning-bg: oklch(0.28 0.05 50);
+  --status-danger: oklch(0.70 0.17 25);
+  --status-danger-fg: oklch(0.82 0.12 25);
+  --status-danger-bg: oklch(0.28 0.06 25);
 }
 
 

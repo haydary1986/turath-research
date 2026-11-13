@@ -37,6 +37,8 @@ func TestValidateRejects(t *testing.T) {
 		{"huge attendees", func(i *Input) { i.Attendees = 2000000 }, true, "attendees_count:invalid"},
 		{"no college", func(*Input) {}, false, "college:required"},
 		{"long title", func(i *Input) { i.TitleAr = strings.Repeat("ع", 501) }, true, "title_ar:too_long"},
+		{"long location", func(i *Input) { i.Location = strings.Repeat("ع", 256) }, true, "location:too_long"},
+		{"long presenter", func(i *Input) { i.Presenter = strings.Repeat("ع", 501) }, true, "presenter:too_long"},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
@@ -59,5 +61,15 @@ func TestValidateRejects(t *testing.T) {
 func TestTypes(t *testing.T) {
 	if len(Types) == 0 || !IsType("seminar") || IsType("x") {
 		t.Fatal("type registry broken")
+	}
+}
+
+func TestValidateAttendanceModeExact(t *testing.T) {
+	for mode, want := range map[string]int{"": 0, "online": 0, "hybrid": 0, " ": 1, "   ": 1, " online": 1, "ONLINE": 1} {
+		in := valid()
+		in.AttendanceMode = mode
+		if got := Validate(in, true); len(got) != want {
+			t.Errorf("mode %q: %v", mode, got)
+		}
 	}
 }

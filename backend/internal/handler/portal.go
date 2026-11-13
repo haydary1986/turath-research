@@ -4,8 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"io"
 	"log/slog"
 	"net/http"
+	"slices"
+	"strconv"
 	"strings"
 	"time"
 
@@ -16,6 +19,7 @@ import (
 
 	"github.com/haydary1986/turath-research/backend/internal/middleware"
 	"github.com/haydary1986/turath-research/backend/internal/model"
+	"github.com/haydary1986/turath-research/backend/internal/service/journalcheck"
 	"github.com/haydary1986/turath-research/backend/internal/service/mailer"
 	"github.com/haydary1986/turath-research/backend/internal/service/portal"
 )
@@ -32,10 +36,15 @@ type PortalHandler struct {
 	uploadDir string
 	mail      *mailer.Mailer // nil ⇒ in-app notifications only
 	baseURL   string         // public frontend URL used in notification emails
+	journals  *journalcheck.Service
+
+	journalThrottle *journalcheck.UserThrottle
 }
 
-func NewPortalHandler(db *pgxpool.Pool, uploadDir string, mail *mailer.Mailer, baseURL string) *PortalHandler {
-	return &PortalHandler{db: db, uploadDir: uploadDir, mail: mail, baseURL: strings.TrimRight(baseURL, "/")}
+func NewPortalHandler(db *pgxpool.Pool, uploadDir string, mail *mailer.Mailer, baseURL string, journals *journalcheck.Service) *PortalHandler {
+	return &PortalHandler{db: db, uploadDir: uploadDir, mail: mail, baseURL: strings.TrimRight(baseURL, "/"), journals: journals,
+		journalThrottle: journalcheck.NewUserThrottle(uncachedChecksPerUser, uncachedChecksInterval),
+	}
 }
 
 // emailLink turns an in-app link like /portal/requests/x into an absolute Arabic-locale URL.
@@ -196,12 +205,27 @@ func emailBody(body, link string) string {
 // notifyRole alerts every user holding `role` (college deans only within collegeID),
 // in-app and by email. Used to wake the next actor in the approval chain.
 func (h *PortalHandler) notifyRole(ctx context.Context, role string, collegeID *string, titleAr, titleEn, body, link string) {
-	where := `role = $5::user_role`
-	args := []any{titleAr, titleEn, body, link, role}
+	h.notifyRoleExcept(ctx, role, collegeID, "", titleAr, titleEn, body, link)
+}
+
+// roleAudience builds the user filter, numbering its placeholders after the leading args.
+func roleAudience(leading []any, role string, collegeID *string, excludeUser string) (string, []any) {
+	args := append(slices.Clone(leading), role)
+	where := `role = $` + strconv.Itoa(len(args)) + `::user_role`
 	if collegeID != nil {
-		where += ` AND college_id = $6`
 		args = append(args, *collegeID)
+		where += ` AND college_id = $` + strconv.Itoa(len(args))
 	}
+	if excludeUser != "" {
+		args = append(args, excludeUser)
+		where += ` AND id <> $` + strconv.Itoa(len(args))
+	}
+	return where, args
+}
+
+// notifyRoleExcept is notifyRole leaving out one user, when excludeUser is set.
+func (h *PortalHandler) notifyRoleExcept(ctx context.Context, role string, collegeID *string, excludeUser, titleAr, titleEn, body, link string) {
+	where, args := roleAudience([]any{titleAr, titleEn, body, link}, role, collegeID, excludeUser)
 	_, err := h.db.Exec(ctx, `
 		INSERT INTO notifications (user_id, title_ar, title_en, body, type, link)
 		SELECT id, $1, $2, $3, 'info', $4 FROM users WHERE `+where, args...)
@@ -212,12 +236,7 @@ func (h *PortalHandler) notifyRole(ctx context.Context, role string, collegeID *
 	if !h.mail.Enabled() {
 		return
 	}
-	emailWhere := `role = $1::user_role`
-	emailArgs := []any{role}
-	if collegeID != nil {
-		emailWhere += ` AND college_id = $2`
-		emailArgs = append(emailArgs, *collegeID)
-	}
+	emailWhere, emailArgs := roleAudience(nil, role, collegeID, excludeUser)
 	rows, err := h.db.Query(ctx, `SELECT email FROM users WHERE `+emailWhere, emailArgs...)
 	if err != nil {
 		return
@@ -276,6 +295,26 @@ func decodeBody(w http.ResponseWriter, r *http.Request, dst any) bool {
 		return false
 	}
 	return true
+}
+
+// decodeOptionalBody is decodeBody for endpoints whose body may be absent.
+func decodeOptionalBody(w http.ResponseWriter, r *http.Request, dst any) bool {
+	r.Body = http.MaxBytesReader(w, r.Body, maxJSONBody)
+	if err := json.NewDecoder(r.Body).Decode(dst); err != nil && !errors.Is(err, io.EOF) {
+		model.RespondError(w, http.StatusBadRequest, "Invalid request body")
+		return false
+	}
+	return true
+}
+
+// longRunningContext frees a slow handler from the global 30s request timeout and
+// the server's 30s write timeout, replacing both with its own deadline.
+func longRunningContext(w http.ResponseWriter, r *http.Request, d time.Duration) (context.Context, context.CancelFunc) {
+	deadline := time.Now().Add(d)
+	if err := http.NewResponseController(w).SetWriteDeadline(deadline); err != nil {
+		slog.Warn("portal: could not extend write deadline", "error", err)
+	}
+	return context.WithDeadline(context.WithoutCancel(r.Context()), deadline)
 }
 
 func isPgCode(err error, code string) bool {

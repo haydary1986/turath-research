@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/routing";
 import { api } from "@/lib/api";
@@ -9,11 +9,16 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { fieldsFor, type FieldDef } from "@/lib/portal/fields";
-import { requestTitle, type JournalFlag, type Org, type PortalRequest, type RequestKind } from "@/lib/portal/types";
-import { JournalFlagBanner } from "./journal-flag-banner";
+import { fieldsFor, quartileApplies, withoutStaleQuartile, type FieldDef } from "@/lib/portal/fields";
+import { requestTitle, type JournalCheck, type Org, type PortalRequest, type RequestKind } from "@/lib/portal/types";
+import { JournalEvidencePanel } from "./journal-evidence-panel";
+import { useJournalCheck } from "./use-journal-check";
+import { toLatinDigits } from "@/lib/portal/journal-query";
+
+const ISSN_FIELDS = new Set(["issn", "issn_online"]);
 import { NativeSelect, Textarea } from "./form-controls";
 import { usePortalErrors } from "./use-portal-errors";
+import { Alert } from "@/components/ui/alert";
 
 interface RequestFormProps {
   kind: RequestKind;
@@ -46,6 +51,15 @@ function initialState(
   };
 }
 
+function journalSuggestions(result: JournalCheck): { field: string; value: string }[] {
+  const pairs: [string, string | undefined][] = [
+    ["journal_name", result.canonical_name],
+    ["publisher", result.publisher],
+    ["issn_online", result.issn_online],
+  ];
+  return pairs.flatMap(([field, value]) => (value ? [{ field, value }] : []));
+}
+
 export function RequestForm({ kind, existing }: RequestFormProps) {
   const t = useTranslations("portal");
   const toMessage = usePortalErrors();
@@ -58,30 +72,45 @@ export function RequestForm({ kind, existing }: RequestFormProps) {
   const [verifications, setVerifications] = useState<PortalRequest[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
-  const [flag, setFlag] = useState<JournalFlag | null>(null);
 
-  // Live watchlist check while the journal fields are being filled.
-  const issn = form.details.issn ?? "";
-  const journalName = form.details.journal_name ?? "";
+  const hasJournal = kind !== "research_plan";
+  const check = useJournalCheck(
+    hasJournal
+      ? {
+          issn: form.details.issn,
+          issn_online: form.details.issn_online,
+          name: form.details.journal_name,
+          publisher: form.details.publisher,
+          url: form.details.journal_url,
+        }
+      : {}
+  );
+  const checkResult = check.result;
+
+  // Fills each empty field once per suggested value, so clearing a field keeps it clear.
+  const autoFilled = useRef(new Set<string>());
+  const [didAutoFill, setDidAutoFill] = useState(false);
+  const details = form.details;
   useEffect(() => {
-    if (kind === "research_plan" || (!issn.trim() && !journalName.trim())) {
-      setFlag(null);
-      return;
-    }
-    let active = true;
-    const timer = setTimeout(() => {
-      api
-        .get<JournalFlag>(
-          `/api/v1/screening/check?issn=${encodeURIComponent(issn)}&name=${encodeURIComponent(journalName)}`
-        )
-        .then((res) => active && setFlag(res.data ?? null))
-        .catch(() => undefined);
-    }, 400);
-    return () => {
-      active = false;
-      clearTimeout(timer);
-    };
-  }, [kind, issn, journalName]);
+    if (!checkResult) return;
+    const fill = journalSuggestions(checkResult).filter(
+      ({ field, value }) => !details[field]?.trim() && !autoFilled.current.has(`${field}:${value}`)
+    );
+    if (fill.length === 0) return;
+    fill.forEach(({ field, value }) => autoFilled.current.add(`${field}:${value}`));
+    setDidAutoFill(true);
+    setForm((prev) => ({
+      ...prev,
+      details: { ...prev.details, ...Object.fromEntries(fill.map(({ field, value }) => [field, value])) },
+    }));
+  }, [checkResult, details]);
+
+  const offers = checkResult
+    ? journalSuggestions(checkResult).filter(({ field, value }) => {
+        const current = form.details[field]?.trim() ?? "";
+        return current !== "" && current.toLowerCase() !== value.toLowerCase();
+      })
+    : [];
 
   useEffect(() => {
     let active = true;
@@ -115,7 +144,10 @@ export function RequestForm({ kind, existing }: RequestFormProps) {
   }, [kind]);
 
   function setDetail(key: string, value: string) {
-    setForm((prev) => ({ ...prev, details: { ...prev.details, [key]: value } }));
+    setForm((prev) => ({
+      ...prev,
+      details: withoutStaleQuartile({ ...prev.details, [key]: ISSN_FIELDS.has(key) ? toLatinDigits(value) : value }),
+    }));
   }
 
   function selectVerification(id: string) {
@@ -141,7 +173,7 @@ export function RequestForm({ kind, existing }: RequestFormProps) {
     setError("");
     setSaving(true);
     try {
-      const payload = { ...form, kind };
+      const payload = { ...form, kind, details: withoutStaleQuartile(form.details) };
       const res = existing
         ? await api.put<PortalRequest>(`/api/v1/portal/requests/${existing.id}`, payload)
         : await api.post<PortalRequest>("/api/v1/portal/requests", payload);
@@ -160,7 +192,7 @@ export function RequestForm({ kind, existing }: RequestFormProps) {
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       {error && (
-        <div className="whitespace-pre-line rounded bg-red-50 p-3 text-sm text-red-600">{error}</div>
+        <Alert variant="danger">{error}</Alert>
       )}
 
       {kind === "appreciation_letter" && (
@@ -185,7 +217,29 @@ export function RequestForm({ kind, existing }: RequestFormProps) {
         </Card>
       )}
 
-      <JournalFlagBanner flag={flag} />
+      {hasJournal && (
+        <JournalEvidencePanel result={check.result} loading={check.loading} failed={check.failed} onRetry={check.retry}>
+          {didAutoFill && <p className="text-xs text-muted-foreground">{t("journals.check.suggest.autoFilled")}</p>}
+          {offers.length > 0 && (
+            <div className="space-y-2">
+              <p className="font-medium">{t("journals.check.suggest.title")}</p>
+              <ul className="space-y-2">
+                {offers.map(({ field, value }) => (
+                  <li key={field} className="flex flex-wrap items-center justify-between gap-2">
+                    <span className="min-w-0">
+                      <span className="text-muted-foreground">{t(`fields.${field}`)}: </span>
+                      <span dir="auto">{value}</span>
+                    </span>
+                    <Button type="button" variant="outline" size="sm" onClick={() => setDetail(field, value)}>
+                      {t("journals.check.suggest.use")}
+                    </Button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </JournalEvidencePanel>
+      )}
 
       <Card>
         <CardHeader>
@@ -210,17 +264,21 @@ export function RequestForm({ kind, existing }: RequestFormProps) {
               onChange={(e) => setForm({ ...form, title_en: e.target.value })}
             />
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="doi">{t("fields.doi")}</Label>
-            <Input
-              id="doi"
-              dir="ltr"
-              value={form.doi}
-              onChange={(e) => setForm({ ...form, doi: e.target.value })}
-            />
-            <p className="text-xs text-muted-foreground">{t("ui.doiHint")}</p>
-          </div>
-          <div />
+          {kind !== "research_plan" && (
+            <>
+              <div className="space-y-2">
+                <Label htmlFor="doi">{t("fields.doi")}</Label>
+                <Input
+                  id="doi"
+                  dir="ltr"
+                  value={form.doi}
+                  onChange={(e) => setForm({ ...form, doi: e.target.value })}
+                />
+                <p className="text-xs text-muted-foreground">{t("ui.doiHint")}</p>
+              </div>
+              <div />
+            </>
+          )}
           <div className="space-y-2">
             <Label htmlFor="college">{t("fields.college")}</Label>
             <NativeSelect
@@ -252,7 +310,9 @@ export function RequestForm({ kind, existing }: RequestFormProps) {
             </NativeSelect>
           </div>
 
-          {fieldsFor(kind).map((field) => (
+          {fieldsFor(kind)
+            .filter((field) => field.key !== "quartile" || quartileApplies(form.details.index_db))
+            .map((field) => (
             <DetailField
               key={field.key}
               field={field}

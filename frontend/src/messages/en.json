@@ -14,7 +14,9 @@
     "next": "Next",
     "previous": "Previous",
     "noResults": "No results found",
-    "actions": "Actions"
+    "actions": "Actions",
+    "logout": "Sign out",
+    "accountMenu": "Account menu"
   },
   "nav": {
     "dashboard": "Dashboard",
@@ -50,6 +52,7 @@
     "admin": "Admin"
   },
   "researcher": {
+    "identityReview": "Needs identity review",
     "title": "Researchers",
     "addNew": "Add Researcher",
     "name": "Name",
@@ -114,8 +117,12 @@
       "users": "Users & roles",
       "import": "Import faculty",
       "activities": "Activities",
-      "journals": "Journal watchlist",
-      "reports": "Reports"
+      "journals": "Journal exceptions",
+      "reports": "Reports",
+      "reviewQueue": "Awaiting my review",
+      "profile": "My research profile",
+      "journalCheck": "Check a journal",
+      "predatory": "Predatory journals guide"
     },
     "kinds": {
       "research_plan": "Research plan registration",
@@ -156,7 +163,7 @@
       "pending": "Forward to scientific affairs"
     },
     "roles": {
-      "research_form": "Research registration form",
+      "research_form": "Research registration form signed by the department scientific committee",
       "journal_form": "Journal / paper verification form",
       "committee_approval": "Scientific committee confirmation",
       "published_paper": "Published paper",
@@ -211,7 +218,32 @@
       "classification": "Classification",
       "activity_type": "Activity type",
       "activity_date": "Activity date",
-      "attendees_count": "Attendees"
+      "attendees_count": "Attendees",
+      "issn_online": "Online ISSN",
+      "submission_date": "Submitted to journal on",
+      "acceptance_date": "Acceptance date",
+      "volume": "Volume",
+      "issue": "Issue",
+      "pages": "Pages",
+      "authors_count": "Number of authors",
+      "author_order": "Author position",
+      "extracted_thesis": "Extracted from a thesis",
+      "plagiarism_pct": "Similarity %",
+      "diwan_no": "Presidency registry number",
+      "google_scholar_url": "Google Scholar",
+      "scopus_url": "Scopus",
+      "researchgate_url": "ResearchGate",
+      "linkedin_url": "LinkedIn",
+      "orcid": "ORCID",
+      "target_audience": "Target audience",
+      "organizer": "Organizer",
+      "attendance_mode": "Attendance mode",
+      "location": "Location",
+      "presenter": "Presenter",
+      "web_of_science_url": "Web of Science",
+      "phone": "Phone number",
+      "phone_secondary": "Second phone number",
+      "recovery_email": "Recovery email"
     },
     "options": {
       "individual": "Individual",
@@ -219,7 +251,11 @@
       "scopus": "Scopus",
       "wos": "Web of Science",
       "local": "Local",
-      "none": "— Select —"
+      "none": "— Select —",
+      "international_unindexed": "International (unindexed)",
+      "not_extracted": "Not extracted",
+      "extracted_master": "Extracted from a master's thesis",
+      "extracted_phd": "Extracted from a PhD dissertation"
     },
     "errors": {
       "required": "Required",
@@ -241,7 +277,25 @@
       "generic": "Something went wrong, please try again",
       "validationFailed": "Complete the following before continuing:",
       "decision_mismatch": "The decision no longer matches the recommendation; reload the page",
-      "duplicate_issn": "This ISSN is already in the watchlist"
+      "duplicate_issn": "This ISSN is already in the watchlist",
+      "invalid_profile_url": "This link is not valid. Copy it in full from your page",
+      "https_required": "The link must start with https://",
+      "wrong_host": "This link is not from the expected site",
+      "not_a_profile_link": "This is not your profile link. Copy it from your profile page on the site",
+      "invalid_orcid": "This ORCID iD is not valid. Check it on your orcid.org page",
+      "orcid_required": "Enter and save your ORCID iD first",
+      "orcid_taken": "This ORCID iD is registered to another researcher. If it is yours, contact Scientific Affairs",
+      "google_scholar_taken": "This Google Scholar link is registered to another researcher. If it is yours, contact Scientific Affairs",
+      "scopus_taken": "This Scopus link is registered to another researcher. If it is yours, contact Scientific Affairs",
+      "orcid_change_cooldown": "This ORCID iD cannot be changed while a refresh is running or just after one. Nothing was saved. Try again in a few minutes",
+      "sync_busy": "Many refreshes are running right now. Try again in a few minutes",
+      "sync_cooldown": "Your data was refreshed moments ago. You can refresh again in a few minutes",
+      "activity_already_decided": "This activity has already been decided. Refresh the page to see the decision.",
+      "cannot_decide_own_activity": "You cannot decide an activity you registered yourself.",
+      "wrong_college": "The department does not belong to the chosen college",
+      "invalid_phone": "Must be an Iraqi number in the form 07XXXXXXXXX",
+      "invalid_email": "Invalid email address",
+      "bulk_sync_not_active": "No sync is running"
     },
     "ui": {
       "newRequest": "Submit a new request",
@@ -277,7 +331,7 @@
       "apply": "Apply",
       "issueLetter": "Issue appreciation letter",
       "viewLetter": "View letter",
-      "issueLetterHint": "The letter is numbered and saved permanently; it cannot be edited once issued.",
+      "issueLetterHint": "The letter is numbered and saved permanently; only the presidency registry number can be changed once issued.",
       "printForm": "Print form",
       "print": "Print",
       "back": "Back",
@@ -307,7 +361,18 @@
       "decisionLabel": "Scientific affairs decision",
       "openRequests": "In progress",
       "doneRequests": "Completed",
-      "openShort": "Open"
+      "openShort": "Open",
+      "deanActions": "College dean decision",
+      "vpActions": "VP decision",
+      "noteVPHint": "A note is required when sending back to Scientific Affairs",
+      "diwanNoLabel": "Presidency registry number",
+      "diwanNoPlaceholder": "e.g. 1234",
+      "diwanNoHint": "The official outgoing-mail number from the presidency diwan — printed on the letter; the internal number remains for online verification",
+      "letterIssuedBanner": "The appreciation letter has been issued",
+      "backToRequest": "Back to request",
+      "viewAll": "View all",
+      "inboxEmpty": "Nothing awaiting your review — all clear ✅",
+      "deleteConfirm": "Are you sure you want to delete this? This cannot be undone."
     },
     "letter": {
       "number": "No.",
@@ -321,7 +386,8 @@
       "valid": "This letter is genuine and registered in the system",
       "invalid": "No letter found for this code",
       "issuedTo": "Issued to",
-      "issuedOn": "On"
+      "issuedOn": "On",
+      "internalNo": "Internal verification no."
     },
     "templates": {
       "title": "Appreciation letter templates",
@@ -371,7 +437,7 @@
       "title": "Import faculty from Excel",
       "intro": "Upload an xlsx whose first row holds the column names. Check the file first (preview, nothing saved), then run the import.",
       "columnsTitle": "Accepted columns",
-      "columnsHint": "Columns in any order, Arabic or English headers. Fields marked * are required. Missing colleges/departments are created automatically.",
+      "columnsHint": "Columns in any order, Arabic or English headers. Fields marked * are required, and an empty cell never erases a stored value. Missing colleges/departments are created automatically. Importing starts no sync.",
       "chooseFile": "Choose file",
       "check": "Check file",
       "confirmImport": "Import {count} researchers",
@@ -392,26 +458,49 @@
         "title_ar": "Academic title",
         "college": "College",
         "department": "Department",
-        "orcid": "ORCID"
+        "orcid": "ORCID",
+        "phone": "Phone",
+        "phone_secondary": "Second phone",
+        "recovery_email": "Recovery email",
+        "google_scholar_url": "Google Scholar",
+        "scopus_url": "Scopus",
+        "researchgate_url": "ResearchGate",
+        "linkedin_url": "LinkedIn",
+        "web_of_science_url": "Web of Science",
+        "employee_no": "Employee number",
+        "account_status": "Account status (linked / needs_review)"
       },
       "errors": {
         "name_required": "Name missing",
         "invalid_email": "Invalid email",
         "duplicate_email": "Duplicate email in file",
+        "invalid_orcid": "Invalid ORCID iD",
         "too_many_rows": "Over the 2000-row limit",
         "save_failed": "Row failed to save",
         "empty_sheet": "File is empty",
         "unsupported_file_type": "Not a valid xlsx file",
-        "file_too_large": "File exceeds 10MB"
+        "file_too_large": "File exceeds 10MB",
+        "invalid_phone": "Phone is not in the form 07XXXXXXXXX",
+        "invalid_phone_secondary": "Second phone is not in the form 07XXXXXXXXX",
+        "invalid_recovery_email": "Invalid recovery email",
+        "invalid_employee_no": "Invalid employee number",
+        "invalid_account_status": "Unknown account status",
+        "invalid_google_scholar_url": "Invalid Google Scholar link",
+        "invalid_scopus_url": "Invalid Scopus link",
+        "invalid_researchgate_url": "Invalid ResearchGate link",
+        "invalid_linkedin_url": "Invalid LinkedIn link",
+        "invalid_web_of_science_url": "Invalid Web of Science link",
+        "orcid_taken": "ORCID belongs to another researcher",
+        "google_scholar_taken": "Google Scholar profile belongs to another researcher",
+        "scopus_taken": "Scopus profile belongs to another researcher",
+        "orcid_kept": "Row saved; the stored ORCID was kept because the file differs"
       }
     },
     "university": "University of Turath",
     "activities": {
       "title": "Scientific activities",
-      "subtitle": "Seminars, workshops and panels — approved by scientific affairs with the official letter number",
       "new": "New activity",
-      "decide": "Decide",
-      "approve": "Approve with letter no.",
+      "approve": "Approve and record number",
       "searchPlaceholder": "Search by title, presenter or letter no.",
       "allTypes": "All types",
       "allYears": "All years",
@@ -426,10 +515,11 @@
         "other": "Other"
       },
       "statuses": {
-        "pending": "Awaiting approval",
+        "pending": "Awaiting scientific affairs approval",
         "approved": "Approved",
-        "returned": "Returned",
-        "rejected": "Rejected"
+        "returned": "Returned to the organizer for edits",
+        "rejected": "Rejected",
+        "returnedToYou": "Returned to you for edits"
       },
       "fields": {
         "title": "Activity title",
@@ -439,12 +529,53 @@
         "location": "Location",
         "attendees": "Attendees",
         "description": "Description",
-        "approvalNo": "Approval letter no."
+        "approvalNo": "Approval letter no.",
+        "attendanceMode": "Attendance mode",
+        "targetAudience": "Target audience",
+        "organizer": "Organizer / in cooperation with",
+        "registeredBy": "Registered by"
+      },
+      "empty": "No activities recorded yet",
+      "modes": {
+        "in_person": "In person",
+        "online": "Online",
+        "hybrid": "Hybrid"
+      },
+      "intro": "The organizer registers the activity, scientific affairs reviews and approves it and records the approval letter number, and it then counts in the ministry report.",
+      "steps": {
+        "register": "The organizer registers the activity",
+        "review": "Scientific affairs reviews, approves and records the letter number",
+        "report": "The activity counts in the ministry report"
+      },
+      "actions": "Actions",
+      "reviewAction": "Review activity",
+      "decisionNote": "Scientific affairs note",
+      "loadFailed": "Could not load activities. Refresh the page or try again later.",
+      "resubmitHint": "Saving your edits sends the activity back to scientific affairs for a new review.",
+      "review": {
+        "title": "Review activity",
+        "intro": "Read the activity details first, then choose an action.",
+        "details": "Activity details",
+        "previousNote": "Earlier note from scientific affairs",
+        "approveTitle": "Approve the activity",
+        "approveHint": "Enter the approval letter number, the official letter authorizing the activity. The organizer sees it and it appears in the ministry report. Approval is final.",
+        "approvalNoteLabel": "Note to the organizer (optional)",
+        "refuseTitle": "Return or reject the activity",
+        "returnHint": "Return for edits: the activity goes back to the organizer to fix and resubmit.",
+        "rejectHint": "Reject: a final decision that cannot be edited afterwards, and the activity does not count in the ministry report.",
+        "noteLabel": "Reason for returning or rejecting (shown to the organizer)",
+        "returnAction": "Return for edits",
+        "rejectAction": "Reject activity"
+      },
+      "validation": {
+        "approval_no_required": "Enter the approval letter number to approve the activity.",
+        "approval_no_too_long": "The letter number is longer than 100 characters.",
+        "approval_note_too_long": "The note is longer than 2000 characters.",
+        "note_required": "Write the reason so the organizer knows what is needed.",
+        "note_too_long": "The reason is longer than 2000 characters."
       }
     },
     "journals": {
-      "title": "Journal watchlist",
-      "subtitle": "Accredited and predatory journals — verification requests are checked automatically",
       "new": "Add journal",
       "save": "Save",
       "classification": "Classification",
@@ -463,7 +594,122 @@
         "suspended": "Notice: publication in this journal is suspended",
         "accredited": "Accredited journal",
         "hint": "Automatic watchlist check — the final call rests with scientific affairs"
-      }
+      },
+      "import": "Import from Excel",
+      "importResult": "Import finished: {created} added, {updated} updated, {problems} problems",
+      "deleteConfirm": "Remove this journal from the watchlist?",
+      "importFailedLine": "Import failed at line {line} and nothing from the file was saved. Fix that line and try again.",
+      "importMissingColumns": "The file was not imported because these columns are missing: {columns}",
+      "importColumns": {
+        "name": "Journal name",
+        "classification": "Classification"
+      },
+      "check": {
+        "title": "Check a journal",
+        "placeholder": "Type an ISSN or journal name",
+        "submit": "Check",
+        "checking": "Checking...",
+        "hint": "Compares the journal with predatory and hijacked lists and with the OpenAlex, Crossref and DOAJ indexes.",
+        "panelTitle": "Automatic journal check",
+        "advisory": "This is advisory evidence for scientific affairs, not a decision. The final call rests with scientific affairs.",
+        "failed": "The check could not run right now. This does not mean the journal is fine; try again later.",
+        "canonicalName": "Name in the indexes",
+        "publisher": "Publisher",
+        "issns": "ISSNs",
+        "sourcesTitle": "Sources",
+        "listHitsTitle": "List results",
+        "throttled": "Too many new journals were checked in a short time, so the external indexes were skipped this time. Local lists were still checked. Try again in a few minutes.",
+        "sourcesFailed": "Sources unavailable right now: {sources}. The journal was not checked against them, so their silence is not a clean result.",
+        "verdict": {
+          "danger": "Danger: strong signs of poor rigour",
+          "caution": "Caution: needs review",
+          "found": "Found in the sources (this does not mean it is rigorous)",
+          "unknown": "Undetermined: not enough evidence"
+        },
+        "sources": {
+          "openalex": "OpenAlex",
+          "crossref": "Crossref",
+          "doaj": "DOAJ",
+          "scopus": "Scopus",
+          "reference_lists": "Predatory lists"
+        },
+        "status": {
+          "found": "Found",
+          "not_found": "Not found",
+          "failed": "Source unavailable",
+          "not_checked": "Not checked",
+          "unknown": "Unknown"
+        },
+        "scopusNote": "Scopus indexing and quartile cannot be checked automatically, so verify them by hand. This does not mean the journal is not indexed.",
+        "facts": {
+          "type": "Type: {value}",
+          "hIndex": "h-index: {value}",
+          "citedness": "2-year mean citedness (OpenAlex, not an impact factor): {value}",
+          "works": "Works: {value}",
+          "dois": "DOIs: {value}",
+          "inDoaj": "In DOAJ according to OpenAlex",
+          "open": "Open"
+        },
+        "lists": {
+          "predatory_journal": "Predatory journals list",
+          "predatory_publisher": "Predatory publishers list",
+          "hijacked": "Hijacked journals list"
+        },
+        "matchedBy": {
+          "name": "Name match",
+          "publisher": "Publisher name match",
+          "url": "Journal link match",
+          "homepage": "Indexed website match"
+        },
+        "authentic": "Authentic journal: {name}",
+        "listCaveat": "These are public, volunteer-run lists and a sound journal can share a listed name, so check the link before judging.",
+        "reasons": {
+          "manual_predatory": "Marked predatory in the ministry exceptions",
+          "manual_suspended": "Publication suspended according to the ministry exceptions",
+          "manual_accredited": "Accredited in the ministry exceptions",
+          "manual_override": "Appears on a public list, but the manual ministry accreditation takes precedence",
+          "hijacked_url": "The link entered is a hijacker's site for this journal",
+          "hijacked_name": "A hijacked clone uses this name; confirm the link is the authentic site",
+          "predatory_url": "The journal link is on a site from a predatory list",
+          "predatory_name": "The name matches a journal on the predatory list",
+          "predatory_publisher": "The publisher matches one on the predatory publishers list",
+          "list_conflict_doaj": "The name is on a predatory list but the journal is in DOAJ; the evidence conflicts",
+          "name_mismatch": "The name typed does not match the name registered for this ISSN",
+          "issn_checksum_invalid": "Invalid ISSN (check digit does not match)",
+          "issn_malformed": "The ISSN format is wrong, so it was not used",
+          "name_ambiguous": "More than one journal has this name; enter the ISSN to identify it",
+          "found_in_sources": "Found in at least one index",
+          "no_evidence": "Not found in the indexes checked",
+          "sources_unavailable": "Some sources are unavailable right now",
+          "lists_unavailable": "The predatory lists are unavailable, so the check is incomplete",
+          "lists_stale": "The predatory lists have not been refreshed for a while",
+          "not_checked": "The check is incomplete; enter an ISSN or the full name",
+          "url_rejected": "The URL entered is not valid and was not used in the check; make sure it starts with http or https",
+          "issn_conflict": "The two ISSNs entered belong to different journals; check both numbers",
+          "manual_name_unconfirmed": "The name matches an accredited journal in the exceptions, but the ISSN belongs to another journal, so the accreditation was not applied"
+        },
+        "suggest": {
+          "title": "Suggested from the indexes",
+          "use": "Use",
+          "autoFilled": "Empty fields were filled from the indexes; you can edit them."
+        },
+        "listStatus": {
+          "title": "List status",
+          "lastRefresh": "Last refresh: {date}",
+          "never": "Not refreshed yet",
+          "failed": "The last refresh failed; earlier data is still in use",
+          "count": "{count} entries",
+          "source": "Source: the public Stop Predatory Journals lists, refreshed every 24 hours."
+        },
+        "tooShort": "Enter a complete ISSN (8 characters) or a journal name of at least {min} letters.",
+        "retry": "Try again",
+        "pageSubtitle": "Check any journal before publishing in it. The result is advisory; scientific affairs make the final decision."
+      },
+      "manual": {
+        "title": "Ministry exceptions",
+        "description": "A secondary list for ministry or university decisions only, such as an accredited or suspended journal. It takes precedence over the automatic check; predatory journals need not be entered here."
+      },
+      "staffOnly": "Managing journal exceptions is limited to scientific affairs. You can check any journal on the check page."
     },
     "reports": {
       "title": "Reports",
@@ -472,7 +718,208 @@
       "annualDesc": "One Excel workbook with four sheets: publications, appreciation letters, research plan and scientific activities — per college, per year.",
       "year": "Year",
       "download": "Download report",
-      "preparing": "Preparing..."
+      "preparing": "Preparing...",
+      "period": "Period",
+      "fullYear": "Full year",
+      "quarters": {
+        "q1": "Q1",
+        "q2": "Q2",
+        "q3": "Q3",
+        "q4": "Q4"
+      }
+    },
+    "stages": {
+      "title": "Request progress",
+      "submission": "Submission",
+      "dean": "Dean approval",
+      "sa": "Scientific Affairs",
+      "vp": "VP confirmation",
+      "decision_research_plan": "Final approval",
+      "decision_journal_verification": "Verification result",
+      "decision_appreciation_letter": "Verification result",
+      "signatures": "Committee signatures",
+      "completed": "Completed",
+      "letter": "Letter issued",
+      "rejectedLabel": "Rejected",
+      "notEligibleLabel": "Not eligible"
+    },
+    "print": {
+      "pledgeTitle": "Researcher pledge",
+      "pledge": "I, the researcher, certify that all information in this form is correct and accept legal responsibility otherwise.",
+      "pledgeName": "Name",
+      "pledgeSignature": "Signature",
+      "pledgeDate": "Date",
+      "committeeTitle": "Department scientific committee endorsement",
+      "memberName": "Full name",
+      "memberTitle": "Academic title",
+      "memberSignature": "Signature",
+      "deanBox": "College dean / scientific deputy",
+      "saBox": "Scientific Affairs — University Presidency"
+    },
+    "profile": {
+      "title": "My research profile",
+      "subtitle": "Enter your links once, and your publications and figures appear here automatically from your ORCID iD",
+      "linksTitle": "My academic links",
+      "save": "Save links",
+      "saving": "Saving...",
+      "saved": "Links saved",
+      "savedSyncing": "Links saved. Fetching your data from ORCID has started",
+      "example": "Example:",
+      "automaticBadge": "Source of automatic data",
+      "hintOrcid": "Automatic: your publications, citations and h-index come from this. No iD yet? Create one free at orcid.org/register",
+      "hintLinkOnly": "Not automatic: the link is stored and shown to Scientific Affairs, and no data is fetched from it",
+      "statsTitle": "My figures",
+      "hIndex": "h-index",
+      "citations": "Citations",
+      "publications": "Publications",
+      "statsSource": "h-index and citations source: OpenAlex",
+      "statsNoSource": "OpenAlex has no profile linked to this ORCID iD, so no h-index is available yet",
+      "lastSync": "Last updated: {time}",
+      "neverSynced": "Not updated yet",
+      "refresh": "Refresh data",
+      "syncing": "Fetching your data from ORCID and OpenAlex. This can take a minute or more...",
+      "syncDone": "Your data is up to date",
+      "pubsTitle": "My publications",
+      "readOnly": "This data is fetched automatically and cannot be edited here. To correct it, edit your ORCID record and refresh",
+      "colTitle": "Title",
+      "colJournal": "Journal",
+      "colYear": "Year",
+      "colDoi": "DOI",
+      "colCitations": "Citations",
+      "showing": "Showing the latest {shown} of {total} publications",
+      "emptyNoOrcid": "No data yet. Enter your ORCID iD above and press \"Save links\", and your publications will appear here automatically.",
+      "emptySyncing": "We are fetching your publications now. They will appear here when done.",
+      "emptyNoWorks": "No publications were found for your iD. Check that your works are in your ORCID record and set to Public, then press \"Refresh data\".",
+      "loadError": "Could not load your research profile",
+      "retry": "Try again",
+      "promptTitle": "Complete your research profile",
+      "promptBody": "Enter your ORCID iD so your publications and figures appear automatically, with no manual entry.",
+      "promptAction": "Add ORCID iD",
+      "staffLinksTitle": "Academic links",
+      "staffLinksEmpty": "The researcher has not entered any links yet",
+      "staffIdentityReview": "Needs review: {reason}",
+      "staffLinksError": "Could not load the researcher's links",
+      "syncErrors": {
+        "no_orcid": "There is no valid ORCID iD. Enter and save it, then refresh",
+        "orcid_not_found": "This iD was not found in ORCID. Check that it is correct",
+        "orcid_unavailable": "ORCID could not be reached, so the data may be incomplete. Try refreshing later",
+        "openalex_truncated": "OpenAlex holds more works than could be imported in one run, so only the most recent ones were added",
+        "orcid_name_mismatch": "The name on this ORCID record does not match your name, so nothing was imported. Check the iD, or ask Scientific Affairs to review it",
+        "orcid_name_unverified": "This ORCID record does not show a public name, so it could not be confirmed as yours and nothing was imported. Make your name public on orcid.org, or ask Scientific Affairs to review it",
+        "openalex_name_mismatch": "OpenAlex lists this iD under a different person, so only works from your ORCID record were imported, without citation figures. Scientific Affairs can review this",
+        "sync_busy": "Many refreshes are running right now. Try again in a few minutes",
+        "openalex_unavailable": "OpenAlex could not be reached, so figures may be out of date. Try refreshing later",
+        "sources_unavailable": "ORCID and OpenAlex could not be reached. Try refreshing later",
+        "partial_save": "Some publications were not saved. Try refreshing again",
+        "save_failed": "The data could not be saved. Try refreshing later",
+        "generic": "The data could not be refreshed. Try later"
+      },
+      "contactFormTitle": "Contact details",
+      "contactFormHint": "Visible only to scientific affairs, the research VP and admins. Notifications always go to your university email.",
+      "contactTitle": "Contact details",
+      "contactError": "Could not load contact details",
+      "contactEmail": "University email",
+      "contactEmployeeNo": "Employee number",
+      "contactAccountStatus": "Account status",
+      "accountStatus": {
+        "linked": "Linked",
+        "needs_review": "Needs review"
+      }
+    },
+    "bulkSync": {
+      "title": "Bulk ORCID sync",
+      "intro": "Goes through everyone with an ORCID one at a time with a delay, pauses when the OpenAlex budget runs out, and continues where it stopped.",
+      "start": "Start sync",
+      "resume": "Resume sync",
+      "restart": "Start a new pass",
+      "retryFailed": "Retry those that did not succeed",
+      "stop": "Stop",
+      "eligible": "With an ORCID",
+      "processed": "Processed",
+      "remaining": "Remaining",
+      "succeeded": "Succeeded",
+      "failed": "With a problem",
+      "skipped": "Skipped (recently synced)",
+      "status": {
+        "running": "Running",
+        "waiting": "Paused",
+        "stopped": "Stopped",
+        "completed": "Completed"
+      },
+      "wait": {
+        "upstream_rate_limited": "The upstream budget ran out. Resumes at {time}",
+        "upstream_unavailable": "The upstream is not answering. Resumes at {time}",
+        "daily_limit": "Daily limit reached. Resumes at {time}"
+      },
+      "failuresTitle": "Problems by type",
+      "loadError": "Could not load sync status"
+    },
+    "forms": {
+      "title": "Official form templates",
+      "intro": "Upload the official blank PDF form for each request type so staff can download and sign it before applying.",
+      "none": "No form uploaded yet",
+      "upload": "Upload PDF form",
+      "replace": "Replace form",
+      "deleteConfirm": "Delete this form? Staff will no longer be able to download it.",
+      "downloadBlank": "Download official form (PDF)",
+      "downloadFilled": "Download filled form (PDF)",
+      "planStepsIntro": "Steps: fill in the details and save the draft, then download and print the form, have the department scientific committee sign it, upload it under attachments and submit.",
+      "planSignHint": "Submission requires the form signed by the department scientific committee. To save it as PDF, choose \"Save as PDF\" in the print dialog."
+    },
+    "predatory": {
+      "title": "Predatory journals guide",
+      "subtitle": "Learn the warning signs and search known lists before you submit your research.",
+      "whatTitle": "What is a predatory journal?",
+      "what": "A journal or publisher that charges authors fees without real peer review, editing or reliable archiving, often relying on misleading claims about indexing and impact.",
+      "whyMatters": "Papers in these journals do not count toward promotion or incentives, harm the reputation of the author and the university, and are hard to withdraw once published.",
+      "signsTitle": "Warning signs",
+      "sign1": "Unsolicited emails inviting you to publish or join the editorial board.",
+      "sign2": "Promises of very fast acceptance or publication within days.",
+      "sign3": "Claims of Scopus or Web of Science indexing that do not appear in their official lists.",
+      "sign4": "Misleading or invented metrics instead of a recognised impact factor.",
+      "sign5": "A very broad scope with no common discipline.",
+      "sign6": "Publication fees not stated upfront, or demanded right after acceptance.",
+      "sign7": "A site imitating a known journal's name or design (hijacked journal).",
+      "stepsTitle": "Before you submit",
+      "step1": "Check the journal by ISSN or name in Journal check.",
+      "step2": "Confirm indexing yourself on the official Scopus or Web of Science site, not the journal's site.",
+      "step3": "Make sure the website is the official one, not a hijacked copy.",
+      "step4": "When in doubt, consult Scientific Affairs before submitting.",
+      "checkButton": "Check a journal now",
+      "listsTitle": "Search the lists",
+      "listsIntro": "Lists refreshed daily from the Stop Predatory Journals project, based on Beall's list.",
+      "lists": {
+        "predatory_journal": "Predatory journals",
+        "predatory_publisher": "Predatory publishers",
+        "hijacked": "Hijacked journals"
+      },
+      "listHelp": {
+        "predatory_journal": "Standalone journals listed as potentially predatory.",
+        "predatory_publisher": "Listed publishers; any journal they publish calls for caution.",
+        "hijacked": "Fake sites impersonating a real journal; shows the fake site and the authentic journal."
+      },
+      "searchPlaceholder": "Search by name or website",
+      "fakeSite": "Fake site",
+      "authentic": "Authentic journal",
+      "noMatch": "No match in this list",
+      "emptyList": "The list has not been loaded yet",
+      "loadFailed": "Could not load the list, try again",
+      "count": "{total} entries",
+      "updatedOn": "updated {date}",
+      "previous": "Previous",
+      "next": "Next",
+      "sourcesTitle": "Further reading",
+      "links": {
+        "home": "Beall's list",
+        "journals": "Beall: standalone journals",
+        "hijacked": "Beall: hijacked journals",
+        "recognize": "Beall: how to recognise predatory journals",
+        "metrics": "Beall: misleading metrics",
+        "pjHome": "Predatory Journals",
+        "pjJournals": "Predatory Journals: journals",
+        "pjPublishers": "Predatory Journals: publishers"
+      },
+      "disclaimer": "These lists are volunteer-run and unofficial; being listed or not is a warning, not a ruling. Ministry of Higher Education lists and instructions and the Scientific Affairs decision prevail."
     }
   },
   "notifications": {

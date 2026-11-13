@@ -11,10 +11,24 @@ import (
 	"github.com/haydary1986/turath-research/backend/internal/config"
 	"github.com/haydary1986/turath-research/backend/internal/handler"
 	"github.com/haydary1986/turath-research/backend/internal/middleware"
+	"github.com/haydary1986/turath-research/backend/internal/service/journalcheck"
 	"github.com/haydary1986/turath-research/backend/internal/service/mailer"
+	syncsvc "github.com/haydary1986/turath-research/backend/internal/service/sync"
 )
 
-func NewRouter(cfg *config.Config, db *pgxpool.Pool, rdb *redis.Client) *chi.Mux {
+func NewRouter(cfg *config.Config, db *pgxpool.Pool, rdb *redis.Client, journals *journalcheck.Service) *chi.Mux {
+	orchestrator := syncsvc.NewOrchestrator(db, cfg.CrossRef.Mailto, cfg.OpenAlex.APIKey)
+	return newRouter(cfg, db, rdb, journals, orchestrator, newBulkSync(cfg, db, orchestrator))
+}
+
+func newBulkSync(cfg *config.Config, db *pgxpool.Pool, orchestrator *syncsvc.Orchestrator) *syncsvc.BulkRunner {
+	return syncsvc.NewBulkRunner(db, orchestrator, syncsvc.BulkConfig{
+		Delay: cfg.BulkSync.Delay, DailyLimit: cfg.BulkSync.DailyLimit,
+	})
+}
+
+func newRouter(cfg *config.Config, db *pgxpool.Pool, rdb *redis.Client, journals *journalcheck.Service,
+	orchestrator *syncsvc.Orchestrator, bulkSync *syncsvc.BulkRunner) *chi.Mux {
 	r := chi.NewRouter()
 
 	// ── Global middleware ─────────────────────────
@@ -33,7 +47,8 @@ func NewRouter(cfg *config.Config, db *pgxpool.Pool, rdb *redis.Client) *chi.Mux
 	researcherH := handler.NewResearcherHandler(db)
 	publicationH := handler.NewPublicationHandler(db)
 	orgH := handler.NewOrganizationHandler(db)
-	syncH := handler.NewSyncHandler(db, cfg.CrossRef.Mailto)
+	syncH := handler.NewSyncHandler(db, orchestrator)
+	researchProfileH := handler.NewResearchProfileHandler(db, orchestrator)
 	metricsH := handler.NewMetricsHandler(db)
 	aiH := handler.NewAIHandler(db, cfg.DeepSeek.APIKey, cfg.DeepSeek.BaseURL)
 	searchH := handler.NewSearchHandler(db)
@@ -46,11 +61,14 @@ func NewRouter(cfg *config.Config, db *pgxpool.Pool, rdb *redis.Client) *chi.Mux
 		Host: cfg.SMTP.Host, Port: cfg.SMTP.Port, Username: cfg.SMTP.Username,
 		Password: cfg.SMTP.Password, From: cfg.SMTP.From, FromName: cfg.SMTP.FromName,
 	})
-	portalH := handler.NewPortalHandler(db, cfg.Server.UploadDir, mail, cfg.Server.FrontendURL)
+	portalH := handler.NewPortalHandler(db, cfg.Server.UploadDir, mail, cfg.Server.FrontendURL, journals)
 	adminUsersH := handler.NewAdminUserHandler(db)
 	adminImportH := handler.NewAdminImportHandler(db)
+	bulkSyncH := handler.NewBulkSyncHandler(bulkSync)
 	staffOnly := middleware.RequireRole(middleware.RoleScientificAffairs, middleware.RoleVPResearch)
 	adminOnly := middleware.RequireRole(middleware.RoleAdmin)
+	// RequireRole always admits admin, so this is admin and scientific affairs.
+	registryManagers := middleware.RequireRole(middleware.RoleScientificAffairs)
 
 	// ── Routes ───────────────────────────────────
 	r.Route("/api/v1", func(r chi.Router) {
@@ -69,33 +87,31 @@ func NewRouter(cfg *config.Config, db *pgxpool.Pool, rdb *redis.Client) *chi.Mux
 			// Auth
 			r.Get("/auth/me", authH.Me)
 
+			// The signed-in user's own research profile
+			r.Get("/me/research-profile", researchProfileH.Get)
+			r.Put("/me/research-profile", researchProfileH.Update)
+			r.Post("/me/research-profile/sync", researchProfileH.Sync)
+
 			// Researchers
 			r.Get("/researchers", researcherH.List)
 			r.Get("/researchers/{id}", researcherH.Get)
-			r.Post("/researchers", researcherH.Create)
-			r.Put("/researchers/{id}", researcherH.Update)
-			r.Delete("/researchers/{id}", researcherH.Delete)
+			// The handler admits the researcher and staff.
+			r.Get("/researchers/{id}/contact", researcherH.Contact)
 
 			// Publications
 			r.Get("/publications", publicationH.List)
 			r.Get("/publications/{id}", publicationH.Get)
-			r.Post("/publications", publicationH.Create)
-			r.Delete("/publications/{id}", publicationH.Delete)
 
 			// Organizations
 			r.Get("/institutions", orgH.ListInstitutions)
-			r.Post("/institutions", orgH.CreateInstitution)
 			r.Get("/colleges", orgH.ListColleges)
-			r.Post("/colleges", orgH.CreateCollege)
 			r.Get("/departments", orgH.ListDepartments)
-			r.Post("/departments", orgH.CreateDepartment)
 
 			// Metrics & dashboards
 			r.Get("/metrics/institution", metricsH.InstitutionKPIs)
 			r.Get("/metrics/researcher/{id}", metricsH.ResearcherStats)
 			r.Get("/metrics/departments", metricsH.DepartmentComparison)
 			r.Get("/metrics/leaderboard", metricsH.TopResearchers)
-			r.Get("/export/researchers", metricsH.ExportResearchersCSV)
 
 			// Search
 			r.Get("/search", searchH.GlobalSearch)
@@ -106,53 +122,19 @@ func NewRouter(cfg *config.Config, db *pgxpool.Pool, rdb *redis.Client) *chi.Mux
 			r.Put("/notifications/{id}/read", notifH.MarkRead)
 			r.Put("/notifications/read-all", notifH.MarkAllRead)
 
-			// AI insights
-			r.Get("/ai/collaboration/{id}", aiH.CollaborationRecommendations)
-			r.Get("/ai/trends", aiH.TrendingTopics)
-			r.Get("/ai/strategy/{id}", aiH.PublicationStrategy)
-			r.Get("/ai/gaps", aiH.GapAnalysis)
-
-			// Sync routes
-			r.Post("/sync/researcher/{id}", syncH.SyncResearcher)
-			r.Post("/sync/doi", syncH.SyncByDOI)
-			r.Get("/sync/jobs", syncH.ListSyncJobs)
-
-			// ── Scientific Affairs ────────────────
-			// Promotions
+			// Promotions, incentives and leave act on one researcher: the handlers
+			// admit that researcher and staff.
 			r.Get("/promotions/eligibility/{id}", sciH.CheckEligibility)
 			r.Post("/promotions", sciH.SubmitPromotionApplication)
-			r.Get("/promotions", sciH.ListPromotionApplications)
-
-			// Incentives
 			r.Get("/incentives/calculate/{id}", sciH.CalculateIncentives)
 			r.Get("/incentives/rules", sciH.ListIncentiveRules)
-
-			// Performance
-			r.Post("/performance/generate/{deptId}", sciH.GeneratePerformanceReviews)
-
-			// Sabbaticals
 			r.Post("/sabbaticals", sciH.SubmitSabbatical)
-			r.Get("/sabbaticals", sciH.ListSabbaticals)
-
-			// Conferences
 			r.Post("/conferences", sciH.SubmitConference)
 
-			// Agreements
-			r.Get("/agreements", sciH.ListAgreements)
-
-			// ── Accreditation & Quality ───────────
-			r.Get("/accreditation/dashboard", accredH.Dashboard)
-			r.Get("/accreditation/evidence", accredH.ListEvidence)
-			r.Post("/accreditation/evidence", accredH.CreateEvidence)
-			r.Get("/accreditation/recommendations", accredH.ListRecommendations)
-			r.Put("/accreditation/recommendations/{id}", accredH.UpdateRecommendation)
-			r.Get("/accreditation/kpis", accredH.ListKPIs)
-
-			// ── Approval Workflows ────────────────
+			// Approval workflows: the pending list is scoped to the caller and a
+			// decision is gated to the step's approver in the handler.
 			r.Get("/workflows/pending", workflowH.MyPendingApprovals)
-			r.Post("/workflows/initiate", workflowH.InitiateWorkflow)
 			r.Put("/workflows/{id}/decide", workflowH.MakeDecision)
-			r.Get("/workflows/history", workflowH.RequestHistory)
 
 			// ── Role-based Dashboard ──────────────
 			r.Get("/dashboard/me", roleDashH.MyDashboard)
@@ -179,22 +161,73 @@ func NewRouter(cfg *config.Config, db *pgxpool.Pool, rdb *redis.Client) *chi.Mux
 			r.Post("/activities", portalH.CreateActivity)
 			r.Put("/activities/{id}", portalH.UpdateActivity)
 
-			// Live journal-watchlist check (used by request forms)
+			// Automatic journal check (request forms, request detail, journals page)
 			r.Get("/screening/check", portalH.CheckJournal)
+			r.Get("/portal/form-templates", portalH.ListFormTemplates)
+			r.Get("/screening/status", portalH.JournalListStatus)
+			r.Get("/screening/reference-list", portalH.ListReferenceEntries)
 
 			r.Group(func(r chi.Router) {
 				r.Use(staffOnly)
+				r.Get("/researchers/{id}/links", researchProfileH.StaffLinks)
+
+				// Each cache miss spends AI budget; the screens are staff-only too.
+				r.Get("/ai/collaboration/{id}", aiH.CollaborationRecommendations)
+				r.Get("/ai/trends", aiH.TrendingTopics)
+				r.Get("/ai/strategy/{id}", aiH.PublicationStrategy)
+				r.Get("/ai/gaps", aiH.GapAnalysis)
+
+				// Institution-wide views of other people's applications and evidence.
+				r.Get("/promotions", sciH.ListPromotionApplications)
+				r.Get("/sabbaticals", sciH.ListSabbaticals)
+				r.Get("/agreements", sciH.ListAgreements)
+				r.Get("/accreditation/dashboard", accredH.Dashboard)
+				r.Get("/accreditation/evidence", accredH.ListEvidence)
+				r.Get("/accreditation/recommendations", accredH.ListRecommendations)
+				r.Get("/accreditation/kpis", accredH.ListKPIs)
+				r.Get("/workflows/history", workflowH.RequestHistory)
+
 				r.Get("/portal/templates", portalH.ListTemplates)
 				r.Post("/portal/templates", portalH.CreateTemplate)
 				r.Put("/portal/templates/{id}", portalH.UpdateTemplate)
 				r.Post("/portal/templates/{id}/activate", portalH.ActivateTemplate)
 				r.Post("/portal/template-assets", portalH.UploadTemplateAsset)
+				r.Post("/portal/form-templates/{kind}", portalH.UploadFormTemplate)
+				r.Delete("/portal/form-templates/{kind}", portalH.DeleteFormTemplate)
 				r.Post("/activities/{id}/decide", portalH.DecideActivity)
 				r.Get("/screening", portalH.ListScreening)
 				r.Post("/screening", portalH.UpsertScreening)
+				r.Post("/screening/import", portalH.ImportScreening)
 				r.Put("/screening/{id}", portalH.UpsertScreening)
 				r.Delete("/screening/{id}", portalH.DeleteScreening)
 				r.Get("/reports/annual.xlsx", portalH.AnnualReport)
+			})
+
+			r.Group(func(r chi.Router) {
+				r.Use(registryManagers)
+				r.Put("/portal/letters/{id}/diwan-no", portalH.UpdateLetterDiwanNo)
+
+				// Changing a researcher's email hands over their profile, and these
+				// tables are shared by every user of the system.
+				r.Post("/researchers", researcherH.Create)
+				r.Put("/researchers/{id}", researcherH.Update)
+				r.Delete("/researchers/{id}", researcherH.Delete)
+				r.Post("/publications", publicationH.Create)
+				r.Delete("/publications/{id}", publicationH.Delete)
+				r.Post("/institutions", orgH.CreateInstitution)
+				r.Post("/colleges", orgH.CreateCollege)
+				r.Post("/departments", orgH.CreateDepartment)
+				r.Get("/export/researchers", metricsH.ExportResearchersCSV)
+
+				// Syncs spend upstream quota and rewrite figures for someone else.
+				r.Post("/sync/researcher/{id}", syncH.SyncResearcher)
+				r.Post("/sync/doi", syncH.SyncByDOI)
+				r.Get("/sync/jobs", syncH.ListSyncJobs)
+
+				r.Post("/performance/generate/{deptId}", sciH.GeneratePerformanceReviews)
+				r.Post("/accreditation/evidence", accredH.CreateEvidence)
+				r.Put("/accreditation/recommendations/{id}", accredH.UpdateRecommendation)
+				r.Post("/workflows/initiate", workflowH.InitiateWorkflow)
 			})
 
 			r.Group(func(r chi.Router) {
@@ -202,6 +235,9 @@ func NewRouter(cfg *config.Config, db *pgxpool.Pool, rdb *redis.Client) *chi.Mux
 				r.Get("/admin/users", adminUsersH.List)
 				r.Put("/admin/users/{id}", adminUsersH.Update)
 				r.Post("/admin/import/researchers", adminImportH.ImportResearchers)
+				r.Get("/admin/sync/orcid", bulkSyncH.Progress)
+				r.Post("/admin/sync/orcid", bulkSyncH.Start)
+				r.Post("/admin/sync/orcid/stop", bulkSyncH.Stop)
 			})
 		})
 	})

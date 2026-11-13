@@ -1,24 +1,25 @@
 "use client";
 
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import {
   LayoutDashboard,
   Users,
   FileText,
-  Building2,
   GraduationCap,
   TrendingUp,
   Search,
-  Settings,
-  RefreshCw,
   ClipboardList,
   FilePlus2,
   Mail,
   UserCog,
   FileUp,
   CalendarDays,
+  SearchCheck,
+  ShieldX,
   ShieldAlert,
   FileSpreadsheet,
+  Inbox,
+  BookUser,
 } from "lucide-react";
 import {
   Sidebar,
@@ -43,6 +44,9 @@ interface NavItem {
   icon: LucideIcon;
 }
 
+const REVIEW_QUEUE_HREF = "/portal/requests?queue=true";
+const REVIEWING_ROLES = ["admin", "college_dean", "scientific_affairs", "vp_research"];
+
 function NavGroup({ title, items }: { title: string; items: NavItem[] }) {
   const pathname = usePathname();
 
@@ -54,7 +58,7 @@ function NavGroup({ title, items }: { title: string; items: NavItem[] }) {
           {items.map((item) => (
             <SidebarMenuItem key={item.href}>
               <SidebarMenuButton
-                isActive={pathname === item.href}
+                isActive={pathname === item.href.split("?")[0] && !item.href.includes("?")}
                 render={<Link href={item.href} />}
               >
                 <item.icon className="size-4" />
@@ -69,6 +73,7 @@ function NavGroup({ title, items }: { title: string; items: NavItem[] }) {
 }
 
 export function AppSidebar() {
+  const locale = useLocale();
   const nav = useTranslations("nav");
   const sb = useTranslations("sidebar");
   const pt = useTranslations("portal.nav");
@@ -76,11 +81,18 @@ export function AppSidebar() {
   // Role comes from localStorage, so wait for hydration to keep server and client markup identical.
   const mounted = useHydrated();
 
+  const reviewHref = mounted && role && REVIEWING_ROLES.includes(role) ? REVIEW_QUEUE_HREF : undefined;
+  const staff = mounted && isStaffRole(role);
+
   const portalItems: NavItem[] = [
     { href: "/portal", label: pt("dashboard"), icon: ClipboardList },
     { href: "/portal/requests", label: pt("requests"), icon: FilePlus2 },
+    ...(reviewHref ? [{ href: reviewHref, label: pt("reviewQueue"), icon: Inbox }] : []),
+    { href: "/portal/profile", label: pt("profile"), icon: BookUser },
     { href: "/portal/activities", label: pt("activities"), icon: CalendarDays },
-    ...(mounted && isStaffRole(role)
+    { href: "/portal/journal-check", label: pt("journalCheck"), icon: SearchCheck },
+    { href: "/portal/predatory-journals", label: pt("predatory"), icon: ShieldX },
+    ...(staff
       ? [
           { href: "/portal/templates", label: pt("templates"), icon: Mail },
           { href: "/portal/journals", label: pt("journals"), icon: ShieldAlert },
@@ -95,26 +107,17 @@ export function AppSidebar() {
       : []),
   ];
 
-  const mainItems: NavItem[] = [
+  // Legacy research-tracking screens: staff-only; researchers and deans work in the portal.
+  const researchItems: NavItem[] = [
     { href: "/dashboard", label: nav("dashboard"), icon: LayoutDashboard },
     { href: "/researchers", label: nav("researchers"), icon: Users },
     { href: "/publications", label: nav("publications"), icon: FileText },
-    { href: "/departments", label: nav("departments"), icon: Building2 },
-    { href: "/colleges", label: nav("colleges"), icon: GraduationCap },
-  ];
-
-  const insightItems: NavItem[] = [
     { href: "/insights/trends", label: nav("trends"), icon: TrendingUp },
     { href: "/search", label: nav("search"), icon: Search },
   ];
 
-  const adminItems: NavItem[] = [
-    { href: "/admin/sync", label: nav("sync"), icon: RefreshCw },
-    { href: "/admin/settings", label: nav("settings"), icon: Settings },
-  ];
-
   return (
-    <Sidebar>
+    <Sidebar side={locale === "ar" ? "right" : "left"}>
       <SidebarHeader className="border-b border-sidebar-border px-4 py-4">
         <div className="flex items-center gap-3">
           <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-sidebar-primary text-sidebar-primary-foreground">
@@ -122,15 +125,13 @@ export function AppSidebar() {
           </div>
           <div className="min-w-0">
             <h1 className="truncate text-base font-bold">{sb("brand")}</h1>
-            <p className="truncate text-xs opacity-70">{sb("subtitle")}</p>
+            <p className="truncate text-xs text-sidebar-foreground/80">{sb("subtitle")}</p>
           </div>
         </div>
       </SidebarHeader>
       <SidebarContent>
         <NavGroup title={pt("group")} items={portalItems} />
-        <NavGroup title={sb("main")} items={mainItems} />
-        <NavGroup title={sb("insights")} items={insightItems} />
-        <NavGroup title={sb("admin")} items={adminItems} />
+        {staff && <NavGroup title={sb("main")} items={researchItems} />}
       </SidebarContent>
     </Sidebar>
   );

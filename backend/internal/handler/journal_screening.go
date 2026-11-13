@@ -12,6 +12,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/haydary1986/turath-research/backend/internal/model"
+	"github.com/haydary1986/turath-research/backend/internal/service/journalcheck"
 	"github.com/haydary1986/turath-research/backend/internal/service/screening"
 )
 
@@ -194,47 +195,70 @@ func (h *PortalHandler) DeleteScreening(w http.ResponseWriter, r *http.Request) 
 	model.RespondJSON(w, http.StatusOK, map[string]string{"deleted": id})
 }
 
-// CheckJournal is used by forms for a live warning while typing.
+const (
+	journalCheckTimeout = 20 * time.Second
+	maxCheckFieldRunes  = 500
+	maxCheckURLRunes    = 2000
+
+	// A person filling a form causes a handful of uncached lookups; each costs three
+	// upstream calls, and a repeated query is served from the cache at no cost.
+	uncachedChecksPerUser  = 30
+	uncachedChecksInterval = 10 * time.Minute
+)
+
+// journalQuery reads and bounds the check parameters.
+func journalQuery(r *http.Request) (journalcheck.Query, []string) {
+	values := r.URL.Query()
+	query := journalcheck.Query{
+		ISSN: values.Get("issn"), ISSNOnline: values.Get("issn_online"), Name: values.Get("name"),
+		Publisher: values.Get("publisher"), URL: values.Get("url"),
+	}
+	var problems []string
+	if utf8.RuneCountInString(query.Name) > maxCheckFieldRunes {
+		problems = append(problems, "journal_name:too_long")
+	}
+	if utf8.RuneCountInString(query.Publisher) > maxCheckFieldRunes {
+		problems = append(problems, "publisher:too_long")
+	}
+	if utf8.RuneCountInString(query.URL) > maxCheckURLRunes {
+		problems = append(problems, "journal_url:too_long")
+	}
+	return query, problems
+}
+
+// CheckJournal returns advisory evidence: manual watchlist, reference lists and
+// the external indexes.
 func (h *PortalHandler) CheckJournal(w http.ResponseWriter, r *http.Request) {
-	ctx, cancel := portalContext(r)
+	user := authedUser(w, r)
+	if user == nil {
+		return
+	}
+	query, problems := journalQuery(r)
+	if len(problems) > 0 {
+		validationError(w, problems)
+		return
+	}
+	query.AllowExternal = func() bool { return h.journalThrottle.Allow(user.UserID) }
+	ctx, cancel := context.WithTimeout(r.Context(), journalCheckTimeout)
 	defer cancel()
-	flag, err := h.screenJournal(ctx, r.URL.Query().Get("issn"), r.URL.Query().Get("name"))
+	result, err := h.journals.Check(ctx, query)
 	if err != nil {
 		serverError(w, "Failed to check journal", err)
 		return
 	}
-	model.RespondJSON(w, http.StatusOK, flag)
+	model.RespondJSON(w, http.StatusOK, result)
 }
 
-type journalFlag struct {
-	Matched        bool    `json:"matched"`
-	Classification string  `json:"classification,omitempty"`
-	Name           string  `json:"name,omitempty"`
-	Note           *string `json:"note,omitempty"`
-	MatchedBy      string  `json:"matched_by,omitempty"` // issn | name
-}
-
-// screenJournal looks a journal up by normalized ISSN first, then by folded name.
-func (h *PortalHandler) screenJournal(ctx context.Context, rawISSN, rawName string) (journalFlag, error) {
-	if issn := screening.NormalizeISSN(rawISSN); issn != "" {
-		rec, err := scanScreening(h.db.QueryRow(ctx, screeningSelect+` WHERE issn = $1`, issn))
-		if err == nil {
-			return journalFlag{true, rec.Classification, rec.Name, rec.Note, "issn"}, nil
-		}
-		if !isNoRows(err) {
-			return journalFlag{}, err
-		}
+// JournalListStatus reports reference-list sizes and refresh times.
+func (h *PortalHandler) JournalListStatus(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := portalContext(r)
+	defer cancel()
+	statuses, err := h.journals.Statuses(ctx)
+	if err != nil {
+		serverError(w, "Failed to read list status", err)
+		return
 	}
-	if key := screening.NameKey(rawName); key != "" {
-		rec, err := scanScreening(h.db.QueryRow(ctx, screeningSelect+` WHERE name_key = $1 ORDER BY updated_at DESC LIMIT 1`, key))
-		if err == nil {
-			return journalFlag{true, rec.Classification, rec.Name, rec.Note, "name"}, nil
-		}
-		if !isNoRows(err) {
-			return journalFlag{}, err
-		}
-	}
-	return journalFlag{}, nil
+	model.RespondJSON(w, http.StatusOK, statuses)
 }
 
 func itoa(n int) string { return strconv.Itoa(n) }

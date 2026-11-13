@@ -35,18 +35,26 @@ const (
 
 const (
 	maxTitle     = 500
+	maxShortText = 255
+	maxPresenter = 500
 	maxAttendees = 1_000_000
 )
 
+// Attendance modes the ministry report distinguishes.
+var attendanceModes = map[string]struct{}{"in_person": {}, "online": {}, "hybrid": {}}
+
 // Input is one activity as submitted by the organizer.
 type Input struct {
-	Type         string `json:"activity_type"`
-	TitleAr      string `json:"title_ar"`
-	Description  string `json:"description"`
-	Presenter    string `json:"presenter"`
-	ActivityDate string `json:"activity_date"`
-	Location     string `json:"location"`
-	Attendees    int    `json:"attendees_count"`
+	Type           string `json:"activity_type"`
+	TitleAr        string `json:"title_ar"`
+	Description    string `json:"description"`
+	Presenter      string `json:"presenter"`
+	ActivityDate   string `json:"activity_date"`
+	Location       string `json:"location"`
+	Attendees      int    `json:"attendees_count"`
+	TargetAudience string `json:"target_audience"`
+	Organizer      string `json:"organizer"`
+	AttendanceMode string `json:"attendance_mode"`
 }
 
 // Validate returns one "field:code" entry per problem. hasCollege tells whether
@@ -74,6 +82,23 @@ func Validate(in Input, hasCollege bool) []string {
 	}
 	if !hasCollege {
 		errs = append(errs, "college:required")
+	}
+	if in.AttendanceMode != "" {
+		if _, ok := attendanceModes[in.AttendanceMode]; !ok {
+			errs = append(errs, "attendance_mode:invalid")
+		}
+	}
+	for field, value := range map[string]string{
+		"target_audience": in.TargetAudience,
+		"organizer":       in.Organizer,
+		"location":        in.Location,
+	} {
+		if utf8.RuneCountInString(value) > maxShortText {
+			errs = append(errs, field+":too_long")
+		}
+	}
+	if utf8.RuneCountInString(in.Presenter) > maxPresenter {
+		errs = append(errs, "presenter:too_long")
 	}
 	return errs
 }

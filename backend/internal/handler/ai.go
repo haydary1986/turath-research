@@ -49,7 +49,7 @@ func (h *AIHandler) CollaborationRecommendations(w http.ResponseWriter, r *http.
 	results, err := h.service.CollaborationRecommendations(ctx, researcherID, requestedBy)
 	if err != nil {
 		slog.Error("AI collaboration analysis failed", "error", err)
-		model.RespondError(w, http.StatusInternalServerError, "AI analysis failed: "+err.Error())
+		model.RespondError(w, http.StatusInternalServerError, "AI analysis failed")
 		return
 	}
 
@@ -81,7 +81,7 @@ func (h *AIHandler) TrendingTopics(w http.ResponseWriter, r *http.Request) {
 	results, err := h.service.TrendingTopics(ctx, requestedBy)
 	if err != nil {
 		slog.Error("AI trending topics failed", "error", err)
-		model.RespondError(w, http.StatusInternalServerError, "AI analysis failed: "+err.Error())
+		model.RespondError(w, http.StatusInternalServerError, "AI analysis failed")
 		return
 	}
 
@@ -114,7 +114,7 @@ func (h *AIHandler) PublicationStrategy(w http.ResponseWriter, r *http.Request) 
 	result, err := h.service.PublicationStrategy(ctx, researcherID, requestedBy)
 	if err != nil {
 		slog.Error("AI publication strategy failed", "error", err)
-		model.RespondError(w, http.StatusInternalServerError, "AI analysis failed: "+err.Error())
+		model.RespondError(w, http.StatusInternalServerError, "AI analysis failed")
 		return
 	}
 
@@ -146,7 +146,7 @@ func (h *AIHandler) GapAnalysis(w http.ResponseWriter, r *http.Request) {
 	result, err := h.service.GapAnalysis(ctx, requestedBy)
 	if err != nil {
 		slog.Error("AI gap analysis failed", "error", err)
-		model.RespondError(w, http.StatusInternalServerError, "AI analysis failed: "+err.Error())
+		model.RespondError(w, http.StatusInternalServerError, "AI analysis failed")
 		return
 	}
 

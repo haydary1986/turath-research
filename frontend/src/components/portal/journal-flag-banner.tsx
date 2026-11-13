@@ -2,22 +2,33 @@
 
 import { useTranslations } from "next-intl";
 import { ShieldAlert, ShieldCheck, ShieldX } from "lucide-react";
+import { FAMILY_TINT, SCREENING_FAMILY } from "@/lib/portal/status";
 import type { JournalFlag } from "@/lib/portal/types";
 
-const STYLE: Record<string, { box: string; Icon: typeof ShieldX }> = {
-  predatory: { box: "border-red-300 bg-red-50 text-red-800", Icon: ShieldX },
-  suspended: { box: "border-amber-300 bg-amber-50 text-amber-800", Icon: ShieldAlert },
-  accredited: { box: "border-green-300 bg-green-50 text-green-800", Icon: ShieldCheck },
+const ICONS: Record<string, typeof ShieldX> = {
+  predatory: ShieldX,
+  suspended: ShieldAlert,
+  accredited: ShieldCheck,
+};
+
+const BORDERS: Record<string, string> = {
+  predatory: "border-status-danger/30",
+  suspended: "border-status-warning/30",
+  accredited: "border-status-success/30",
 };
 
 /** Watchlist verdict shown on verification requests and inside the request form. */
 export function JournalFlagBanner({ flag }: { flag?: JournalFlag | null }) {
   const t = useTranslations("portal.journals");
   if (!flag?.matched || !flag.classification) return null;
-  const { box, Icon } = STYLE[flag.classification] ?? STYLE.suspended;
+  const family = SCREENING_FAMILY[flag.classification] ?? "warning";
+  const Icon = ICONS[flag.classification] ?? ShieldAlert;
 
   return (
-    <div className={`flex items-start gap-3 rounded-lg border p-3 text-sm ${box}`} role="alert">
+    <div
+      className={`flex items-start gap-3 rounded-lg border p-3 text-sm ${BORDERS[flag.classification] ?? BORDERS.suspended} ${FAMILY_TINT[family]}`}
+      role="alert"
+    >
       <Icon className="mt-0.5 size-5 shrink-0" aria-hidden />
       <div className="min-w-0">
         <p className="font-semibold">

@@ -62,6 +62,8 @@ func IndexDBLabel(key string) string {
 		return "Web of Science"
 	case "local":
 		return "محلي"
+	case "international_unindexed":
+		return "عالمية غير مستوعبة"
 	default:
 		return key
 	}

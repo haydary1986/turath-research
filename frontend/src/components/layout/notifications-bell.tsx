@@ -89,12 +89,12 @@ export function NotificationsBell() {
       >
         <Bell className="size-4" />
         {unread > 0 && (
-          <span className="absolute -end-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-bold text-white">
+          <span className="absolute -end-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold text-white tabular-nums">
             {unread > 99 ? "99+" : unread}
           </span>
         )}
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-96 p-0">
+      <DropdownMenuContent align="end" className="w-[min(24rem,calc(100vw-1rem))] p-0">
         <div className="flex items-center justify-between border-b px-3 py-2">
           <span className="text-sm font-semibold">{t("title")}</span>
           {unread > 0 && (

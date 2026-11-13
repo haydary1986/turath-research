@@ -5,7 +5,9 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
@@ -14,10 +16,13 @@ import (
 	"github.com/haydary1986/turath-research/backend/internal/service/portal"
 )
 
+const maxDiwanRunes = 100
+
 type letterRecord struct {
 	ID               string    `json:"id"`
 	RequestID        string    `json:"request_id"`
 	LetterNo         string    `json:"letter_no"`
+	DiwanNo          *string   `json:"diwan_no"`
 	IssuedDate       string    `json:"issued_date"`
 	RecipientName    string    `json:"recipient_name"`
 	CollegeName      string    `json:"college_name"`
@@ -35,14 +40,14 @@ type letterRecord struct {
 }
 
 const letterSelect = `
-	SELECT id, request_id, letter_no, to_char(issued_date, 'YYYY-MM-DD'), recipient_name, college_name,
+	SELECT id, request_id, letter_no, diwan_no, to_char(issued_date, 'YYYY-MM-DD'), recipient_name, college_name,
 	       department_name, header_line_1, header_line_2, title_text, body_text, closing_text,
 	       signer_name, signer_title, background_file_id, signature_file_id, created_at
 	FROM issued_letters`
 
 func scanLetter(row rowScanner) (letterRecord, error) {
 	var l letterRecord
-	err := row.Scan(&l.ID, &l.RequestID, &l.LetterNo, &l.IssuedDate, &l.RecipientName, &l.CollegeName,
+	err := row.Scan(&l.ID, &l.RequestID, &l.LetterNo, &l.DiwanNo, &l.IssuedDate, &l.RecipientName, &l.CollegeName,
 		&l.DepartmentName, &l.HeaderLine1, &l.HeaderLine2, &l.TitleText, &l.BodyText, &l.ClosingText,
 		&l.SignerName, &l.SignerTitle, &l.BackgroundFileID, &l.SignatureFileID, &l.CreatedAt)
 	return l, err
@@ -82,7 +87,7 @@ func letterVariables(rec requestRecord) (map[string]string, error) {
 }
 
 // IssueLetter creates the official appreciation letter for a verified request.
-// The rendered text and the template's look are snapshotted so the letter never changes afterwards.
+// The rendered text and the template's look are snapshotted; only the registry number may change afterwards.
 func (h *PortalHandler) IssueLetter(w http.ResponseWriter, r *http.Request) {
 	user := authedUser(w, r)
 	if user == nil {
@@ -90,6 +95,18 @@ func (h *PortalHandler) IssueLetter(w http.ResponseWriter, r *http.Request) {
 	}
 	ctx, cancel := portalContext(r)
 	defer cancel()
+
+	var in struct {
+		DiwanNo string `json:"diwan_no"`
+	}
+	if !decodeOptionalBody(w, r, &in) {
+		return
+	}
+	in.DiwanNo = strings.TrimSpace(in.DiwanNo)
+	if utf8.RuneCountInString(in.DiwanNo) > maxDiwanRunes {
+		validationError(w, []string{"diwan_no:too_long"})
+		return
+	}
 
 	rec, found, err := h.loadRequest(ctx, chi.URLParam(r, "id"))
 	if err != nil {
@@ -128,7 +145,7 @@ func (h *PortalHandler) IssueLetter(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	letterID, err := h.createLetter(ctx, rec, tpl, vars, user.UserID)
+	letterID, err := h.createLetter(ctx, rec, tpl, vars, user.UserID, blankToNil(in.DiwanNo))
 	if err != nil {
 		if errors.Is(err, errStatusChanged) || isUniqueViolation(err) {
 			model.RespondError(w, http.StatusConflict, "Letter was already issued")
@@ -148,7 +165,7 @@ func (h *PortalHandler) IssueLetter(w http.ResponseWriter, r *http.Request) {
 	model.RespondJSON(w, http.StatusCreated, letter)
 }
 
-func (h *PortalHandler) createLetter(ctx context.Context, rec requestRecord, tpl templateRecord, vars map[string]string, actorID string) (string, error) {
+func (h *PortalHandler) createLetter(ctx context.Context, rec requestRecord, tpl templateRecord, vars map[string]string, actorID string, diwanNo *string) (string, error) {
 	tx, err := h.db.Begin(ctx)
 	if err != nil {
 		return "", err
@@ -164,12 +181,12 @@ func (h *PortalHandler) createLetter(ctx context.Context, rec requestRecord, tpl
 	var id string
 	err = tx.QueryRow(ctx, `
 		INSERT INTO issued_letters
-			(request_id, template_id, letter_year, letter_seq, letter_no, recipient_name, college_name, department_name,
+			(request_id, template_id, letter_year, letter_seq, letter_no, diwan_no, recipient_name, college_name, department_name,
 			 header_line_1, header_line_2, title_text, body_text, closing_text, signer_name, signer_title,
 			 background_file_id, signature_file_id, issued_by)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
 		RETURNING id
-	`, rec.ID, tpl.ID, year, seq, portal.FormatLetterNo(seq, year),
+	`, rec.ID, tpl.ID, year, seq, portal.FormatLetterNo(seq, year), diwanNo,
 		vars["researcher_name"], vars["college"], vars["department"],
 		tpl.HeaderLine1, tpl.HeaderLine2, tpl.TitleText, portal.RenderBody(tpl.BodyText, vars), tpl.ClosingText,
 		tpl.SignerName, tpl.SignerTitle, tpl.BackgroundFileID, tpl.SignatureFileID, actorID).Scan(&id)
@@ -192,6 +209,89 @@ func (h *PortalHandler) createLetter(ctx context.Context, rec requestRecord, tpl
 		return "", err
 	}
 	return id, tx.Commit(ctx)
+}
+
+// UpdateLetterDiwanNo sets the registry number, which the diwan may assign after printing.
+// It is the only editable field of an issued letter. An absent diwan_no changes nothing,
+// so an empty body can never wipe a recorded number; an explicit "" clears it.
+func (h *PortalHandler) UpdateLetterDiwanNo(w http.ResponseWriter, r *http.Request) {
+	user := authedUser(w, r)
+	if user == nil {
+		return
+	}
+	id := chi.URLParam(r, "id")
+	if _, err := uuid.Parse(id); err != nil {
+		model.RespondError(w, http.StatusNotFound, "Letter not found")
+		return
+	}
+	var in struct {
+		DiwanNo *string `json:"diwan_no"`
+	}
+	if !decodeOptionalBody(w, r, &in) {
+		return
+	}
+	var next *string
+	if in.DiwanNo != nil {
+		next = blankToNil(*in.DiwanNo)
+		if next != nil && utf8.RuneCountInString(*next) > maxDiwanRunes {
+			validationError(w, []string{"diwan_no:too_long"})
+			return
+		}
+	}
+	ctx, cancel := portalContext(r)
+	defer cancel()
+
+	if in.DiwanNo != nil {
+		err := h.saveDiwanNo(ctx, id, user.UserID, next)
+		if isNoRows(err) {
+			model.RespondError(w, http.StatusNotFound, "Letter not found")
+			return
+		}
+		if err != nil {
+			serverError(w, "Failed to update letter", err)
+			return
+		}
+	}
+	letter, err := scanLetter(h.db.QueryRow(ctx, letterSelect+` WHERE id = $1`, id))
+	if isNoRows(err) {
+		model.RespondError(w, http.StatusNotFound, "Letter not found")
+		return
+	}
+	if err != nil {
+		serverError(w, "Failed to load letter", err)
+		return
+	}
+	model.RespondJSON(w, http.StatusOK, letter)
+}
+
+func (h *PortalHandler) saveDiwanNo(ctx context.Context, letterID, actorID string, next *string) error {
+	tx, err := h.db.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx) //nolint:errcheck // no-op after commit
+
+	var requestID string
+	var current *string
+	if err := tx.QueryRow(ctx, `SELECT request_id, diwan_no FROM issued_letters WHERE id = $1 FOR UPDATE`, letterID).
+		Scan(&requestID, &current); err != nil {
+		return err
+	}
+	if valueOr(current, "") == valueOr(next, "") {
+		return nil
+	}
+	if _, err := tx.Exec(ctx, `UPDATE issued_letters SET diwan_no = $2 WHERE id = $1`, letterID, next); err != nil {
+		return err
+	}
+	from := portal.StatusIssued
+	if err := recordEvent(ctx, tx, requestID, actorID, &from, portal.StatusIssued, diwanChangeNote(current, next)); err != nil {
+		return err
+	}
+	return tx.Commit(ctx)
+}
+
+func diwanChangeNote(previous, next *string) string {
+	return "تعديل رقم صادرة الديوان: " + valueOr(previous, "—") + " ← " + valueOr(next, "—")
 }
 
 // GetLetter returns an issued letter to anyone who may see its request.
@@ -241,15 +341,16 @@ func (h *PortalHandler) VerifyLetter(w http.ResponseWriter, r *http.Request) {
 	defer cancel()
 
 	var out struct {
-		LetterNo      string `json:"letter_no"`
-		IssuedDate    string `json:"issued_date"`
-		RecipientName string `json:"recipient_name"`
-		SignerTitle   string `json:"signer_title"`
+		LetterNo      string  `json:"letter_no"`
+		DiwanNo       *string `json:"diwan_no"`
+		IssuedDate    string  `json:"issued_date"`
+		RecipientName string  `json:"recipient_name"`
+		SignerTitle   string  `json:"signer_title"`
 	}
 	err := h.db.QueryRow(ctx, `
-		SELECT letter_no, to_char(issued_date, 'YYYY-MM-DD'), recipient_name, signer_title
+		SELECT letter_no, diwan_no, to_char(issued_date, 'YYYY-MM-DD'), recipient_name, signer_title
 		FROM issued_letters WHERE id = $1
-	`, id).Scan(&out.LetterNo, &out.IssuedDate, &out.RecipientName, &out.SignerTitle)
+	`, id).Scan(&out.LetterNo, &out.DiwanNo, &out.IssuedDate, &out.RecipientName, &out.SignerTitle)
 	if isNoRows(err) {
 		model.RespondError(w, http.StatusNotFound, "Letter not found")
 		return

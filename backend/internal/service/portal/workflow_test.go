@@ -178,8 +178,9 @@ func TestRequiredAttachments(t *testing.T) {
 	if len(got) != 1 || got[0] != RoleCommitteeApproval {
 		t.Fatalf("letter with related verification needs only committee approval, got %v", got)
 	}
-	if len(RequiredAttachments(KindResearchPlan, false)) != 0 {
-		t.Fatal("plan has no required attachments")
+	plan := RequiredAttachments(KindResearchPlan, false)
+	if len(plan) != 1 || plan[0] != RoleResearchForm {
+		t.Fatalf("plan needs the committee-signed research form, got %v", plan)
 	}
 }
 
@@ -204,5 +205,83 @@ func TestFormatRequestNo(t *testing.T) {
 	}
 	if got := FormatRequestNo(KindAppreciationLetter, 2026, 99999); got != "AR-2026-99999" {
 		t.Fatalf("got %s", got)
+	}
+}
+
+func TestIsActiveStage(t *testing.T) {
+	for _, s := range []string{StatusPendingDean, StatusPending, StatusPendingVP, StatusVerified, StatusAwaitingSignatures} {
+		if !IsActiveStage(s) {
+			t.Errorf("%s should be active", s)
+		}
+	}
+	for _, s := range []string{StatusDraft, StatusReturned, StatusCompleted, StatusIssued, StatusApproved, StatusRejected, StatusNotEligible} {
+		if IsActiveStage(s) {
+			t.Errorf("%s should not be active", s)
+		}
+	}
+}
+
+func TestQueueStatuses(t *testing.T) {
+	cases := map[string]int{
+		RoleAdmin: 5, RoleCollegeDean: 1, RoleScientificAffairs: 3, RoleVPResearch: 1,
+		RoleDepartmentHead: 0, RoleResearcher: 0,
+	}
+	for role, want := range cases {
+		if got := QueueStatuses(role); got == nil || len(got) != want {
+			t.Errorf("QueueStatuses(%s) = %v, want %d entries", role, got, want)
+		}
+	}
+}
+
+func journalWith(extra map[string]any) map[string]any {
+	d := map[string]any{"journal_name": "X", "publisher": "Y", "index_db": "scopus", "publication_date": "2024-03-15"}
+	for k, v := range extra {
+		d[k] = v
+	}
+	return d
+}
+
+func TestValidateJournalRules(t *testing.T) {
+	cases := []struct {
+		name  string
+		extra map[string]any
+		want  string // "" means valid
+	}{
+		{"quartile on scopus", map[string]any{"quartile": "Q1"}, ""},
+		{"quartile on wos", map[string]any{"index_db": "wos", "quartile": "Q2"}, ""},
+		{"quartile on local", map[string]any{"index_db": "local", "quartile": "Q1"}, "quartile:invalid"},
+		{"quartile unindexed", map[string]any{"index_db": "international_unindexed", "quartile": "Q1"}, "quartile:invalid"},
+		{"plagiarism bounds low", map[string]any{"plagiarism_pct": "0"}, ""},
+		{"plagiarism bounds high", map[string]any{"plagiarism_pct": "100"}, ""},
+		{"plagiarism decimal", map[string]any{"plagiarism_pct": "12.5"}, ""},
+		{"plagiarism over", map[string]any{"plagiarism_pct": "100.1"}, "plagiarism_pct:invalid"},
+		{"plagiarism negative", map[string]any{"plagiarism_pct": "-1"}, "plagiarism_pct:invalid"},
+		{"plagiarism text", map[string]any{"plagiarism_pct": "abc"}, "plagiarism_pct:invalid"},
+		{"plagiarism NaN", map[string]any{"plagiarism_pct": "NaN"}, "plagiarism_pct:invalid"},
+		{"plagiarism JSON number", map[string]any{"plagiarism_pct": float64(120)}, "plagiarism_pct:invalid"},
+		{"authors zero", map[string]any{"authors_count": "0"}, "authors_count:invalid"},
+		{"authors fraction", map[string]any{"authors_count": "2.5"}, "authors_count:invalid"},
+		{"order zero", map[string]any{"author_order": "0"}, "author_order:invalid"},
+		{"order above count", map[string]any{"authors_count": "2", "author_order": "3"}, "author_order:invalid"},
+		{"order equals count", map[string]any{"authors_count": "3", "author_order": "3"}, ""},
+		{"order alone", map[string]any{"author_order": "2"}, ""},
+		{"order wrong type", map[string]any{"author_order": true}, "author_order:invalid"},
+		{"year too early", map[string]any{"publication_date": "1899-12-31"}, "publication_date:invalid_date"},
+		{"year too late", map[string]any{"publication_date": "2101-01-01"}, "publication_date:invalid_date"},
+		{"year boundary", map[string]any{"publication_date": "2100-12-31"}, ""},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			errs := ValidateDetails(KindJournalVerification, journalWith(c.extra))
+			if c.want == "" {
+				if len(errs) != 0 {
+					t.Fatalf("unexpected errors: %v", errs)
+				}
+				return
+			}
+			if len(errs) != 1 || errs[0] != c.want {
+				t.Fatalf("got %v, want %s", errs, c.want)
+			}
+		})
 	}
 }

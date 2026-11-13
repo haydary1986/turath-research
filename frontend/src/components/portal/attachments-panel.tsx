@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { api, fetchObjectUrl } from "@/lib/api";
 import type { Attachment } from "@/lib/portal/types";
 import { usePortalErrors } from "./use-portal-errors";
+import { Alert } from "@/components/ui/alert";
 
 interface AttachmentsPanelProps {
   requestId: string;
@@ -15,8 +16,8 @@ interface AttachmentsPanelProps {
   uploadRoles: string[];
   /** Roles that must be present before the request can be submitted. */
   requiredRoles: string[];
-  /** Whether the current user may remove attachments. */
-  canRemove: boolean;
+  /** Whether the current user may remove this attachment. */
+  canRemove: (file: Attachment) => boolean;
   onChanged: () => void;
 }
 
@@ -69,6 +70,7 @@ export function AttachmentsPanel({
   }
 
   async function handleRemove(id: string) {
+    if (!window.confirm(t("ui.deleteConfirm"))) return;
     setError("");
     try {
       await api.delete(`/api/v1/portal/files/${id}`);
@@ -92,7 +94,7 @@ export function AttachmentsPanel({
   return (
     <div className="space-y-4">
       {error && (
-        <div className="whitespace-pre-line rounded bg-red-50 p-3 text-sm text-red-600">{error}</div>
+        <Alert variant="danger">{error}</Alert>
       )}
       {roles.map((role) => {
         const files = attachments.filter((a) => a.role === role);
@@ -103,13 +105,13 @@ export function AttachmentsPanel({
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2 text-sm font-medium">
                 {files.length > 0 ? (
-                  <CheckCircle2 className="size-4 text-green-600" />
+                  <CheckCircle2 className="size-4 text-status-success" />
                 ) : (
                   <CircleDashed className="size-4 text-muted-foreground" />
                 )}
                 <span>{t(`roles.${role}`)}</span>
                 {required && (
-                  <span className="text-xs text-red-600">* {t("ui.required")}</span>
+                  <span className="text-xs text-destructive">* {t("ui.required")}</span>
                 )}
               </div>
               {canUpload && (
@@ -149,7 +151,7 @@ export function AttachmentsPanel({
                     {formatSize(file.size_bytes)}
                   </span>
                 </button>
-                {canRemove && (
+                {canRemove(file) && (
                   <Button
                     type="button"
                     variant="ghost"
@@ -157,7 +159,7 @@ export function AttachmentsPanel({
                     aria-label={t("ui.remove")}
                     onClick={() => handleRemove(file.id)}
                   >
-                    <Trash2 className="size-3.5 text-red-600" />
+                    <Trash2 className="size-3.5 text-destructive" />
                   </Button>
                 )}
               </div>

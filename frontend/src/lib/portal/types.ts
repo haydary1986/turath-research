@@ -53,6 +53,7 @@ export interface Attachment {
   original_name: string;
   mime_type: string;
   size_bytes: number;
+  uploaded_by: string | null;
   created_at: string;
 }
 
@@ -78,8 +79,9 @@ export interface RequestDetail {
   events: RequestEvent[];
   allowed_transitions: RequestStatus[];
   can_edit: boolean;
+  can_issue_letter: boolean;
   letter_id: string | null;
-  journal_flag?: JournalFlag;
+  journal_flag?: JournalCheck;
 }
 
 export interface StatCount {
@@ -107,6 +109,7 @@ export interface IssuedLetter {
   id: string;
   request_id: string;
   letter_no: string;
+  diwan_no?: string | null;
   issued_date: string;
   recipient_name: string;
   college_name: string;
@@ -165,9 +168,79 @@ export function formatDate(value: string | null | undefined, locale: string): st
   if (!value) return "—";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleDateString(locale === "ar" ? "ar-IQ-u-nu-latn" : "en-GB");
+  // Strip bidi control marks (RLM/LRM/ALM) the Arabic formatter embeds:
+  // inside dir="ltr" table cells they reorder the digits into garbage.
+  return date
+    .toLocaleDateString(locale === "ar" ? "ar-IQ-u-nu-latn" : "en-GB")
+    .replace(/[‎‏؜]/g, "");
+}
+
+export function formatDateTime(value: string | null | undefined, locale: string): string {
+  if (!value) return "—";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date
+    .toLocaleString(locale === "ar" ? "ar-IQ-u-nu-latn" : "en-GB")
+    .replace(/[‎‏؜]/g, "");
 }
 
 export function requestTitle(r: Pick<PortalRequest, "title_ar" | "title_en">): string {
   return r.title_en || r.title_ar || "—";
+}
+
+export type JournalVerdict = "danger" | "caution" | "found" | "unknown";
+export type JournalSourceStatus = "found" | "not_found" | "failed" | "not_checked" | "unknown";
+
+export interface JournalSourceEvidence {
+  status: JournalSourceStatus;
+  title?: string;
+  publisher?: string;
+  issns?: string[];
+  type?: string;
+  in_doaj?: boolean;
+  h_index?: number;
+  two_year_mean_citedness?: number;
+  works_count?: number;
+  total_dois?: number;
+  url?: string;
+}
+
+export interface JournalReferenceHit {
+  list: "predatory_journal" | "predatory_publisher" | "hijacked";
+  matched_by: "name" | "publisher" | "url" | "homepage";
+  name: string;
+  url?: string;
+  authentic_name?: string;
+  authentic_url?: string;
+  authentic_match?: boolean;
+  source: string;
+}
+
+/** Advisory evidence from /screening/check; extends the manual watchlist flag. */
+export interface JournalCheck extends JournalFlag {
+  advisory: boolean;
+  verdict: JournalVerdict;
+  reasons: string[];
+  reference_hits: JournalReferenceHit[];
+  evidence: {
+    openalex: JournalSourceEvidence;
+    crossref: JournalSourceEvidence;
+    doaj: JournalSourceEvidence;
+    scopus: JournalSourceEvidence;
+  };
+  canonical_name?: string;
+  publisher?: string;
+  issns: string[];
+  issn_online?: string;
+  sources_failed: string[];
+  lists_refreshed_at?: string;
+  throttled?: boolean;
+}
+
+export interface JournalListStatus {
+  list_type: JournalReferenceHit["list"];
+  count: number;
+  last_attempt_at: string | null;
+  last_success_at: string | null;
+  last_failed: boolean;
 }

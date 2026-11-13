@@ -1,15 +1,15 @@
 package handler
 
 import (
-	"bytes"
 	"context"
 	"io"
+	"maps"
 	"net/http"
 	"strings"
 	"time"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/xuri/excelize/v2"
 
 	"github.com/haydary1986/turath-research/backend/internal/model"
 	"github.com/haydary1986/turath-research/backend/internal/service/importer"
@@ -62,22 +62,11 @@ func (h *AdminImportHandler) ImportResearchers(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	book, err := excelize.OpenReader(bytes.NewReader(data))
-	if err != nil {
-		model.RespondError(w, http.StatusUnsupportedMediaType, "unsupported_file_type")
+	sheet, ok := readImportSheet(w, data, importer.MaxRows)
+	if !ok {
 		return
 	}
-	defer book.Close()
-	sheets := book.GetSheetList()
-	if len(sheets) == 0 {
-		model.RespondError(w, http.StatusUnprocessableEntity, "empty_sheet")
-		return
-	}
-	rows, err := book.GetRows(sheets[0])
-	if err != nil || len(rows) < 2 {
-		model.RespondError(w, http.StatusUnprocessableEntity, "empty_sheet")
-		return
-	}
+	rows := sheet.rows
 
 	header, missing := importer.MapHeader(rows[0])
 	if len(missing) > 0 {
@@ -87,6 +76,10 @@ func (h *AdminImportHandler) ImportResearchers(w http.ResponseWriter, r *http.Re
 		return
 	}
 	valid, problems := importer.ParseRows(header, rows[1:], 2)
+
+	if sheet.truncated && len(valid) < importer.MaxRows {
+		problems = append(problems, importer.Problem{Line: len(rows) + 1, Code: "too_many_rows"})
+	}
 
 	report := importReport{ValidRows: len(valid), Problems: problems}
 	if report.Problems == nil {
@@ -108,9 +101,14 @@ func (h *AdminImportHandler) ImportResearchers(w http.ResponseWriter, r *http.Re
 	defer cancel()
 	orgs := newOrgCache()
 	for _, row := range valid {
-		if err := h.applyRow(ctx, orgs, row, &report); err != nil {
-			report.Problems = append(report.Problems, importer.Problem{Line: row.Line, Code: "save_failed"})
+		staged := orgs.clone()
+		result, err := h.applyRow(ctx, staged, row)
+		if err != nil {
+			report.Problems = append(report.Problems, importer.Problem{Line: row.Line, Code: importFailureCode(row.Line, err)})
+			continue
 		}
+		orgs = staged
+		report.addResult(row.Line, result)
 	}
 	report.CollegesCreated, report.DepartmentsCreated = orgs.created()
 	model.RespondJSON(w, http.StatusOK, report)
@@ -126,11 +124,19 @@ func newOrgCache() *orgCache {
 	return &orgCache{colleges: map[string]string{}, departments: map[string]string{}}
 }
 
+// clone lets a row work on a copy, so what a rolled-back row created is forgotten with it.
+func (c *orgCache) clone() *orgCache {
+	return &orgCache{
+		colleges: maps.Clone(c.colleges), departments: maps.Clone(c.departments),
+		newColleges: c.newColleges, newDepartments: c.newDepartments,
+	}
+}
+
 func (c *orgCache) created() (int, int) { return c.newColleges, c.newDepartments }
 
 func orgKey(parts ...string) string { return strings.ToLower(strings.Join(parts, "|")) }
 
-func (h *AdminImportHandler) ensureCollege(ctx context.Context, c *orgCache, name string) (*string, error) {
+func ensureCollege(ctx context.Context, tx pgx.Tx, c *orgCache, name string) (*string, error) {
 	if name == "" {
 		return nil, nil
 	}
@@ -138,9 +144,9 @@ func (h *AdminImportHandler) ensureCollege(ctx context.Context, c *orgCache, nam
 		return &id, nil
 	}
 	var id string
-	err := h.db.QueryRow(ctx, `SELECT id FROM colleges WHERE lower(trim(name_ar)) = lower(trim($1))`, name).Scan(&id)
+	err := tx.QueryRow(ctx, `SELECT id FROM colleges WHERE lower(trim(name_ar)) = lower(trim($1))`, name).Scan(&id)
 	if isNoRows(err) {
-		err = h.db.QueryRow(ctx, `
+		err = tx.QueryRow(ctx, `
 			INSERT INTO colleges (name_ar, institution_id)
 			SELECT $1, id FROM institutions ORDER BY created_at LIMIT 1
 			RETURNING id`, name).Scan(&id)
@@ -155,7 +161,7 @@ func (h *AdminImportHandler) ensureCollege(ctx context.Context, c *orgCache, nam
 	return &id, nil
 }
 
-func (h *AdminImportHandler) ensureDepartment(ctx context.Context, c *orgCache, name string, collegeID *string) (*string, error) {
+func ensureDepartment(ctx context.Context, tx pgx.Tx, c *orgCache, name string, collegeID *string) (*string, error) {
 	if name == "" || collegeID == nil {
 		return nil, nil
 	}
@@ -164,11 +170,11 @@ func (h *AdminImportHandler) ensureDepartment(ctx context.Context, c *orgCache, 
 		return &id, nil
 	}
 	var id string
-	err := h.db.QueryRow(ctx, `
+	err := tx.QueryRow(ctx, `
 		SELECT id FROM departments WHERE college_id = $1 AND lower(trim(name_ar)) = lower(trim($2))
 	`, *collegeID, name).Scan(&id)
 	if isNoRows(err) {
-		err = h.db.QueryRow(ctx,
+		err = tx.QueryRow(ctx,
 			`INSERT INTO departments (name_ar, college_id) VALUES ($1, $2) RETURNING id`,
 			name, *collegeID).Scan(&id)
 		if err == nil {
@@ -180,49 +186,4 @@ func (h *AdminImportHandler) ensureDepartment(ctx context.Context, c *orgCache, 
 	}
 	c.departments[key] = id
 	return &id, nil
-}
-
-func (h *AdminImportHandler) applyRow(ctx context.Context, orgs *orgCache, row importer.Row, report *importReport) error {
-	collegeID, err := h.ensureCollege(ctx, orgs, row.College)
-	if err != nil {
-		return err
-	}
-	departmentID, err := h.ensureDepartment(ctx, orgs, row.Department, collegeID)
-	if err != nil {
-		return err
-	}
-
-	var researcherID string
-	var inserted bool
-	err = h.db.QueryRow(ctx, `
-		INSERT INTO researchers (name_ar, name_en, email, title_ar, department_id, orcid_id, status)
-		VALUES ($1, NULLIF($2, ''), $3, NULLIF($4, ''), $5, NULLIF($6, ''), 'active')
-		ON CONFLICT (email) DO UPDATE SET
-			name_ar       = EXCLUDED.name_ar,
-			name_en       = COALESCE(EXCLUDED.name_en, researchers.name_en),
-			title_ar      = COALESCE(EXCLUDED.title_ar, researchers.title_ar),
-			department_id = COALESCE(EXCLUDED.department_id, researchers.department_id),
-			orcid_id      = COALESCE(EXCLUDED.orcid_id, researchers.orcid_id),
-			updated_at    = NOW()
-		RETURNING id, (xmax = 0)
-	`, row.NameAr, row.NameEn, row.Email, row.TitleAr, departmentID, row.ORCID).Scan(&researcherID, &inserted)
-	if err != nil {
-		return err
-	}
-	if inserted {
-		report.Created++
-	} else {
-		report.Updated++
-	}
-
-	// Link an existing portal account with the same university email.
-	tag, err := h.db.Exec(ctx, `
-		UPDATE users SET researcher_id = $1,
-			college_id = COALESCE(users.college_id, $2), department_id = COALESCE(users.department_id, $3)
-		WHERE lower(email) = $4 AND researcher_id IS NULL
-	`, researcherID, collegeID, departmentID, row.Email)
-	if err == nil && tag.RowsAffected() > 0 {
-		report.UsersLinked++
-	}
-	return nil
 }

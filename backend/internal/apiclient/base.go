@@ -3,34 +3,76 @@ package apiclient
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
+	"net/url"
 	"sync"
 	"time"
 )
 
+// maxResponseBytes bounds one upstream answer. The largest legitimate one is a
+// 200-work OpenAlex page with abstracts or a reference-list CSV, both far below this.
+const maxResponseBytes = 32 << 20
+
+// ErrResponseTooLarge means an upstream sent more than the client will read.
+var ErrResponseTooLarge = errors.New("upstream response too large")
+
+// ErrRateLimited means an upstream kept answering 429 through every retry.
+var ErrRateLimited = errors.New("rate limited (429)")
+
+// StatusError is a non-retryable 4xx answer, so callers can tell "the upstream
+// has no such record" (404) from "the upstream could not answer".
+type StatusError struct {
+	Code int
+	Body string
+}
+
+func (e *StatusError) Error() string {
+	return fmt.Sprintf("client error %d: %s", e.Code, e.Body)
+}
+
+// IsNotFound reports whether err is an upstream 404.
+func IsNotFound(err error) bool {
+	var status *StatusError
+	return errors.As(err, &status) && status.Code == http.StatusNotFound
+}
+
+// withoutQuery drops the query string, which may carry an API key, from a URL
+// about to be logged.
+func withoutQuery(rawURL string) string {
+	u, err := url.Parse(rawURL)
+	if err != nil {
+		return "unparseable-url"
+	}
+	u.RawQuery = ""
+	return u.String()
+}
+
 // Client is a shared HTTP client with retry, rate limiting, and circuit breaker.
 type Client struct {
-	http         *http.Client
-	rateLimiter  *rateLimiter
+	http           *http.Client
+	rateLimiter    *rateLimiter
 	circuitBreaker *circuitBreaker
-	userAgent    string
+	userAgent      string
+	maxBytes       int64
 }
 
 // NewClient creates a base API client.
 func NewClient(timeout time.Duration, maxRPS int, userAgent string) *Client {
 	return &Client{
-		http: &http.Client{Timeout: timeout},
+		http:           &http.Client{Timeout: timeout},
 		rateLimiter:    newRateLimiter(maxRPS),
 		circuitBreaker: newCircuitBreaker(5, 30*time.Second),
 		userAgent:      userAgent,
+		maxBytes:       maxResponseBytes,
 	}
 }
 
 // Get performs a GET request with retry, rate limiting, and circuit breaker.
-func (c *Client) Get(ctx context.Context, url string, headers map[string]string) ([]byte, error) {
+func (c *Client) Get(ctx context.Context, rawURL string, headers map[string]string) ([]byte, error) {
 	if err := c.circuitBreaker.allow(); err != nil {
 		return nil, fmt.Errorf("circuit breaker open: %w", err)
 	}
@@ -48,7 +90,7 @@ func (c *Client) Get(ctx context.Context, url string, headers map[string]string)
 
 		c.rateLimiter.wait(ctx)
 
-		req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, rawURL, nil)
 		if err != nil {
 			return nil, fmt.Errorf("create request: %w", err)
 		}
@@ -60,21 +102,29 @@ func (c *Client) Get(ctx context.Context, url string, headers map[string]string)
 
 		resp, err := c.http.Do(req)
 		if err != nil {
+			// *url.Error embeds the full URL; keep only its cause so keys stay out of logs.
+			var urlErr *url.Error
+			if errors.As(err, &urlErr) {
+				err = urlErr.Err
+			}
 			lastErr = fmt.Errorf("request failed: %w", err)
-			slog.Warn("api request failed, retrying", "url", url, "attempt", attempt+1, "error", err)
+			slog.Warn("api request failed, retrying", "url", withoutQuery(rawURL), "attempt", attempt+1, "error", err)
 			continue
 		}
 
-		body, err := io.ReadAll(resp.Body)
+		body, err := readBounded(resp.Body, c.maxBytes)
 		resp.Body.Close()
+		if errors.Is(err, ErrResponseTooLarge) {
+			return nil, err // the same upstream would answer the same way, so do not retry
+		}
 		if err != nil {
 			lastErr = fmt.Errorf("read body: %w", err)
 			continue
 		}
 
 		if resp.StatusCode == http.StatusTooManyRequests {
-			slog.Warn("rate limited by upstream", "url", url)
-			lastErr = fmt.Errorf("rate limited (429)")
+			slog.Warn("rate limited by upstream", "url", withoutQuery(rawURL))
+			lastErr = ErrRateLimited
 			continue
 		}
 
@@ -85,7 +135,7 @@ func (c *Client) Get(ctx context.Context, url string, headers map[string]string)
 		}
 
 		if resp.StatusCode >= 400 {
-			return nil, fmt.Errorf("client error %d: %s", resp.StatusCode, string(body[:min(200, len(body))]))
+			return nil, &StatusError{Code: resp.StatusCode, Body: string(body[:min(200, len(body))])}
 		}
 
 		c.circuitBreaker.recordSuccess()
@@ -96,9 +146,20 @@ func (c *Client) Get(ctx context.Context, url string, headers map[string]string)
 	return nil, fmt.Errorf("all retries exhausted: %w", lastErr)
 }
 
+func readBounded(body io.Reader, limit int64) ([]byte, error) {
+	data, err := io.ReadAll(io.LimitReader(body, limit+1))
+	if err != nil {
+		return nil, err
+	}
+	if int64(len(data)) > limit {
+		return nil, ErrResponseTooLarge
+	}
+	return data, nil
+}
+
 // GetJSON performs a GET and unmarshals JSON response.
-func (c *Client) GetJSON(ctx context.Context, url string, headers map[string]string, target any) error {
-	body, err := c.Get(ctx, url, headers)
+func (c *Client) GetJSON(ctx context.Context, rawURL string, headers map[string]string, target any) error {
+	body, err := c.Get(ctx, rawURL, headers)
 	if err != nil {
 		return err
 	}

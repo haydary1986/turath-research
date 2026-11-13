@@ -52,13 +52,13 @@ func (h *SearchHandler) GlobalSearch(w http.ResponseWriter, r *http.Request) {
 		       GREATEST(
 		           similarity(name_ar, $1),
 		           similarity(COALESCE(name_en, ''), $1),
-		           similarity(email, $1)
+		           CASE WHEN $4 THEN similarity(email, $1) ELSE 0 END
 		       ) AS score
 		FROM researchers
-		WHERE name_ar ILIKE $2 OR name_en ILIKE $2 OR email ILIKE $2
+		WHERE name_ar ILIKE $2 OR name_en ILIKE $2 OR ($4 AND email ILIKE $2)
 		ORDER BY score DESC
 		LIMIT $3
-	`, q, pattern, limit)
+	`, q, pattern, limit, callerIsResearchStaff(r))
 	if err == nil {
 		defer resRows.Close()
 		for resRows.Next() {

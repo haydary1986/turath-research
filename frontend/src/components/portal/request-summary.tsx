@@ -27,7 +27,9 @@ export function RequestSummary({ request }: { request: PortalRequest }) {
     { label: t("fields.department"), value: request.department_name ?? "—" },
     { label: t("fields.title_ar"), value: request.title_ar ?? "—" },
     { label: t("fields.title_en"), value: request.title_en ?? "—", ltr: true },
-    { label: t("fields.doi"), value: request.doi ?? "—", ltr: true },
+    ...(request.kind === "research_plan"
+      ? []
+      : [{ label: t("fields.doi"), value: request.doi ?? "—", ltr: true }]),
     { label: t("fields.submittedAt"), value: formatDate(request.submitted_at, locale), ltr: true },
   ];
 

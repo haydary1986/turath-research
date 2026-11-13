@@ -6,6 +6,7 @@ package portal
 import (
 	"fmt"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -110,6 +111,27 @@ func RequiredRole(from string) string {
 	}
 }
 
+// IsActiveStage reports whether the request sits at a stage someone still has to act on.
+func IsActiveStage(status string) bool {
+	return RequiredRole(status) != ""
+}
+
+// QueueStatuses lists the statuses awaiting action by the role. Admin covers every stage.
+func QueueStatuses(role string) []string {
+	switch role {
+	case RoleAdmin:
+		return []string{StatusPendingDean, StatusPending, StatusPendingVP, StatusVerified, StatusAwaitingSignatures}
+	case RoleCollegeDean:
+		return []string{StatusPendingDean}
+	case RoleScientificAffairs:
+		return []string{StatusPending, StatusVerified, StatusAwaitingSignatures}
+	case RoleVPResearch:
+		return []string{StatusPendingVP}
+	default:
+		return []string{}
+	}
+}
+
 // FinalDecisions lists the outcomes scientific affairs may recommend (and the VP confirm).
 func FinalDecisions(kind string) []string {
 	if kind == KindResearchPlan {
@@ -198,7 +220,12 @@ func AllowedAttachmentRole(kind, role string) bool {
 // RequiredAttachments lists the roles that must be present before a request can be submitted.
 // An appreciation letter linked to a completed journal verification reuses its signed form.
 func RequiredAttachments(kind string, hasVerifiedJournal bool) []string {
-	if kind != KindAppreciationLetter {
+	switch kind {
+	case KindResearchPlan:
+		// The registration form must already carry the department scientific committee's signature.
+		return []string{RoleResearchForm}
+	case KindAppreciationLetter:
+	default:
 		return nil
 	}
 	if hasVerifiedJournal {
@@ -210,11 +237,23 @@ func RequiredAttachments(kind string, hasVerifiedJournal bool) []string {
 var (
 	issnPattern     = regexp.MustCompile(`^\d{4}-?\d{3}[\dXx]$`)
 	validWorkTypes  = map[string]struct{}{"individual": {}, "joint": {}}
-	validIndexDBs   = map[string]struct{}{"scopus": {}, "wos": {}, "local": {}}
+	validIndexDBs   = map[string]struct{}{"scopus": {}, "wos": {}, "local": {}, "international_unindexed": {}}
+	validExtracted  = map[string]struct{}{"not_extracted": {}, "extracted_master": {}, "extracted_phd": {}}
 	validQuartiles  = map[string]struct{}{"Q1": {}, "Q2": {}, "Q3": {}, "Q4": {}}
 	journalURLKeys  = []string{"article_url", "journal_url", "index_url", "author_url", "local_journal_url"}
 	journalRequired = []string{"journal_name", "publisher", "index_db", "publication_date"}
 )
+
+const (
+	minDateYear = 1900
+	maxDateYear = 2100
+	maxAuthors  = 10000
+)
+
+// QuartileApplies reports whether the indexing database ranks journals in quartiles.
+func QuartileApplies(indexDB string) bool {
+	return indexDB == "scopus" || indexDB == "wos"
+}
 
 // ValidateDetails checks the kind-specific fields and returns one "field:code" entry per problem.
 func ValidateDetails(kind string, details map[string]any) []string {
@@ -252,14 +291,29 @@ func validateJournal(d map[string]any) []string {
 	if date := str(d, "publication_date"); date != "" {
 		errs = append(errs, requireDate(d, "publication_date")...)
 	}
+	// Ministry-form dates (submission to the journal, acceptance): optional but must parse.
+	for _, key := range []string{"submission_date", "acceptance_date"} {
+		if str(d, key) != "" {
+			errs = append(errs, requireDate(d, key)...)
+		}
+	}
 	if issn := str(d, "issn"); issn != "" && !issnPattern.MatchString(issn) {
 		errs = append(errs, "issn:malformed")
 	}
+	if issn := str(d, "issn_online"); issn != "" && !issnPattern.MatchString(issn) {
+		errs = append(errs, "issn_online:malformed")
+	}
+	if ex := str(d, "extracted_thesis"); ex != "" {
+		if _, ok := validExtracted[ex]; !ok {
+			errs = append(errs, "extracted_thesis:invalid")
+		}
+	}
 	if q := str(d, "quartile"); q != "" {
-		if _, ok := validQuartiles[q]; !ok {
+		if _, ok := validQuartiles[q]; !ok || !QuartileApplies(str(d, "index_db")) {
 			errs = append(errs, "quartile:invalid")
 		}
 	}
+	errs = append(errs, validateNumbers(d)...)
 	for _, key := range journalURLKeys {
 		if u := str(d, key); u != "" && !isHTTPURL(u) {
 			errs = append(errs, key+":invalid_url")
@@ -268,12 +322,55 @@ func validateJournal(d map[string]any) []string {
 	return errs
 }
 
+// validateNumbers checks the optional numeric ministry-form fields.
+func validateNumbers(d map[string]any) []string {
+	var errs []string
+	if v := numeric(d, "plagiarism_pct"); v != "" {
+		// The inverted comparison also rejects NaN, which ParseFloat accepts.
+		if f, err := strconv.ParseFloat(v, 64); err != nil || !(f >= 0 && f <= 100) {
+			errs = append(errs, "plagiarism_pct:invalid")
+		}
+	}
+	count, countOK := 0, false
+	if v := numeric(d, "authors_count"); v != "" {
+		n, err := strconv.Atoi(v)
+		if err != nil || n < 1 || n > maxAuthors {
+			errs = append(errs, "authors_count:invalid")
+		} else {
+			count, countOK = n, true
+		}
+	}
+	if v := numeric(d, "author_order"); v != "" {
+		n, err := strconv.Atoi(v)
+		if err != nil || n < 1 || n > maxAuthors || (countOK && n > count) {
+			errs = append(errs, "author_order:invalid")
+		}
+	}
+	return errs
+}
+
+// numeric returns the field as text whether the JSON held a string or a number.
+// Any other JSON type yields text that fails numeric parsing.
+func numeric(d map[string]any, key string) string {
+	switch v := d[key].(type) {
+	case nil:
+		return ""
+	case string:
+		return strings.TrimSpace(v)
+	case float64:
+		return strconv.FormatFloat(v, 'f', -1, 64)
+	default:
+		return "invalid"
+	}
+}
+
 func requireDate(d map[string]any, key string) []string {
 	v := str(d, key)
 	if v == "" {
 		return []string{key + ":required"}
 	}
-	if _, err := time.Parse("2006-01-02", v); err != nil {
+	parsed, err := time.Parse("2006-01-02", v)
+	if err != nil || parsed.Year() < minDateYear || parsed.Year() > maxDateYear {
 		return []string{key + ":invalid_date"}
 	}
 	return nil

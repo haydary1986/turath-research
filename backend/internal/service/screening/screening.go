@@ -24,12 +24,24 @@ func IsClassification(c string) bool {
 	return ok
 }
 
-var issnStrip = regexp.MustCompile(`[^0-9Xx]`)
+var (
+	issnStrip   = regexp.MustCompile(`[^0-9Xx]`)
+	localDigits = strings.NewReplacer(
+		"٠", "0", "١", "1", "٢", "2", "٣", "3", "٤", "4", "٥", "5", "٦", "6", "٧", "7", "٨", "8", "٩", "9",
+		"۰", "0", "۱", "1", "۲", "2", "۳", "3", "۴", "4", "۵", "5", "۶", "6", "۷", "7", "۸", "8", "۹", "9",
+	)
+)
+
+// LatinDigits rewrites Arabic-Indic and Persian digits as ASCII, the form Arabic
+// keyboards do not type but every identifier comparison expects.
+func LatinDigits(s string) string {
+	return localDigits.Replace(s)
+}
 
 // NormalizeISSN reduces any ISSN spelling to the canonical NNNN-NNNC form,
 // or returns "" when the input cannot be an ISSN.
 func NormalizeISSN(raw string) string {
-	s := strings.ToUpper(issnStrip.ReplaceAllString(raw, ""))
+	s := strings.ToUpper(issnStrip.ReplaceAllString(LatinDigits(raw), ""))
 	if len(s) != 8 {
 		return ""
 	}
@@ -43,6 +55,26 @@ func NormalizeISSN(raw string) string {
 		return ""
 	}
 	return s[:4] + "-" + s[4:]
+}
+
+// ValidISSNChecksum verifies the check digit of a NormalizeISSN result.
+func ValidISSNChecksum(issn string) bool {
+	if len(issn) != 9 || issn[4] != '-' {
+		return false
+	}
+	digits := issn[:4] + issn[5:]
+	sum := 0
+	for i := 0; i < 7; i++ {
+		if digits[i] < '0' || digits[i] > '9' {
+			return false
+		}
+		sum += int(digits[i]-'0') * (8 - i)
+	}
+	check := (11 - sum%11) % 11
+	if check == 10 {
+		return digits[7] == 'X'
+	}
+	return digits[7] == byte('0'+check)
 }
 
 var (

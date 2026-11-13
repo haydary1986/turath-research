@@ -51,7 +51,7 @@ func (h *WorkflowHandler) MyPendingApprovals(w http.ResponseWriter, r *http.Requ
 		       aw.step_name, aw.approver_role, aw.created_at
 		FROM approval_workflows aw
 		WHERE aw.decision = 'pending'
-		  AND (aw.approver_id = $1 OR aw.approver_role = $2::approver_role)
+		  AND (aw.approver_id = $1 OR aw.approver_role::text = $2)
 		ORDER BY aw.created_at ASC
 		LIMIT 50
 	`, user.UserID, mapUserRoleToApproverRole(user.Role))
@@ -93,13 +93,12 @@ func (h *WorkflowHandler) MakeDecision(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
 	defer cancel()
 
-	user := middleware.GetUser(r.Context())
-	approverID := ""
-	if user != nil {
-		approverID = user.UserID
+	user := authedUser(w, r)
+	if user == nil {
+		return
 	}
 
-	// Update the workflow step
+	// Only the step's own approver may decide it; admin may act for anyone.
 	tag, err := h.db.Exec(ctx, `
 		UPDATE approval_workflows SET
 			decision = $2::workflow_decision,
@@ -107,7 +106,8 @@ func (h *WorkflowHandler) MakeDecision(w http.ResponseWriter, r *http.Request) {
 			approver_id = $4,
 			decided_at = NOW()
 		WHERE id = $1 AND decision = 'pending'
-	`, id, req.Decision, req.Comments, approverID)
+		  AND ($5 OR approver_id = $4 OR approver_role::text = $6)
+	`, id, req.Decision, req.Comments, user.UserID, user.Role == middleware.RoleAdmin, mapUserRoleToApproverRole(user.Role))
 	if err != nil {
 		model.RespondError(w, http.StatusInternalServerError, "Decision failed")
 		return

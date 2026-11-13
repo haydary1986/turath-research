@@ -5,6 +5,9 @@ package importer
 import (
 	"regexp"
 	"strings"
+
+	"github.com/haydary1986/turath-research/backend/internal/service/contactinfo"
+	"github.com/haydary1986/turath-research/backend/internal/service/researchlinks"
 )
 
 // MaxRows caps one import file; larger files must be split.
@@ -28,6 +31,19 @@ var headerAliases = map[string]string{
 	"الكلية": "college", "college": "college", "faculty": "college",
 	"القسم": "department", "القسمالعلمي": "department", "الفرع": "department", "department": "department",
 	"orcid": "orcid", "اوركيد": "orcid",
+	"titlear": "title_ar",
+	"phone":   "phone", "mobile": "phone", "الهاتف": "phone", "رقمالهاتف": "phone", "الموبايل": "phone",
+	"رقمالموبايل": "phone", "الجوال": "phone",
+	"phonesecondary": "phone_secondary", "secondaryphone": "phone_secondary", "الهاتفالثانوي": "phone_secondary",
+	"الهاتفالثاني": "phone_secondary", "رقمالهاتفالثاني": "phone_secondary",
+	"recoveryemail": "recovery_email", "البريدالاحتياطي": "recovery_email", "بريدالاسترداد": "recovery_email",
+	"googlescholarurl": "google_scholar_url", "googlescholar": "google_scholar_url", "كوكلسكولار": "google_scholar_url",
+	"scopusurl": "scopus_url", "scopus": "scopus_url", "سكوبس": "scopus_url",
+	"researchgateurl": "researchgate_url", "researchgate": "researchgate_url",
+	"linkedinurl": "linkedin_url", "linkedin": "linkedin_url",
+	"webofscienceurl": "web_of_science_url", "webofscience": "web_of_science_url",
+	"employeeno": "employee_no", "employeenumber": "employee_no", "الرقمالوظيفي": "employee_no",
+	"accountstatus": "account_status", "حالةالحساب": "account_status",
 }
 
 var (
@@ -83,6 +99,17 @@ type Row struct {
 	College    string `json:"college"`
 	Department string `json:"department"`
 	ORCID      string `json:"orcid"`
+
+	// Validated, canonical links. Empty never erases a stored value.
+	Links researchlinks.Links `json:"-"`
+	// Contact data stays out of the preview, which needs none of it.
+	Phone          string `json:"-"`
+	PhoneSecondary string `json:"-"`
+	RecoveryEmail  string `json:"-"`
+	EmployeeNo     string `json:"-"`
+	AccountStatus  string `json:"-"`
+
+	linkInput researchlinks.Input
 }
 
 // Problem is one rejected line with a stable code the frontend translates.
@@ -114,22 +141,7 @@ func ParseRows(header map[int]string, rows [][]string, firstLine int) ([]Row, []
 			if value != "" {
 				blank = false
 			}
-			switch key {
-			case "name_ar":
-				row.NameAr = value
-			case "name_en":
-				row.NameEn = value
-			case "email":
-				row.Email = strings.ToLower(value)
-			case "title_ar":
-				row.TitleAr = value
-			case "college":
-				row.College = value
-			case "department":
-				row.Department = value
-			case "orcid":
-				row.ORCID = value
-			}
+			row.set(key, value)
 		}
 		if blank {
 			continue
@@ -142,9 +154,86 @@ func ParseRows(header map[int]string, rows [][]string, firstLine int) ([]Row, []
 		case seenEmail[row.Email]:
 			problems = append(problems, Problem{Line: line, Code: "duplicate_email"})
 		default:
+			normalized, codes := row.normalizeOptional()
+			if len(codes) > 0 {
+				for _, code := range codes {
+					problems = append(problems, Problem{Line: line, Code: code})
+				}
+				continue
+			}
+			row = normalized
 			seenEmail[row.Email] = true
 			valid = append(valid, row)
 		}
 	}
 	return valid, problems
+}
+
+func (r *Row) set(key, value string) {
+	switch key {
+	case "name_ar":
+		r.NameAr = value
+	case "name_en":
+		r.NameEn = value
+	case "email":
+		r.Email = strings.ToLower(value)
+	case "title_ar":
+		r.TitleAr = value
+	case "college":
+		r.College = value
+	case "department":
+		r.Department = value
+	case "orcid":
+		r.linkInput.ORCID = value
+	case "google_scholar_url":
+		r.linkInput.GoogleScholarURL = value
+	case "scopus_url":
+		r.linkInput.ScopusURL = value
+	case "researchgate_url":
+		r.linkInput.ResearchGateURL = value
+	case "linkedin_url":
+		r.linkInput.LinkedInURL = value
+	case "web_of_science_url":
+		r.linkInput.WebOfScienceURL = value
+	case "phone":
+		r.Phone = value
+	case "phone_secondary":
+		r.PhoneSecondary = value
+	case "recovery_email":
+		r.RecoveryEmail = value
+	case "employee_no":
+		r.EmployeeNo = value
+	case "account_status":
+		r.AccountStatus = value
+	}
+}
+
+// normalizeOptional returns the row with its optional cells in canonical form, or one
+// code per bad cell. A bad optional cell rejects the row, so the admin sees it.
+func (r Row) normalizeOptional() (Row, []string) {
+	var codes []string
+	links, problems := researchlinks.Parse(r.linkInput)
+	for _, problem := range problems {
+		field, _, _ := strings.Cut(problem, ":")
+		codes = append(codes, "invalid_"+field)
+	}
+	r.Links, r.ORCID = links, links.ORCID
+
+	var ok bool
+	if r.Phone, ok = contactinfo.ParseImportedPhone(r.Phone); !ok {
+		codes = append(codes, "invalid_phone")
+	}
+	if r.PhoneSecondary, ok = contactinfo.ParseImportedPhone(r.PhoneSecondary); !ok {
+		codes = append(codes, "invalid_phone_secondary")
+	}
+	if r.RecoveryEmail, ok = contactinfo.ParseEmail(r.RecoveryEmail); !ok {
+		codes = append(codes, "invalid_recovery_email")
+	}
+	if r.EmployeeNo, ok = contactinfo.ParseEmployeeNo(r.EmployeeNo); !ok {
+		codes = append(codes, "invalid_employee_no")
+	}
+	if r.AccountStatus, ok = contactinfo.ParseAccountStatus(r.AccountStatus); !ok {
+		codes = append(codes, "invalid_account_status")
+	}
+	return r, codes
 }

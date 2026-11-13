@@ -16,6 +16,8 @@ type Config struct {
 	DeepSeek DeepSeekConfig
 	Scopus   ScopusConfig
 	CrossRef CrossRefConfig
+	OpenAlex OpenAlexConfig
+	BulkSync BulkSyncConfig
 	ORCID    ORCIDConfig
 	Google   GoogleConfig
 	SMTP     SMTPConfig
@@ -54,6 +56,19 @@ type ScopusConfig struct {
 
 type CrossRefConfig struct {
 	Mailto string
+}
+
+// BulkSyncConfig paces the admin's sync of every researcher with an ORCID. Each one
+// spends up to six OpenAlex calls from the budget journal screening also uses.
+type BulkSyncConfig struct {
+	Delay      time.Duration
+	DailyLimit int
+}
+
+// OpenAlexConfig holds the optional key; without it requests share a small
+// anonymous daily budget.
+type OpenAlexConfig struct {
+	APIKey string
 }
 
 // GoogleConfig enables "Sign in with Google" restricted to one institutional domain.
@@ -116,6 +131,13 @@ func Load() (*Config, error) {
 		},
 		CrossRef: CrossRefConfig{
 			Mailto: getEnv("CROSSREF_MAILTO", ""),
+		},
+		OpenAlex: OpenAlexConfig{
+			APIKey: getEnv("OPENALEX_API_KEY", ""),
+		},
+		BulkSync: BulkSyncConfig{
+			Delay:      time.Duration(getEnvInt("BULK_SYNC_DELAY_SECONDS", 5)) * time.Second,
+			DailyLimit: getEnvInt("BULK_SYNC_DAILY_LIMIT", 300),
 		},
 		ORCID: ORCIDConfig{
 			ClientID:     getEnv("ORCID_CLIENT_ID", ""),

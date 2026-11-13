@@ -5,9 +5,6 @@ import { notFound } from "next/navigation";
 import { Cairo, Inter } from "next/font/google";
 import { routing } from "@/i18n/routing";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { SidebarProvider } from "@/components/ui/sidebar";
-import { AppSidebar } from "@/components/layout/app-sidebar";
-import { AppHeader } from "@/components/layout/app-header";
 import "../globals.css";
 
 const cairo = Cairo({
@@ -45,19 +42,7 @@ export default async function LocaleLayout({ children, params }: Props) {
         style={{ fontFamily: locale === "ar" ? "var(--font-cairo), sans-serif" : "var(--font-inter), sans-serif" }}
       >
         <NextIntlClientProvider messages={messages}>
-          <TooltipProvider>
-            <SidebarProvider>
-              <div className="flex min-h-screen w-full">
-                <AppSidebar />
-                <div className="flex flex-1 flex-col overflow-hidden">
-                  <AppHeader />
-                  <main className="flex-1 overflow-auto p-4 md:p-6">
-                    {children}
-                  </main>
-                </div>
-              </div>
-            </SidebarProvider>
-          </TooltipProvider>
+          <TooltipProvider>{children}</TooltipProvider>
         </NextIntlClientProvider>
       </body>
     </html>

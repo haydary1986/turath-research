@@ -3,8 +3,8 @@ package handler
 import (
 	"context"
 	"encoding/json"
+	"log/slog"
 	"net/http"
-	"strconv"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -13,7 +13,9 @@ import (
 
 	"github.com/haydary1986/turath-research/backend/internal/middleware"
 	"github.com/haydary1986/turath-research/backend/internal/model"
+	"github.com/haydary1986/turath-research/backend/internal/service/journalcheck"
 	"github.com/haydary1986/turath-research/backend/internal/service/portal"
+	"github.com/haydary1986/turath-research/backend/internal/service/screening"
 )
 
 const (
@@ -39,6 +41,19 @@ type normalizedInput struct {
 	details                            []byte
 }
 
+// normalizeDetailDigits copies details with ISSNs in ASCII digits, the form Arabic
+// keyboards may not produce but validation and journal matching expect.
+func normalizeDetailDigits(details map[string]any) map[string]any {
+	out := make(map[string]any, len(details))
+	for key, value := range details {
+		if text, isText := value.(string); isText && (key == "issn" || key == "issn_online") {
+			value = screening.LatinDigits(text)
+		}
+		out[key] = value
+	}
+	return out
+}
+
 // normalizeInput trims and validates the shape of the input. Completeness is checked on submit, not here,
 // so applicants can save partial drafts. It returns a message when the input is unusable.
 func normalizeInput(kind string, in requestInput, user *middleware.UserClaims) (normalizedInput, string) {
@@ -51,6 +66,9 @@ func normalizeInput(kind string, in requestInput, user *middleware.UserClaims) (
 		return n, "doi is too long"
 	}
 	n.titleAr, n.titleEn, n.doi = blankToNil(in.TitleAr), blankToNil(in.TitleEn), blankToNil(doi)
+	if kind == portal.KindResearchPlan {
+		n.doi = nil // a plan registers unpublished research, so it has no DOI
+	}
 
 	college, ok1 := idOrNil(firstNonEmpty(in.CollegeID, user.CollegeID))
 	dept, ok2 := idOrNil(firstNonEmpty(in.DepartmentID, user.DepartmentID))
@@ -63,11 +81,7 @@ func normalizeInput(kind string, in requestInput, user *middleware.UserClaims) (
 	}
 	n.collegeID, n.departmentID, n.relatedID = college, dept, related
 
-	details := in.Details
-	if details == nil {
-		details = map[string]any{}
-	}
-	raw, err := json.Marshal(details)
+	raw, err := json.Marshal(normalizeDetailDigits(in.Details))
 	if err != nil {
 		return n, "invalid details"
 	}
@@ -275,11 +289,8 @@ func (h *PortalHandler) Submit(w http.ResponseWriter, r *http.Request) {
 		serverError(w, "Failed to load request", err)
 		return
 	}
-	label := requestLabel(updated)
-	h.notifyUser(ctx, user.UserID, "تم إرسال الطلب بنجاح", "Request submitted", "رقم الطلب: "+label, "success", requestLink(rec.ID))
-	h.notifyRole(ctx, portal.RoleCollegeDean, updated.CollegeID,
-		"طلب جديد بانتظار الموافقة الأولية", "New request awaiting initial approval",
-		"رقم الطلب: "+label, requestLink(rec.ID))
+	h.notifyUser(ctx, user.UserID, "تم إرسال الطلب بنجاح", "Request submitted", "رقم الطلب: "+requestLabel(updated), "success", requestLink(rec.ID))
+	h.wakeStage(ctx, updated, portal.StatusPendingDean)
 	model.RespondJSON(w, http.StatusOK, updated)
 }
 
@@ -417,7 +428,8 @@ func (h *PortalHandler) Transition(w http.ResponseWriter, r *http.Request) {
 		model.RespondError(w, http.StatusForbidden, "Insufficient permissions")
 		return
 	}
-	if in.To == portal.StatusIssued || !portal.CanTransition(rec.Kind, rec.Status, in.To) {
+	// Editable requests leave only through Submit, which validates them.
+	if isEditable(rec.Status) || in.To == portal.StatusIssued || !portal.CanTransition(rec.Kind, rec.Status, in.To) {
 		model.RespondError(w, http.StatusConflict, "Transition not allowed")
 		return
 	}
@@ -466,20 +478,29 @@ func (h *PortalHandler) Transition(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Wake the next actor in the chain.
-	label := requestLabel(rec)
-	switch in.To {
-	case portal.StatusPending:
-		h.notifyRole(ctx, portal.RoleScientificAffairs, nil,
-			"طلب بانتظار تدقيق الشؤون العلمية", "Request awaiting scientific affairs review",
-			"رقم الطلب: "+label, requestLink(rec.ID))
-	case portal.StatusPendingVP:
-		h.notifyRole(ctx, portal.RoleVPResearch, nil,
-			"توصية بانتظار تأكيد المساعد العلمي", "Recommendation awaiting VP confirmation",
-			"رقم الطلب: "+label, requestLink(rec.ID))
-	}
+	h.wakeStage(ctx, rec, in.To)
 	h.notifyUser(ctx, rec.ApplicantID, statusTitlesAr[in.To], "Request status updated", note+"\nرقم الطلب: "+requestLabel(rec), notificationType(in.To), requestLink(rec.ID))
 	h.respondRequest(ctx, w, http.StatusOK, rec.ID)
+}
+
+// offeredTransitions lists the moves the stage actor may pick from on the request page.
+func offeredTransitions(rec requestRecord) []string {
+	offered := []string{}
+	if isEditable(rec.Status) {
+		return offered
+	}
+	for _, next := range portal.NextStatuses(rec.Kind, rec.Status) {
+		if next == portal.StatusIssued {
+			continue // issued goes through the dedicated letter endpoint
+		}
+		// At the VP stage only the recommended outcome (or sending back) is offered.
+		if rec.Status == portal.StatusPendingVP && portal.IsFinalDecision(rec.Kind, next) &&
+			(rec.SADecision == nil || *rec.SADecision != next) {
+			continue
+		}
+		offered = append(offered, next)
+	}
+	return offered
 }
 
 // mayActOn checks whether the caller is the actor of the request's current stage:
@@ -574,13 +595,32 @@ type eventInfo struct {
 }
 
 type requestDetail struct {
-	Request            requestRecord    `json:"request"`
-	Attachments        []attachmentInfo `json:"attachments"`
-	Events             []eventInfo      `json:"events"`
-	AllowedTransitions []string         `json:"allowed_transitions"`
-	CanEdit            bool             `json:"can_edit"`
-	LetterID           *string          `json:"letter_id"`
-	JournalFlag        *journalFlag     `json:"journal_flag,omitempty"`
+	Request            requestRecord        `json:"request"`
+	Attachments        []attachmentInfo     `json:"attachments"`
+	Events             []eventInfo          `json:"events"`
+	AllowedTransitions []string             `json:"allowed_transitions"`
+	CanEdit            bool                 `json:"can_edit"`
+	CanIssueLetter     bool                 `json:"can_issue_letter"`
+	LetterID           *string              `json:"letter_id"`
+	JournalFlag        *journalcheck.Result `json:"journal_flag,omitempty"`
+}
+
+// cachedJournalFlag answers from local data only so opening a request never waits
+// on external services; the page then asks /screening/check for the live result.
+func (h *PortalHandler) cachedJournalFlag(ctx context.Context, details map[string]any) *journalcheck.Result {
+	text := func(key string) string {
+		value, _ := details[key].(string)
+		return value
+	}
+	result, err := h.journals.Check(ctx, journalcheck.Query{
+		ISSN: text("issn"), ISSNOnline: text("issn_online"), Name: text("journal_name"),
+		Publisher: text("publisher"), URL: text("journal_url"), CachedOnly: true,
+	})
+	if err != nil {
+		slog.Warn("journal screening failed on request detail", "error", err)
+		return nil
+	}
+	return &result
 }
 
 // Get returns one request with its attachments, history and the actions the caller may take.
@@ -619,27 +659,15 @@ func (h *PortalHandler) Get(w http.ResponseWriter, r *http.Request) {
 	if rec.Kind != portal.KindResearchPlan {
 		var details map[string]any
 		if json.Unmarshal(rec.Details, &details) == nil {
-			issn, _ := details["issn"].(string)
-			name, _ := details["journal_name"].(string)
-			if flag, err := h.screenJournal(ctx, issn, name); err == nil && flag.Matched {
-				detail.JournalFlag = &flag
-			}
+			detail.JournalFlag = h.cachedJournalFlag(ctx, details)
 		}
 	}
 
 	detail.CanEdit = rec.ApplicantID == user.UserID && isEditable(rec.Status)
 	if mayActOn(user, rec) {
-		for _, next := range portal.NextStatuses(rec.Kind, rec.Status) {
-			if next == portal.StatusIssued {
-				continue // issued goes through the dedicated letter endpoint
-			}
-			// At the VP stage only the recommended outcome (or sending back) is offered.
-			if rec.Status == portal.StatusPendingVP && portal.IsFinalDecision(rec.Kind, next) &&
-				(rec.SADecision == nil || *rec.SADecision != next) {
-				continue
-			}
-			detail.AllowedTransitions = append(detail.AllowedTransitions, next)
-		}
+		detail.AllowedTransitions = offeredTransitions(rec)
+		detail.CanIssueLetter = rec.Kind == portal.KindAppreciationLetter &&
+			rec.Status == portal.StatusVerified && detail.LetterID == nil
 	}
 	model.RespondJSON(w, http.StatusOK, detail)
 }
@@ -683,119 +711,4 @@ func (h *PortalHandler) listEvents(ctx context.Context, requestID string) ([]eve
 		items = append(items, e)
 	}
 	return items, rows.Err()
-}
-
-// List returns the requests the caller may see, filtered and paginated.
-func (h *PortalHandler) List(w http.ResponseWriter, r *http.Request) {
-	user := authedUser(w, r)
-	if user == nil {
-		return
-	}
-	q := r.URL.Query()
-	page := clampInt(q.Get("page"), 1, 1, 100000)
-	limit := clampInt(q.Get("limit"), 20, 1, 50)
-
-	where, args := scopeClause(user)
-	conds := []string{where}
-	addCond := func(cond string, value any) {
-		args = append(args, value)
-		conds = append(conds, strings.ReplaceAll(cond, "?", "$"+strconv.Itoa(len(args))))
-	}
-	if q.Get("mine") == "true" {
-		conds = append(conds, "r.applicant_id = $1")
-	}
-	if kind := q.Get("kind"); portal.IsKind(kind) {
-		addCond("r.kind = ?", kind)
-	}
-	if status := q.Get("status"); status != "" {
-		addCond("r.status = ?", status)
-	}
-	if text := strings.TrimSpace(q.Get("q")); text != "" {
-		addCond(`(r.request_no ILIKE ? OR r.title_ar ILIKE ? OR r.title_en ILIKE ? OR r.doi ILIKE ? OR u.name_ar ILIKE ? OR u.email ILIKE ?)`,
-			"%"+likeEscaper.Replace(text)+"%")
-	}
-	whereSQL := " WHERE " + strings.Join(conds, " AND ")
-
-	ctx, cancel := portalContext(r)
-	defer cancel()
-
-	var total int
-	if err := h.db.QueryRow(ctx, `SELECT COUNT(*) FROM portal_requests r JOIN users u ON u.id = r.applicant_id`+whereSQL, args...).Scan(&total); err != nil {
-		serverError(w, "Failed to count requests", err)
-		return
-	}
-
-	args = append(args, limit, (page-1)*limit)
-	rows, err := h.db.Query(ctx, requestSelect+whereSQL+
-		` ORDER BY r.created_at DESC LIMIT $`+strconv.Itoa(len(args)-1)+` OFFSET $`+strconv.Itoa(len(args)), args...)
-	if err != nil {
-		serverError(w, "Failed to list requests", err)
-		return
-	}
-	defer rows.Close()
-
-	items := []requestRecord{}
-	for rows.Next() {
-		rec, err := scanRequest(rows)
-		if err != nil {
-			serverError(w, "Failed to read requests", err)
-			return
-		}
-		items = append(items, rec)
-	}
-	if err := rows.Err(); err != nil {
-		serverError(w, "Failed to read requests", err)
-		return
-	}
-	model.RespondPaginated(w, http.StatusOK, items, total, page, limit)
-}
-
-var likeEscaper = strings.NewReplacer(`\`, `\\`, `%`, `\%`, `_`, `\_`)
-
-func clampInt(raw string, fallback, lo, hi int) int {
-	n, err := strconv.Atoi(raw)
-	if err != nil {
-		return fallback
-	}
-	return min(max(n, lo), hi)
-}
-
-type statCount struct {
-	Kind   string `json:"kind"`
-	Status string `json:"status"`
-	Count  int    `json:"count"`
-}
-
-// Stats returns request counts by kind and status within the caller's visibility.
-func (h *PortalHandler) Stats(w http.ResponseWriter, r *http.Request) {
-	user := authedUser(w, r)
-	if user == nil {
-		return
-	}
-	where, args := scopeClause(user)
-
-	ctx, cancel := portalContext(r)
-	defer cancel()
-
-	rows, err := h.db.Query(ctx, `SELECT r.kind, r.status, COUNT(*) FROM portal_requests r WHERE `+where+` GROUP BY r.kind, r.status`, args...)
-	if err != nil {
-		serverError(w, "Failed to compute stats", err)
-		return
-	}
-	defer rows.Close()
-
-	items := []statCount{}
-	for rows.Next() {
-		var s statCount
-		if err := rows.Scan(&s.Kind, &s.Status, &s.Count); err != nil {
-			serverError(w, "Failed to read stats", err)
-			return
-		}
-		items = append(items, s)
-	}
-	if err := rows.Err(); err != nil {
-		serverError(w, "Failed to read stats", err)
-		return
-	}
-	model.RespondJSON(w, http.StatusOK, items)
 }

@@ -233,6 +233,12 @@ sqlv "UPDATE users SET role='admin' WHERE email='$ADMIN_EMAIL'" >/dev/null; ADM=
 call GET "/admin/users?q=$RUN" "$ADM"; expect "admin lists users" 200
 UID_=$(echo "$BODY" | jq_ "[u['id'] for u in d['data'] if u['email']=='$OTHER_EMAIL'][0]")
 call PUT "/admin/users/$UID_" "$ADM" '{"role":"department_head"}'; expect "admin assigns department head" 200
+call POST /admin/users "$ADM" "{\"email\":\"New.Dean$RUN@uoturath.edu.iq\",\"name_ar\":\"عميد جديد\",\"role\":\"college_dean\",\"college_id\":\"$COLLEGE\"}"; expect "admin pre-registers a university account" 201
+[ "$(echo "$BODY" | jq_ "(d['data']['email'], d['data']['role'])")" = "('new.dean$RUN@uoturath.edu.iq', 'college_dean')" ] && ok "new account stored lower-case with its role" || bad "created user" "$BODY"
+call POST /admin/users "$ADM" "{\"email\":\"new.dean$RUN@uoturath.edu.iq\",\"name_ar\":\"مكرر\",\"role\":\"researcher\"}"; expect "duplicate email rejected" 409
+call POST /admin/users "$ADM" "{\"email\":\"someone$RUN@gmail.com\",\"name_ar\":\"خارجي\",\"role\":\"researcher\"}"; expect "non-university email rejected" 422
+call POST /admin/users "$RES" "{\"email\":\"x$RUN@uoturath.edu.iq\",\"name_ar\":\"س\",\"role\":\"admin\"}"; expect "researcher cannot add users" 403
+[ "$(sqlv "SELECT password_hash FROM users WHERE email='new.dean$RUN@uoturath.edu.iq'")" = "!google" ] && ok "pre-registered account cannot use password login" || bad "password hash" "set"
 call PUT "/admin/users/$UID_" "$ADM" '{"role":"viewer"}'; expect "legacy role no longer assignable" 400
 call PUT "/admin/users/$UID_" "$ADM" '{"role":"superuser"}'; expect "unknown role rejected" 400
 

@@ -26,12 +26,13 @@ var assignableRoles = map[string]struct{}{
 
 // AdminUserHandler lets administrators assign roles and organizational units.
 type AdminUserHandler struct {
-	db         *pgxpool.Pool
-	invalidate func(userID string) // drops the user's cached role so a change applies at once
+	db            *pgxpool.Pool
+	invalidate    func(userID string) // drops the user's cached role so a change applies at once
+	allowedDomain string              // new accounts must use this university email domain
 }
 
-func NewAdminUserHandler(db *pgxpool.Pool, invalidate func(userID string)) *AdminUserHandler {
-	return &AdminUserHandler{db: db, invalidate: invalidate}
+func NewAdminUserHandler(db *pgxpool.Pool, invalidate func(userID string), allowedDomain string) *AdminUserHandler {
+	return &AdminUserHandler{db: db, invalidate: invalidate, allowedDomain: allowedDomain}
 }
 
 type adminUser struct {

@@ -69,7 +69,7 @@ func newRouter(cfg *config.Config, db *pgxpool.Pool, rdb *redis.Client, journals
 	portalH := handler.NewPortalHandler(db, cfg.Server.UploadDir, mail, cfg.Server.FrontendURL, journals)
 	// Role and organization come from the database (cached ~60 s per user), not the JWT.
 	identities := identity.NewCache(identityLoader(db), identity.DefaultTTL, time.Now)
-	adminUsersH := handler.NewAdminUserHandler(db, identities.Invalidate)
+	adminUsersH := handler.NewAdminUserHandler(db, identities.Invalidate, cfg.Google.AllowedDomain)
 	adminImportH := handler.NewAdminImportHandler(db)
 	bulkSyncH := handler.NewBulkSyncHandler(bulkSync)
 	responsibilityH := handler.NewResponsibilityHandler(db, identities.Invalidate)
@@ -269,6 +269,7 @@ func newRouter(cfg *config.Config, db *pgxpool.Pool, rdb *redis.Client, journals
 			r.Group(func(r chi.Router) {
 				r.Use(adminOnly)
 				r.Get("/admin/users", adminUsersH.List)
+				r.Post("/admin/users", adminUsersH.Create)
 				r.Put("/admin/users/{id}", adminUsersH.Update)
 				r.Get("/admin/users/{id}/responsibilities", responsibilityH.List)
 				r.Put("/admin/users/{id}/responsibilities", responsibilityH.Replace)

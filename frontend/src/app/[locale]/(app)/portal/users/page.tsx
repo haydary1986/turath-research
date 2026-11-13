@@ -15,6 +15,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { NativeSelect } from "@/components/portal/form-controls";
+import { AddUserForm } from "@/components/portal/add-user-form";
 import { ResponsibilitiesDialog } from "@/components/portal/responsibilities-dialog";
 import { RequireAuth } from "@/components/portal/require-auth";
 import { usePortalErrors } from "@/components/portal/use-portal-errors";
@@ -97,8 +98,19 @@ function Users() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">{t("users.title")}</h1>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <h1 className="text-2xl font-bold">{t("users.title")}</h1>
+      </div>
       {error && <Alert variant="danger">{error}</Alert>}
+      <AddUserForm
+        roles={ROLES}
+        colleges={colleges}
+        departments={departments}
+        onCreated={(created) => {
+          setUsers((prev) => [{ ...created, responsibilities_count: 0 }, ...prev.filter((u) => u.id !== created.id)]);
+          setSavedId(created.id);
+        }}
+      />
       <Card>
         <CardContent className="space-y-4 pt-4">
           <Input placeholder={t("users.search")} value={q} onChange={(e) => setQ(e.target.value)} />

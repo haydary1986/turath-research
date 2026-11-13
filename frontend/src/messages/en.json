@@ -125,7 +125,14 @@
       "predatory": "Predatory journals guide",
       "site": "Public site",
       "myResponsibilities": "My responsibilities",
-      "audit": "Sign-ins & accounts"
+      "audit": "Sign-ins & accounts",
+      "groupReview": "Review",
+      "allRequests": "All requests",
+      "groupWork": "My work",
+      "groupTools": "Publishing tools",
+      "groupResearch": "Research",
+      "groupOutputs": "Letters & reports",
+      "groupAdmin": "Administration"
     },
     "kinds": {
       "research_plan": "Research plan registration",
@@ -312,7 +319,9 @@
       "fs003_forbidden": "The FS 003 form is available to scientific affairs, the VP for research and holders of data-entry responsibilities.",
       "researcher_not_linked": "A researcher record with this email exists but is not linked to your account yet. Sign in with your university Google account or ask scientific affairs to link it.",
       "account_not_found": "This account no longer exists. Please sign in again.",
-      "auth_unavailable": "Your permissions could not be checked right now. Try again shortly."
+      "auth_unavailable": "Your permissions could not be checked right now. Try again shortly.",
+      "domain_not_allowed": "The email must be on the university domain @uoturath.edu.iq",
+      "email_taken": "A user with this email already exists; find them in the list and change their role"
     },
     "ui": {
       "newRequest": "Submit a new request",
@@ -448,7 +457,11 @@
         "college_dean": "College dean",
         "department_head": "Department head (view only)",
         "researcher": "Faculty / researcher"
-      }
+      },
+      "add": "Add user",
+      "addHint": "Pre-register the university email and role; when the owner first signs in with their university account the role is ready. It is linked to the researcher record with the same email, if any.",
+      "create": "Add",
+      "cancel": "Cancel"
     },
     "import": {
       "title": "Import faculty from Excel",

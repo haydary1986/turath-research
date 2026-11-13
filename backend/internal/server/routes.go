@@ -1,18 +1,23 @@
 package server
 
 import (
+	"context"
+	"errors"
 	"time"
 
 	"github.com/go-chi/chi/v5"
 	chimw "github.com/go-chi/chi/v5/middleware"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
 
 	"github.com/haydary1986/turath-research/backend/internal/config"
 	"github.com/haydary1986/turath-research/backend/internal/handler"
 	"github.com/haydary1986/turath-research/backend/internal/middleware"
+	"github.com/haydary1986/turath-research/backend/internal/service/identity"
 	"github.com/haydary1986/turath-research/backend/internal/service/journalcheck"
 	"github.com/haydary1986/turath-research/backend/internal/service/mailer"
+	"github.com/haydary1986/turath-research/backend/internal/service/presence"
 	syncsvc "github.com/haydary1986/turath-research/backend/internal/service/sync"
 )
 
@@ -62,9 +67,14 @@ func newRouter(cfg *config.Config, db *pgxpool.Pool, rdb *redis.Client, journals
 		Password: cfg.SMTP.Password, From: cfg.SMTP.From, FromName: cfg.SMTP.FromName,
 	})
 	portalH := handler.NewPortalHandler(db, cfg.Server.UploadDir, mail, cfg.Server.FrontendURL, journals)
-	adminUsersH := handler.NewAdminUserHandler(db)
+	// Role and organization come from the database (cached ~60 s per user), not the JWT.
+	identities := identity.NewCache(identityLoader(db), identity.DefaultTTL, time.Now)
+	adminUsersH := handler.NewAdminUserHandler(db, identities.Invalidate)
 	adminImportH := handler.NewAdminImportHandler(db)
 	bulkSyncH := handler.NewBulkSyncHandler(bulkSync)
+	responsibilityH := handler.NewResponsibilityHandler(db, identities.Invalidate)
+	auditH := handler.NewAuditHandler(db)
+	lastSeen := presence.NewTracker(lastSeenToucher(db), presence.DefaultInterval)
 	staffOnly := middleware.RequireRole(middleware.RoleScientificAffairs, middleware.RoleVPResearch)
 	adminOnly := middleware.RequireRole(middleware.RoleAdmin)
 	// RequireRole always admits admin, so this is admin and scientific affairs.
@@ -89,11 +99,15 @@ func newRouter(cfg *config.Config, db *pgxpool.Pool, rdb *redis.Client, journals
 		// Protected
 		r.Group(func(r chi.Router) {
 			r.Use(middleware.RequireAuth(cfg.JWT.Secret))
+			r.Use(middleware.RefreshIdentity(identityLookup(identities)))
+			// users.last_seen_at: throttled per user and written in the background.
+			r.Use(middleware.TrackPresence(lastSeen.Seen))
 
 			// Auth
 			r.Get("/auth/me", authH.Me)
 
 			// The signed-in user's own research profile
+			r.Get("/me/responsibilities", responsibilityH.Mine)
 			r.Get("/me/research-profile", researchProfileH.Get)
 			r.Put("/me/research-profile", researchProfileH.Update)
 			r.Post("/me/research-profile/sync", researchProfileH.Sync)
@@ -163,7 +177,10 @@ func newRouter(cfg *config.Config, db *pgxpool.Pool, rdb *redis.Client, journals
 			r.Post("/portal/requests/{id}/issue-letter", portalH.IssueLetter)
 
 			// ── Scientific activities ─────────────
+			// Category rights (institutional categories, responsibilities) are checked per
+			// request in the handlers; the FS 003 export admits staff and responsibility holders.
 			r.Get("/activities", portalH.ListActivities)
+			r.Get("/activities/fs003.xlsx", portalH.ExportFS003)
 			r.Post("/activities", portalH.CreateActivity)
 			r.Put("/activities/{id}", portalH.UpdateActivity)
 
@@ -253,6 +270,11 @@ func newRouter(cfg *config.Config, db *pgxpool.Pool, rdb *redis.Client, journals
 				r.Use(adminOnly)
 				r.Get("/admin/users", adminUsersH.List)
 				r.Put("/admin/users/{id}", adminUsersH.Update)
+				r.Get("/admin/users/{id}/responsibilities", responsibilityH.List)
+				r.Put("/admin/users/{id}/responsibilities", responsibilityH.Replace)
+				r.Get("/admin/login-events", auditH.ListLoginEvents)
+				r.Get("/admin/accounts", auditH.ListAccounts)
+				r.Get("/admin/accounts/summary", auditH.AccountsSummary)
 				r.Post("/admin/import/researchers", adminImportH.ImportResearchers)
 				r.Get("/admin/sync/orcid", bulkSyncH.Progress)
 				r.Post("/admin/sync/orcid", bulkSyncH.Start)
@@ -262,4 +284,42 @@ func newRouter(cfg *config.Config, db *pgxpool.Pool, rdb *redis.Client, journals
 	})
 
 	return r
+}
+
+// lastSeenToucher writes users.last_seen_at; without a database (route tests) nothing is tracked.
+func lastSeenToucher(db *pgxpool.Pool) presence.Toucher {
+	if db == nil {
+		return nil
+	}
+	return func(ctx context.Context, userID string) error {
+		_, err := db.Exec(ctx, `UPDATE users SET last_seen_at = NOW() WHERE id = $1`, userID)
+		return err
+	}
+}
+
+// identityLoader reads a user's current role and organization; without a database
+// (route tests) there is nothing to load and the signed claims are used.
+func identityLoader(db *pgxpool.Pool) identity.Loader {
+	if db == nil {
+		return nil
+	}
+	return func(ctx context.Context, userID string) (identity.Current, bool, error) {
+		var cur identity.Current
+		err := db.QueryRow(ctx, `
+			SELECT role::text, COALESCE(institution_id::text, ''), COALESCE(college_id::text, ''),
+			       COALESCE(department_id::text, '')
+			FROM users WHERE id = $1`, userID).
+			Scan(&cur.Role, &cur.InstitutionID, &cur.CollegeID, &cur.DepartmentID)
+		if errors.Is(err, pgx.ErrNoRows) {
+			return cur, false, nil
+		}
+		return cur, err == nil, err
+	}
+}
+
+func identityLookup(cache *identity.Cache) middleware.IdentityLookup {
+	if cache == nil {
+		return nil
+	}
+	return cache.Get
 }

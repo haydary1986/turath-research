@@ -779,6 +779,118 @@ call GET "/announcements/$ANN" "$SA"; expect "deleted announcement gone" 404
 [ "$(sqlv "SELECT COUNT(*) FROM portal_files WHERE id='$ANNFILE'")" = "0" ] && ok "attachment removed with its announcement" || bad "orphan file" "left behind"
 call DELETE "/announcements/$FROMACT" "$SA"; expect "activity draft cleaned up" 200
 
+echo "== FS 003 categories and data-entry responsibilities =="
+HOLD_EMAIL="hold$RUN@test.iq"; HOLD2_EMAIL="hold2$RUN@test.iq"
+register "$HOLD_EMAIL" "مسؤول الاتفاقيات" >/dev/null; register "$HOLD2_EMAIL" "مسؤول كلية أخرى" >/dev/null
+HOLD=$(login "$HOLD_EMAIL"); HOLD2=$(login "$HOLD2_EMAIL")
+HOLD_ID=$(sqlv "SELECT id FROM users WHERE email='$HOLD_EMAIL'"); HOLD2_ID=$(sqlv "SELECT id FROM users WHERE email='$HOLD2_EMAIL'")
+agreement() { echo "{\"category\":\"$1\",\"title_ar\":\"$2\",\"category_detail\":\"جامعة شريكة\",\"activity_date\":\"2026-11-05\",\"college_id\":\"$3\"}"; }
+call POST /activities "$RES" "{\"category\":\"infrastructure\",\"title_ar\":\"مختبر\",\"item_count\":2,\"activity_date\":\"2026-11-05\",\"college_id\":\"$COLLEGE\"}"; expect "researcher cannot add infrastructure" 403
+echo "$BODY" | grep -q "activity_category_forbidden" && ok "forbidden category has a code" || bad "forbidden code" "$BODY"
+call POST /activities "$RES" "$(agreement international_agreements "اتفاقية باحث" "$COLLEGE")"; expect "researcher cannot add an international agreement" 403
+call POST /activities "$RES" "$(agreement local_agreements "اتفاقية محلية" "$COLLEGE")"; expect "researcher cannot add a local agreement" 403
+call POST /activities "$RES" "{\"category\":\"workshops\",\"activity_type\":\"panel\",\"title_ar\":\"حلقة نقاشية $RUN\",\"category_detail\":\"القاعة الكبرى\",\"activity_date\":\"2026-11-06\",\"college_id\":\"$COLLEGE\"}"; expect "researcher adds own workshop" 201
+[ "$(echo "$BODY" | jq_ "(d['data']['category'], d['data']['activity_type'], d['data']['location'], d['data']['can_edit'])")" = "('workshops', 'panel', 'القاعة الكبرى', True)" ] && ok "workshop keeps sub-type, venue mirrors location" || bad "workshop fields" "$BODY"
+call POST /activities "$RES" "{\"category\":\"books\",\"title_ar\":\"كتاب\",\"activity_date\":\"2026-11-06\",\"college_id\":\"$COLLEGE\"}"; expect "book without publisher rejected" 422
+echo "$BODY" | grep -q "category_detail:required" && ok "publisher required code" || bad "detail code" "$BODY"
+[ "$(sqlv "SELECT category FROM activities WHERE id='$ACT'")" = "workshops" ] && ok "legacy workshop has the workshops category" || bad "legacy category" "$(sqlv "SELECT category FROM activities WHERE id='$ACT'")"
+
+call PUT "/admin/users/$HOLD_ID/responsibilities" "$SA" '{"items":[]}'; expect "only the admin assigns responsibilities" 403
+call PUT "/admin/users/$HOLD_ID/responsibilities" "$ADM" '{"items":[{"category":"sheet8","college_id":""}]}'; expect "unknown responsibility category rejected" 422
+call PUT "/admin/users/$HOLD_ID/responsibilities" "$ADM" '{"items":[{"category":"international_agreements","college_id":""},{"category":"international_agreements","college_id":""}]}'; expect "admin grants a university-wide responsibility" 200
+[ "$(echo "$BODY" | jq_ "len(d['data'])")" = "1" ] && ok "duplicate responsibility collapsed" || bad "dedupe" "$BODY"
+call PUT "/admin/users/$HOLD2_ID/responsibilities" "$ADM" "{\"items\":[{\"category\":\"local_agreements\",\"college_id\":\"$COLLEGE2\"}]}"; expect "admin grants a college-scoped responsibility" 200
+call GET /me/responsibilities "$HOLD"
+[ "$(echo "$BODY" | jq_ "[(r['category'], r['college_id']) for r in d['data']]")" = "[('international_agreements', None)]" ] && ok "holder reads own responsibilities (same token, no re-login)" || bad "me responsibilities" "$BODY"
+
+call POST /activities "$HOLD" "$(agreement international_agreements "اتفاقية دولية $RUN" "")"; expect "university holder adds a university-level agreement" 201
+HAGR=$(echo "$BODY" | jq_ "d['data']['id']")
+[ "$(echo "$BODY" | jq_ "d['data']['college_id']")" = "None" ] && ok "institutional record does not inherit a college" || bad "university level" "$BODY"
+call POST /activities "$SA" "$(agreement international_agreements "اتفاقية الشؤون $RUN" "$COLLEGE")"; expect "scientific affairs adds an agreement" 201
+SAAGR=$(echo "$BODY" | jq_ "d['data']['id']")
+call GET "/activities?category=international_agreements&limit=50" "$HOLD"
+[ "$(echo "$BODY" | jq_ "[a['can_edit'] for a in d['data'] if a['id']=='$SAAGR']")" = "[True]" ] && ok "holder lists and may edit others' agreements" || bad "holder list" "$BODY"
+call PUT "/activities/$SAAGR" "$HOLD" "$(agreement international_agreements "اتفاقية الشؤون معدلة $RUN" "$COLLEGE")"; expect "holder edits another member's agreement" 200
+call PUT "/activities/$SAAGR" "$HOLD" "$(agreement local_agreements "نقل" "$COLLEGE")"; expect "holder cannot move a record out of their categories" 403
+call POST "/activities/$HAGR/decide" "$HOLD" '{"status":"approved","approval_no":"5/2026"}'; expect "holder cannot approve" 403
+call POST "/activities/$HAGR/decide" "$SA" '{"status":"approved","approval_no":"55/2026"}'; expect "SA approves the holder's agreement" 200
+
+call POST /activities "$HOLD2" "$(agreement local_agreements "محلية خارج النطاق" "$COLLEGE")"; expect "college holder cannot add for another college" 403
+call POST /activities "$HOLD2" "$(agreement local_agreements "محلية $RUN" "$COLLEGE2")"; expect "college holder adds for own college" 201
+call POST /activities "$SA" "$(agreement local_agreements "محلية الكلية الأولى $RUN" "$COLLEGE")"; SALOC=$(echo "$BODY" | jq_ "d['data']['id']")
+call PUT "/activities/$SALOC" "$HOLD2" "$(agreement local_agreements "تعديل" "$COLLEGE2")"; expect "college holder cannot touch another college's record" 404
+call GET "/activities?category=local_agreements&limit=50" "$HOLD2"
+[ "$(echo "$BODY" | jq_ "sum(1 for a in d['data'] if a['id']=='$SALOC')")" = "0" ] && ok "college holder does not see another college" || bad "scope leak" "$BODY"
+call PUT "/admin/users/$HOLD2_ID/responsibilities" "$ADM" '{"items":[]}'; expect "admin withdraws a responsibility" 200
+call POST /activities "$HOLD2" "$(agreement local_agreements "بعد السحب" "$COLLEGE2")"; expect "withdrawal applies to the same token at once" 403
+
+echo "== FS 003 export =="
+fs003() { curl -s -o "$TMP/fs003.xlsx" -w "%{http_code}" "$API/activities/fs003.xlsx?$1" -H "Authorization: Bearer $2"; }
+[ "$(fs003 "from=2024-01-01&to=2026-12-31" "$RES")" = "403" ] && ok "plain researcher cannot export FS 003" || bad "fs003 rbac" "researcher allowed"
+[ "$(fs003 "from=2026-12-31&to=2026-01-01" "$SA")" = "400" ] && ok "reversed FS 003 period rejected" || bad "fs003 period" "accepted"
+xlsx_text() { python3 -X utf8 -c "
+import zipfile,sys
+z=zipfile.ZipFile(sys.argv[1]); print(''.join(z.read(n).decode('utf8') for n in z.namelist() if n.endswith('.xml')))" "$TMP/fs003.xlsx"; }
+CODE=$(fs003 "from=2024-01-01&to=2026-12-31&coordinator=منسق%20الاختبار" "$SA")
+[ "$CODE" = "200" ] && head -c2 "$TMP/fs003.xlsx" | grep -q PK && ok "FS 003 downloads as xlsx" || bad "fs003 download" "HTTP $CODE"
+TEXT=$(xlsx_text)
+[ "$(python3 -c "import sys; t=sys.stdin.read(); print(sum(s in t for s in ['ورشة الذكاء الاصطناعي','اتفاقية دولية $RUN','AI paper','Scopus','اسم المنسق : منسق الاختبار']))" <<<"$TEXT")" = "5" ] && ok "FS 003 holds approved records, verified research and the coordinator" || bad "fs003 content" "${TEXT:0:200}"
+echo "$TEXT" | grep -q "اتفاقية الشؤون معدلة $RUN" && bad "fs003 approval filter" "pending record exported" || ok "FS 003 leaves out unapproved records"
+CODE=$(fs003 "from=2026-01-01&to=2026-12-31" "$HOLD"); TEXT=$(xlsx_text)
+[ "$CODE" = "200" ] && echo "$TEXT" | grep -q "اتفاقية دولية $RUN" && ok "holder exports their category" || bad "holder export" "HTTP $CODE"
+echo "$TEXT" | grep -q "ورشة الذكاء الاصطناعي" && bad "holder export scope" "workshop leaked" || ok "holder export limited to their scope"
+
+echo "== login audit and account activity =="
+curl -s -o /dev/null -X POST "$API/auth/login" -H "Content-Type: application/json" -d "{\"email\":\"$HOLD_EMAIL\",\"password\":\"wrong-pass\"}"
+curl -s -o /dev/null -X POST "$API/auth/login" -H "Content-Type: application/json" -d "{\"email\":\"nobody$RUN@test.iq\",\"password\":\"x\"}"
+login "$HOLD_EMAIL" >/dev/null
+[ "$(sqlv "SELECT COUNT(*) FROM login_events WHERE email='$HOLD_EMAIL' AND NOT success AND reason='wrong_password' AND user_id='$HOLD_ID'")" = "1" ] && ok "failed password login recorded" || bad "failed login event" "missing"
+[ "$(sqlv "SELECT COUNT(*) FROM login_events WHERE email='nobody$RUN@test.iq' AND reason='unknown_user' AND user_id IS NULL")" = "1" ] && ok "unknown user recorded without an id" || bad "unknown user event" "missing"
+[ "$(sqlv "SELECT COUNT(*) FROM login_events WHERE email='$HOLD_EMAIL' AND success AND reason IS NULL AND ip <> ''")" -ge 1 ] && ok "successful login recorded with IP" || bad "success event" "missing"
+[ "$(sqlv "SELECT COUNT(*) FROM login_events WHERE user_agent LIKE '%wrong-pass%' OR email LIKE '%wrong-pass%'")" = "0" ] && ok "no password stored in the log" || bad "password leak" "found"
+call GET "/admin/login-events?q=$HOLD_EMAIL&result=failure" "$ADM"; expect "admin reads the login log" 200
+[ "$(echo "$BODY" | jq_ "[(e['result'], e['reason'], e['method']) for e in d['data']]")" = "[('failure', 'wrong_password', 'password')]" ] && ok "login log filters by user and result" || bad "log filter" "$BODY"
+for p in /admin/login-events /admin/accounts /admin/accounts/summary; do
+  call GET "$p" "$SA"; expect "scientific affairs refused $p" 403
+  call GET "$p" "$RES"; expect "researcher refused $p" 403
+done
+SEEN_EMAIL="seen$RUN@test.iq"; SEEN=$(register "$SEEN_EMAIL" "حساب جديد")
+[ -z "$(sqlv "SELECT last_seen_at FROM users WHERE email='$SEEN_EMAIL'")" ] && ok "new account has no last_seen_at" || bad "last seen before" "set"
+call GET "/admin/accounts?status=never&q=$SEEN_EMAIL" "$ADM"
+[ "$(echo "$BODY" | jq_ "len(d['data'])")" = "1" ] && ok "new account listed as never signed in" || bad "never list" "$BODY"
+call GET /me/responsibilities "$SEEN"; sleep 1
+[ -n "$(sqlv "SELECT last_seen_at FROM users WHERE email='$SEEN_EMAIL' AND last_seen_at > NOW() - INTERVAL '1 minute'")" ] && ok "last_seen_at updated by an authenticated request" || bad "last seen" "not updated"
+call GET "/admin/accounts?status=online&q=$SEEN_EMAIL" "$ADM"
+[ "$(echo "$BODY" | jq_ "[a['online'] for a in d['data']]")" = "[True]" ] && ok "account shown online" || bad "online list" "$BODY"
+call GET /admin/accounts/summary "$ADM"
+[ "$(echo "$BODY" | jq_ "d['data']['online'] >= 1 and d['data']['total'] >= d['data']['last_30_days']")" = "True" ] && ok "account summary counts" || bad "summary" "$BODY"
+
+echo "== current role from the database, not the token =="
+PROMO_EMAIL="promo$RUN@test.iq"; register "$PROMO_EMAIL" "مرقّى" >/dev/null; PROMO=$(login "$PROMO_EMAIL")
+PROMO_ID=$(sqlv "SELECT id FROM users WHERE email='$PROMO_EMAIL'")
+call GET /screening "$PROMO"; expect "researcher token refused a staff screen" 403
+call PUT "/admin/users/$PROMO_ID" "$ADM" '{"role":"scientific_affairs"}'; expect "admin promotes via the API" 200
+call GET /auth/me "$PROMO"
+[ "$(echo "$BODY" | jq_ "d['data']['role']")" = "scientific_affairs" ] && ok "/auth/me returns the new role with the old token" || bad "me role" "$BODY"
+call GET /screening "$PROMO"; expect "promotion applies at once to the old token" 200
+call PUT "/admin/users/$PROMO_ID" "$ADM" '{"role":"researcher"}'; expect "admin demotes" 200
+call GET /screening "$PROMO"; expect "demotion applies at once to the old token" 403
+GHOST_EMAIL="ghost$RUN@test.iq"; GHOST=$(register "$GHOST_EMAIL" "محذوف")
+sqlv "DELETE FROM users WHERE email='$GHOST_EMAIL'" >/dev/null
+call GET /auth/me "$GHOST"; expect "token of a deleted account rejected" 401
+
+echo "== researcher ownership needs a verified email =="
+OWN_EMAIL="own$RUN@test.iq"
+OWN_RID=$(sqlv "INSERT INTO researchers (name_ar, email, status) VALUES ('باحث مستورد $RUN', '$OWN_EMAIL', 'active') RETURNING id")
+register "$OWN_EMAIL" "منتحل" >/dev/null; IMPOSTOR=$(login "$OWN_EMAIL")
+call GET /me/research-profile "$IMPOSTOR"
+[ "$(echo "$BODY" | jq_ "d['data'].get('linked', False)")" = "False" ] && ok "password account does not own a record by email" || bad "email ownership" "$BODY"
+call GET "/researchers/$OWN_RID/contact" "$IMPOSTOR"; expect "password account cannot read the record's contact data" 403
+sqlv "UPDATE users SET google_sub='e2e-$RUN' WHERE email='$OWN_EMAIL'" >/dev/null
+call GET /me/research-profile "$IMPOSTOR"
+[ "$(echo "$BODY" | jq_ "d['data'].get('linked', False)")" = "True" ] && ok "Google-verified email owns the matching record" || bad "verified ownership" "$BODY"
+call GET "/researchers/$OWN_RID/contact" "$IMPOSTOR"; expect "verified owner reads own contact data" 200
+
 echo
 echo "Passed: $PASS  Failed: $FAIL"
 [ "$FAIL" -eq 0 ]

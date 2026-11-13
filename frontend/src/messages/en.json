@@ -123,7 +123,9 @@
       "profile": "My research profile",
       "journalCheck": "Check a journal",
       "predatory": "Predatory journals guide",
-      "site": "Public site"
+      "site": "Public site",
+      "myResponsibilities": "My responsibilities",
+      "audit": "Sign-ins & accounts"
     },
     "kinds": {
       "research_plan": "Research plan registration",
@@ -244,7 +246,14 @@
       "web_of_science_url": "Web of Science",
       "phone": "Phone number",
       "phone_secondary": "Second phone number",
-      "recovery_email": "Recovery email"
+      "recovery_email": "Recovery email",
+      "category": "Category",
+      "category_detail": "Form column",
+      "item_count": "Count",
+      "coordinator": "Coordinator",
+      "college_id": "College",
+      "from": "From",
+      "to": "To"
     },
     "options": {
       "individual": "Individual",
@@ -298,7 +307,12 @@
       "invalid_email": "Invalid email address",
       "bulk_sync_not_active": "No sync is running",
       "too_many": "Too many items",
-      "activity_not_approved": "Only approved activities can be published."
+      "activity_not_approved": "Only approved activities can be published.",
+      "activity_category_forbidden": "You are not responsible for entering this category here. Infrastructure and agreements are entered by their responsible person or scientific affairs.",
+      "fs003_forbidden": "The FS 003 form is available to scientific affairs, the VP for research and holders of data-entry responsibilities.",
+      "researcher_not_linked": "A researcher record with this email exists but is not linked to your account yet. Sign in with your university Google account or ask scientific affairs to link it.",
+      "account_not_found": "This account no longer exists. Please sign in again.",
+      "auth_unavailable": "Your permissions could not be checked right now. Try again shortly."
     },
     "ui": {
       "newRequest": "Submit a new request",
@@ -577,7 +591,66 @@
         "note_required": "Write the reason so the organizer knows what is needed.",
         "note_too_long": "The reason is longer than 2000 characters."
       },
-      "announce": "Publish as announcement"
+      "announce": "Publish as announcement",
+      "allCategories": "All categories",
+      "categories": {
+        "infrastructure": "Infrastructure",
+        "workshops": "Workshops, seminars & panels",
+        "courses": "Courses",
+        "local_research": "Research published locally",
+        "indexed_research": "Research in international indexes",
+        "international_research": "Research published internationally",
+        "books": "Authored & translated books",
+        "patents": "Patents",
+        "conferences": "Scientific conferences",
+        "international_agreements": "International agreements",
+        "local_agreements": "Local agreements",
+        "fellowships": "Research fellowships, postdoc & sabbaticals",
+        "community_service": "Community service"
+      },
+      "detailLabels": {
+        "infrastructure": "Count",
+        "workshops": "Venue",
+        "courses": "Venue",
+        "local_research": "Journal",
+        "indexed_research": "Index database",
+        "international_research": "Index database",
+        "books": "Publisher",
+        "patents": "Granting body",
+        "conferences": "Venue",
+        "international_agreements": "Counter-party",
+        "local_agreements": "Counter-party",
+        "fellowships": "Country",
+        "community_service": "Place or body"
+      },
+      "dateLabels": {
+        "default": "Completion date",
+        "research": "Publication date",
+        "books": "Publication date",
+        "patents": "Date granted",
+        "conferences": "Date held",
+        "agreements": "Contract date",
+        "fellowships": "Start date"
+      },
+      "fields2": {
+        "category": "Category (FS 003 form)",
+        "subType": "Activity type",
+        "notes": "Notes",
+        "itemCount": "Count"
+      },
+      "universityLevel": "University level",
+      "institutionalHint": "Institutional category: entered by its responsible person or scientific affairs. Leave the college empty for a university-level record.",
+      "researchHint": "Research verified through the portal is added to the form automatically; enter here only research that did not pass through the portal.",
+      "mine": "My records only",
+      "fs003": {
+        "title": "University progress form (FS 003)",
+        "hint": "Fills the official form with the approved records of the period plus verified research. Responsibility holders get their categories within their scope only.",
+        "open": "Download FS 003",
+        "allColleges": "All colleges (university)",
+        "coordinatorPlaceholder": "Your name is used if left empty",
+        "download": "Download",
+        "preparing": "Preparing…"
+      }
     },
     "journals": {
       "new": "Add journal",
@@ -1027,6 +1100,79 @@
         "pinned": "Pinning"
       },
       "forbidden": "This page is available to administrators and scientific affairs staff only."
+    },
+    "responsibilities": {
+      "title": "My responsibilities",
+      "intro": "Categories you are responsible for entering. You see, edit and export every record of them within your scope; approval stays with scientific affairs.",
+      "none": "You hold no data-entry responsibility.",
+      "manage": "Data-entry responsibilities",
+      "manageTitle": "Data-entry responsibilities of {name}",
+      "manageHint": "Choose the categories this user enters and the scope of each: the whole university or one college. Changes apply immediately.",
+      "category": "Category",
+      "scope": "Scope",
+      "university": "Whole university",
+      "add": "Add responsibility",
+      "remove": "Remove",
+      "save": "Save responsibilities",
+      "saved": "Responsibilities saved",
+      "viewRecords": "View records",
+      "addRecord": "Add record",
+      "count": "{count, plural, =0 {none} one {# responsibility} other {# responsibilities}}"
+    },
+    "audit": {
+      "title": "Sign-ins & accounts",
+      "intro": "Every sign-in attempt (successful or failed) of the last 180 days, and account activity.",
+      "tabs": {
+        "log": "Sign-in log",
+        "accounts": "Account activity"
+      },
+      "search": "Search by name or email",
+      "allMethods": "All methods",
+      "allResults": "All results",
+      "methods": {
+        "password": "Password",
+        "google": "Google"
+      },
+      "results": {
+        "success": "Success",
+        "failure": "Failure"
+      },
+      "reasons": {
+        "invalid_request": "Invalid request",
+        "unknown_user": "Unknown user",
+        "wrong_password": "Wrong password",
+        "google_only_account": "Google-only account",
+        "domain_not_allowed": "Email domain not allowed",
+        "account_conflict": "Account link conflict",
+        "invalid_token": "Invalid Google token",
+        "not_configured": "Google sign-in not configured",
+        "server_error": "Server error"
+      },
+      "columns": {
+        "time": "Time",
+        "user": "User",
+        "method": "Method",
+        "result": "Result",
+        "reason": "Reason",
+        "ip": "IP address",
+        "agent": "Browser",
+        "lastSeen": "Last seen",
+        "lastLogin": "Last sign-in",
+        "role": "Role",
+        "college": "College"
+      },
+      "summary": {
+        "total": "All accounts",
+        "online": "Online now",
+        "today": "Active today",
+        "last30": "Active in 30 days",
+        "never": "Never signed in"
+      },
+      "onlineHint": "Online: active in the last 5 minutes",
+      "allAccounts": "All accounts",
+      "never": "Never",
+      "empty": "No results",
+      "loadFailed": "Could not load. Try again later."
     }
   },
   "notifications": {

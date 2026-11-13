@@ -15,6 +15,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { NativeSelect } from "@/components/portal/form-controls";
+import { ResponsibilitiesDialog } from "@/components/portal/responsibilities-dialog";
 import { RequireAuth } from "@/components/portal/require-auth";
 import { usePortalErrors } from "@/components/portal/use-portal-errors";
 import type { Org } from "@/lib/portal/types";
@@ -27,6 +28,7 @@ interface AdminUser {
   role: string;
   college_id: string | null;
   department_id: string | null;
+  responsibilities_count: number;
 }
 
 const ROLES = [
@@ -36,6 +38,7 @@ const ROLES = [
 
 function Users() {
   const t = useTranslations("portal");
+  const tr = useTranslations("portal.responsibilities");
   const toMessage = usePortalErrors();
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [colleges, setColleges] = useState<Org[]>([]);
@@ -43,6 +46,7 @@ function Users() {
   const [q, setQ] = useState("");
   const [savedId, setSavedId] = useState<string | null>(null);
   const [error, setError] = useState("");
+  const [managing, setManaging] = useState<AdminUser | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -105,6 +109,7 @@ function Users() {
                 <TableHead>{t("fields.role")}</TableHead>
                 <TableHead>{t("fields.college")}</TableHead>
                 <TableHead>{t("fields.department")}</TableHead>
+                <TableHead>{tr("manage")}</TableHead>
                 <TableHead />
               </TableRow>
             </TableHeader>
@@ -149,6 +154,11 @@ function Users() {
                     </NativeSelect>
                   </TableCell>
                   <TableCell className="whitespace-nowrap">
+                    <Button size="sm" variant="outline" onClick={() => setManaging(u)}>
+                      {tr("manage")} ({tr("count", { count: u.responsibilities_count })})
+                    </Button>
+                  </TableCell>
+                  <TableCell className="whitespace-nowrap">
                     <Button size="sm" onClick={() => save(u)}>{t("users.save")}</Button>
                     {savedId === u.id && <span className="ms-2 text-xs text-status-success-fg">{t("users.saved")}</span>}
                   </TableCell>
@@ -158,6 +168,15 @@ function Users() {
           </Table>
         </CardContent>
       </Card>
+      {managing && (
+        <ResponsibilitiesDialog
+          userId={managing.id}
+          userName={managing.name_ar ?? managing.email}
+          colleges={colleges}
+          onClose={() => setManaging(null)}
+          onSaved={(count) => patch(managing.id, { responsibilities_count: count })}
+        />
+      )}
     </div>
   );
 }

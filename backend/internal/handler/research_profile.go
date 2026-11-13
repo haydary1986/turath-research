@@ -230,6 +230,11 @@ func (h *ResearchProfileHandler) saveLinks(ctx context.Context, userID string, l
 	if err != nil {
 		return "", false, err
 	}
+	if researcherID == "" {
+		// A researcher record with this email exists, but the account's email is not
+		// verified: links must never be written into a record the caller may not own.
+		return "", false, profileConflict("researcher_not_linked")
+	}
 
 	var stored *string
 	var started, finished *time.Time

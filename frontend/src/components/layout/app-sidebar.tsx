@@ -20,6 +20,8 @@ import {
   Inbox,
   BookUser,
   Globe,
+  ClipboardCheck,
+  ShieldCheck,
 } from "lucide-react";
 import {
   Sidebar,
@@ -37,6 +39,7 @@ import { useHydrated } from "@/hooks/use-hydrated";
 import { useAuth } from "@/lib/auth";
 import { isStaffRole } from "@/lib/portal/types";
 import { canManageSite } from "@/lib/site/types";
+import { useMyResponsibilities, useSessionRefresh } from "@/lib/portal/my-access";
 import { UniversityLogo } from "@/components/brand/university-logo";
 import type { LucideIcon } from "lucide-react";
 
@@ -84,6 +87,9 @@ export function AppSidebar() {
   const role = useAuth((state) => state.user?.role);
   // Role comes from localStorage, so wait for hydration to keep server and client markup identical.
   const mounted = useHydrated();
+  // Re-reads the user (role, college) and responsibilities: on mount, every few minutes, on focus.
+  useSessionRefresh();
+  const holdsResponsibilities = useMyResponsibilities().length > 0;
 
   const reviewHref = mounted && role && REVIEWING_ROLES.includes(role) ? REVIEW_QUEUE_HREF : undefined;
   const staff = mounted && isStaffRole(role);
@@ -94,6 +100,9 @@ export function AppSidebar() {
     ...(reviewHref ? [{ href: reviewHref, label: pt("reviewQueue"), icon: Inbox }] : []),
     { href: "/portal/profile", label: pt("profile"), icon: BookUser },
     { href: "/portal/activities", label: pt("activities"), icon: CalendarDays },
+    ...(mounted && holdsResponsibilities
+      ? [{ href: "/portal/responsibilities", label: pt("myResponsibilities"), icon: ClipboardCheck }]
+      : []),
     { href: "/portal/journal-check", label: pt("journalCheck"), icon: SearchCheck },
     { href: "/portal/predatory-journals", label: pt("predatory"), icon: ShieldX },
     ...(staff
@@ -108,6 +117,7 @@ export function AppSidebar() {
       ? [
           { href: "/portal/users", label: pt("users"), icon: UserCog },
           { href: "/portal/import", label: pt("import"), icon: FileUp },
+          { href: "/portal/audit", label: pt("audit"), icon: ShieldCheck },
         ]
       : []),
   ];

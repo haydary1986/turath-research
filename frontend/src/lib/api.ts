@@ -11,6 +11,17 @@ interface APIResponse<T> {
   };
 }
 
+/** An API failure that keeps the HTTP status (the message stays the server's error code). */
+export class ApiError extends Error {
+  readonly status: number;
+
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
+  }
+}
+
 function getToken(): string | null {
   if (typeof window === "undefined") return null;
   return localStorage.getItem("turath_token");
@@ -44,13 +55,11 @@ async function request<T>(
   try {
     json = await res.json();
   } catch {
-    throw new Error(
-      `Server returned non-JSON response (HTTP ${res.status})`
-    );
+    throw new ApiError(`Server returned non-JSON response (HTTP ${res.status})`, res.status);
   }
 
   if (!res.ok || !json.success) {
-    throw new Error(json.error || `Request failed: ${res.status}`);
+    throw new ApiError(json.error || `Request failed: ${res.status}`, res.status);
   }
 
   return json;

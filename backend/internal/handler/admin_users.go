@@ -26,11 +26,12 @@ var assignableRoles = map[string]struct{}{
 
 // AdminUserHandler lets administrators assign roles and organizational units.
 type AdminUserHandler struct {
-	db *pgxpool.Pool
+	db         *pgxpool.Pool
+	invalidate func(userID string) // drops the user's cached role so a change applies at once
 }
 
-func NewAdminUserHandler(db *pgxpool.Pool) *AdminUserHandler {
-	return &AdminUserHandler{db: db}
+func NewAdminUserHandler(db *pgxpool.Pool, invalidate func(userID string)) *AdminUserHandler {
+	return &AdminUserHandler{db: db, invalidate: invalidate}
 }
 
 type adminUser struct {
@@ -40,6 +41,8 @@ type adminUser struct {
 	Role         string  `json:"role"`
 	CollegeID    *string `json:"college_id"`
 	DepartmentID *string `json:"department_id"`
+	// Responsibilities counts the user's data-entry responsibilities («مسؤوليات الإدخال»).
+	Responsibilities int `json:"responsibilities_count"`
 }
 
 // List returns users, optionally filtered by name or email.
@@ -58,7 +61,8 @@ func (h *AdminUserHandler) List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	rows, err := h.db.Query(ctx, `
-		SELECT id, email, name_ar, role::text, college_id, department_id
+		SELECT id, email, name_ar, role::text, college_id, department_id,
+		       (SELECT COUNT(*) FROM entry_responsibilities e WHERE e.user_id = users.id)
 		FROM users WHERE email ILIKE $1 OR name_ar ILIKE $1
 		ORDER BY created_at DESC LIMIT $2 OFFSET $3
 	`, pattern, limit, (page-1)*limit)
@@ -71,7 +75,7 @@ func (h *AdminUserHandler) List(w http.ResponseWriter, r *http.Request) {
 	items := []adminUser{}
 	for rows.Next() {
 		var u adminUser
-		if err := rows.Scan(&u.ID, &u.Email, &u.NameAr, &u.Role, &u.CollegeID, &u.DepartmentID); err != nil {
+		if err := rows.Scan(&u.ID, &u.Email, &u.NameAr, &u.Role, &u.CollegeID, &u.DepartmentID, &u.Responsibilities); err != nil {
 			serverError(w, "Failed to read users", err)
 			return
 		}
@@ -131,6 +135,9 @@ func (h *AdminUserHandler) Update(w http.ResponseWriter, r *http.Request) {
 			serverError(w, "Failed to update user", err)
 		}
 		return
+	}
+	if h.invalidate != nil {
+		h.invalidate(id)
 	}
 	model.RespondJSON(w, http.StatusOK, map[string]string{"updated": id})
 }

@@ -3,7 +3,6 @@ package handler
 import (
 	"context"
 	"net/http"
-	"strconv"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -21,6 +20,7 @@ import (
 
 type activityRecord struct {
 	ID             string     `json:"id"`
+	Category       string     `json:"category"`
 	Type           string     `json:"activity_type"`
 	TitleAr        string     `json:"title_ar"`
 	Description    *string    `json:"description"`
@@ -35,6 +35,9 @@ type activityRecord struct {
 	TargetAudience *string    `json:"target_audience"`
 	Organizer      *string    `json:"organizer"`
 	AttendanceMode *string    `json:"attendance_mode"`
+	CategoryDetail *string    `json:"category_detail"`
+	ItemCount      *int       `json:"item_count"`
+	Notes          *string    `json:"notes"`
 	Status         string     `json:"status"`
 	ApprovalNo     *string    `json:"approval_no"`
 	DecisionNote   *string    `json:"decision_note"`
@@ -42,13 +45,16 @@ type activityRecord struct {
 	CreatorName    string     `json:"creator_name"`
 	DecidedAt      *time.Time `json:"decided_at"`
 	CreatedAt      time.Time  `json:"created_at"`
+	// CanEdit tells the caller whether they may change the record now (author or responsibility holder).
+	CanEdit bool `json:"can_edit"`
 }
 
 const activitySelect = `
-	SELECT a.id, a.activity_type, a.title_ar, a.description, a.presenter,
+	SELECT a.id, a.category, a.activity_type, a.title_ar, a.description, a.presenter,
 	       a.college_id, a.department_id, c.name_ar, d.name_ar,
 	       to_char(a.activity_date, 'YYYY-MM-DD'), a.location, a.attendees_count,
 	       a.target_audience, a.organizer, a.attendance_mode,
+	       a.category_detail, a.item_count, a.notes,
 	       a.status, a.approval_no, a.decision_note,
 	       a.created_by, COALESCE(u.name_ar, u.email), a.decided_at, a.created_at
 	FROM activities a
@@ -56,12 +62,22 @@ const activitySelect = `
 	LEFT JOIN colleges c ON c.id = a.college_id
 	LEFT JOIN departments d ON d.id = a.department_id`
 
+// activityReturning lines up with scanActivity for INSERT/UPDATE … RETURNING (names are filled by the list).
+const activityReturning = `
+	RETURNING id, category, activity_type, title_ar, description, presenter,
+	          college_id, department_id, NULL::varchar, NULL::varchar,
+	          to_char(activity_date, 'YYYY-MM-DD'), location, attendees_count,
+	          target_audience, organizer, attendance_mode,
+	          category_detail, item_count, notes,
+	          status, approval_no, decision_note, created_by, ''::varchar, decided_at, created_at`
+
 func scanActivity(row rowScanner) (activityRecord, error) {
 	var a activityRecord
-	err := row.Scan(&a.ID, &a.Type, &a.TitleAr, &a.Description, &a.Presenter,
+	err := row.Scan(&a.ID, &a.Category, &a.Type, &a.TitleAr, &a.Description, &a.Presenter,
 		&a.CollegeID, &a.DepartmentID, &a.CollegeName, &a.DepartmentName,
 		&a.ActivityDate, &a.Location, &a.Attendees,
 		&a.TargetAudience, &a.Organizer, &a.AttendanceMode,
+		&a.CategoryDetail, &a.ItemCount, &a.Notes,
 		&a.Status, &a.ApprovalNo, &a.DecisionNote,
 		&a.CreatedBy, &a.CreatorName, &a.DecidedAt, &a.CreatedAt)
 	return a, err
@@ -74,13 +90,20 @@ type activityInput struct {
 }
 
 // parseActivityInput validates and resolves org ids; it writes the error response itself.
+// Members' own work defaults to their college; an institutional record with no college
+// belongs to the whole university, so it never inherits one.
 func parseActivityInput(w http.ResponseWriter, r *http.Request, user *middleware.UserClaims) (activityInput, *string, *string, bool) {
 	var in activityInput
 	if !decodeBody(w, r, &in) {
 		return in, nil, nil, false
 	}
-	college, ok1 := idOrNil(firstNonEmpty(in.CollegeID, user.CollegeID))
-	dept, ok2 := idOrNil(resolveActivityDepartment(in.CollegeID, in.DepartmentID, user.CollegeID, user.DepartmentID))
+	in.Input = activity.Normalize(in.Input)
+	userCollege, userDept := user.CollegeID, user.DepartmentID
+	if activity.IsInstitutional(in.Category) {
+		userCollege, userDept = "", ""
+	}
+	college, ok1 := idOrNil(firstNonEmpty(in.CollegeID, userCollege))
+	dept, ok2 := idOrNil(resolveActivityDepartment(in.CollegeID, in.DepartmentID, userCollege, userDept))
 	if !ok1 || !ok2 {
 		model.RespondError(w, http.StatusBadRequest, "invalid identifier")
 		return in, nil, nil, false
@@ -90,6 +113,15 @@ func parseActivityInput(w http.ResponseWriter, r *http.Request, user *middleware
 		return in, nil, nil, false
 	}
 	return in, college, dept, true
+}
+
+// activityArgs are the stored columns of an input in the order of the INSERT and UPDATE statements ($2…$17).
+func activityArgs(in activityInput, college, dept *string) []any {
+	return []any{
+		in.Category, in.Type, strings.TrimSpace(in.TitleAr), in.Description, in.Presenter, college, dept,
+		in.ActivityDate, in.Location, in.Attendees, in.TargetAudience, in.Organizer, in.AttendanceMode,
+		in.CategoryDetail, in.ItemCount, strings.TrimSpace(in.Notes),
+	}
 }
 
 // resolveActivityDepartment fills an empty department from the user's own, but only
@@ -109,6 +141,10 @@ func resolveActivityDepartment(inCollege, inDept, userCollege, userDept string) 
 func (h *PortalHandler) departmentFitsCollege(ctx context.Context, w http.ResponseWriter, college, dept *string) bool {
 	if dept == nil {
 		return true
+	}
+	if college == nil {
+		validationError(w, []string{"department:wrong_college"})
+		return false
 	}
 	var fits bool
 	err := h.db.QueryRow(ctx,
@@ -142,7 +178,8 @@ func (h *PortalHandler) notifyActivityReviewers(ctx context.Context, author *mid
 	}
 }
 
-// CreateActivity registers a scientific activity (any signed-in member).
+// CreateActivity registers a record of the FS 003 register. Members file their own
+// work; institutional categories need the matching responsibility or scientific affairs.
 func (h *PortalHandler) CreateActivity(w http.ResponseWriter, r *http.Request) {
 	user := authedUser(w, r)
 	if user == nil {
@@ -154,24 +191,28 @@ func (h *PortalHandler) CreateActivity(w http.ResponseWriter, r *http.Request) {
 	}
 	ctx, cancel := portalContext(r)
 	defer cancel()
+	actor, err := loadActor(ctx, h.db, user)
+	if err != nil {
+		serverError(w, "Failed to load responsibilities", err)
+		return
+	}
+	if !activity.CanEnter(actor, in.Category, college) {
+		model.RespondError(w, http.StatusForbidden, "activity_category_forbidden")
+		return
+	}
 	if !h.departmentFitsCollege(ctx, w, college, dept) {
 		return
 	}
 
+	args := append(activityArgs(in, college, dept), user.UserID)
 	rec, err := scanActivity(h.db.QueryRow(ctx, `
 		INSERT INTO activities
-			(activity_type, title_ar, description, presenter, college_id, department_id,
-			 activity_date, location, attendees_count, target_audience, organizer, attendance_mode, created_by)
-		VALUES ($1, $2, NULLIF($3, ''), NULLIF($4, ''), $5, $6, $7::date, NULLIF($8, ''), $9,
-		        NULLIF($10, ''), NULLIF($11, ''), NULLIF($12, ''), $13)
-		RETURNING id, activity_type, title_ar, description, presenter,
-		          college_id, department_id, NULL::varchar, NULL::varchar,
-		          to_char(activity_date, 'YYYY-MM-DD'), location, attendees_count,
-		          target_audience, organizer, attendance_mode,
-		          status, approval_no, decision_note, created_by, ''::varchar, decided_at, created_at
-	`, in.Type, strings.TrimSpace(in.TitleAr), in.Description, in.Presenter, college, dept,
-		in.ActivityDate, in.Location, in.Attendees,
-		in.TargetAudience, in.Organizer, in.AttendanceMode, user.UserID))
+			(category, activity_type, title_ar, description, presenter, college_id, department_id,
+			 activity_date, location, attendees_count, target_audience, organizer, attendance_mode,
+			 category_detail, item_count, notes, created_by)
+		VALUES ($1, $2, $3, NULLIF($4, ''), NULLIF($5, ''), $6, $7, $8::date, NULLIF($9, ''), $10,
+		        NULLIF($11, ''), NULLIF($12, ''), NULLIF($13, ''), NULLIF($14, ''), $15, NULLIF($16, ''), $17)`+
+		activityReturning, args...))
 	if err != nil {
 		if isForeignKeyViolation(err) {
 			model.RespondError(w, http.StatusBadRequest, "invalid_college_or_department")
@@ -180,13 +221,15 @@ func (h *PortalHandler) CreateActivity(w http.ResponseWriter, r *http.Request) {
 		serverError(w, "Failed to save activity", err)
 		return
 	}
+	rec.CanEdit = true
 
 	h.notifyActivityReviewers(ctx, user,
 		"نشاط علمي جديد بانتظار الاعتماد", "New scientific activity awaiting approval", rec.TitleAr)
 	model.RespondJSON(w, http.StatusCreated, rec)
 }
 
-// UpdateActivity lets the organizer fix a pending/returned activity.
+// UpdateActivity lets the author, or a holder of the record's responsibility, fix a
+// pending/returned record. Every edit sends it back to pending.
 func (h *PortalHandler) UpdateActivity(w http.ResponseWriter, r *http.Request) {
 	user := authedUser(w, r)
 	if user == nil {
@@ -203,45 +246,68 @@ func (h *PortalHandler) UpdateActivity(w http.ResponseWriter, r *http.Request) {
 	}
 	ctx, cancel := portalContext(r)
 	defer cancel()
+
+	current, found, err := h.loadActivityAccess(ctx, id)
+	if err != nil {
+		serverError(w, "Failed to load activity", err)
+		return
+	}
+	actor, err := loadActor(ctx, h.db, user)
+	if err != nil {
+		serverError(w, "Failed to load responsibilities", err)
+		return
+	}
+	if !found || !activity.CanEdit(actor, current) {
+		model.RespondError(w, http.StatusNotFound, "Activity not found or not editable")
+		return
+	}
+	if !activity.CanMoveTo(actor, current, in.Category, college) {
+		model.RespondError(w, http.StatusForbidden, "activity_category_forbidden")
+		return
+	}
 	if !h.departmentFitsCollege(ctx, w, college, dept) {
 		return
 	}
 
-	var previous string
-	if err := h.db.QueryRow(ctx, `SELECT status FROM activities WHERE id = $1`, id).Scan(&previous); err != nil && !isNoRows(err) {
-		serverError(w, "Failed to load activity", err)
-		return
-	}
-
+	args := append([]any{id}, activityArgs(in, college, dept)...)
 	rec, err := scanActivity(h.db.QueryRow(ctx, `
 		UPDATE activities SET
-			activity_type = $2, title_ar = $3, description = NULLIF($4, ''), presenter = NULLIF($5, ''),
-			college_id = $6, department_id = $7, activity_date = $8::date,
-			location = NULLIF($9, ''), attendees_count = $10,
-			target_audience = NULLIF($11, ''), organizer = NULLIF($12, ''), attendance_mode = NULLIF($13, ''),
+			category = $2, activity_type = $3, title_ar = $4, description = NULLIF($5, ''), presenter = NULLIF($6, ''),
+			college_id = $7, department_id = $8, activity_date = $9::date,
+			location = NULLIF($10, ''), attendees_count = $11,
+			target_audience = NULLIF($12, ''), organizer = NULLIF($13, ''), attendance_mode = NULLIF($14, ''),
+			category_detail = NULLIF($15, ''), item_count = $16, notes = NULLIF($17, ''),
 			status = 'pending', updated_at = NOW()
-		WHERE id = $1 AND created_by = $14 AND status IN ('pending', 'returned')
-		RETURNING id, activity_type, title_ar, description, presenter,
-		          college_id, department_id, NULL::varchar, NULL::varchar,
-		          to_char(activity_date, 'YYYY-MM-DD'), location, attendees_count,
-		          target_audience, organizer, attendance_mode,
-		          status, approval_no, decision_note, created_by, ''::varchar, decided_at, created_at
-	`, id, in.Type, strings.TrimSpace(in.TitleAr), in.Description, in.Presenter, college, dept,
-		in.ActivityDate, in.Location, in.Attendees,
-		in.TargetAudience, in.Organizer, in.AttendanceMode, user.UserID))
+		WHERE id = $1 AND status IN ('pending', 'returned')`+activityReturning, args...))
 	if isNoRows(err) {
 		model.RespondError(w, http.StatusNotFound, "Activity not found or not editable")
 		return
 	}
 	if err != nil {
+		if isForeignKeyViolation(err) {
+			model.RespondError(w, http.StatusBadRequest, "invalid_college_or_department")
+			return
+		}
 		serverError(w, "Failed to update activity", err)
 		return
 	}
-	if previous == activity.StatusReturned {
+	rec.CanEdit = true
+	if current.Status == activity.StatusReturned {
 		h.notifyActivityReviewers(ctx, user,
 			"أُعيد تقديم نشاط علمي بعد تعديله", "Returned scientific activity resubmitted", rec.TitleAr)
 	}
 	model.RespondJSON(w, http.StatusOK, rec)
+}
+
+// loadActivityAccess reads what the edit rules need; found is false for an unknown id.
+func (h *PortalHandler) loadActivityAccess(ctx context.Context, id string) (activity.Record, bool, error) {
+	var rec activity.Record
+	err := h.db.QueryRow(ctx, `SELECT created_by, category, college_id, status FROM activities WHERE id = $1`, id).
+		Scan(&rec.CreatedBy, &rec.Category, &rec.CollegeID, &rec.Status)
+	if isNoRows(err) {
+		return rec, false, nil
+	}
+	return rec, err == nil, err
 }
 
 // DecideActivity is the scientific-affairs step: approve (with the official
@@ -339,94 +405,4 @@ func (h *PortalHandler) DecideActivity(w http.ResponseWriter, r *http.Request) {
 // mayDecideActivity stops reviewers approving their own activity. Admin is the escalation path.
 func mayDecideActivity(user *middleware.UserClaims, createdBy string) bool {
 	return user.Role == portal.RoleAdmin || user.UserID != createdBy
-}
-
-// activityScope limits visibility: own records, the head's department,
-// the dean's college; staff and admin see everything.
-func activityScope(user *middleware.UserClaims) (string, []any) {
-	args := []any{user.UserID}
-	switch {
-	case portal.IsStaff(user.Role):
-		return "TRUE", nil
-	case user.Role == middleware.RoleCollegeDean && user.CollegeID != "":
-		args = append(args, user.CollegeID)
-		return "(a.created_by = $1 OR a.college_id = $2)", args
-	case user.Role == middleware.RoleDepartmentHead && user.DepartmentID != "":
-		args = append(args, user.DepartmentID)
-		return "(a.created_by = $1 OR a.department_id = $2)", args
-	default:
-		return "a.created_by = $1", args
-	}
-}
-
-// ListActivities returns scoped, filtered, paginated activities.
-func (h *PortalHandler) ListActivities(w http.ResponseWriter, r *http.Request) {
-	user := authedUser(w, r)
-	if user == nil {
-		return
-	}
-	q := r.URL.Query()
-	page := clampInt(q.Get("page"), 1, 1, 100000)
-	limit := clampInt(q.Get("limit"), 20, 1, 50)
-
-	where, args := activityScope(user)
-	conds := []string{where}
-	add := func(cond string, v any) {
-		args = append(args, v)
-		conds = append(conds, strings.ReplaceAll(cond, "?", "$"+strconv.Itoa(len(args))))
-	}
-	if t := q.Get("type"); activity.IsType(t) {
-		add("a.activity_type = ?", t)
-	}
-	if s := q.Get("status"); s != "" {
-		add("a.status = ?", s)
-	}
-	if y, err := strconv.Atoi(q.Get("year")); err == nil && y > 2000 && y < 2100 {
-		add("EXTRACT(YEAR FROM a.activity_date) = ?", y)
-	}
-	if college := q.Get("college_id"); college != "" {
-		if id, ok := idOrNil(college); ok && id != nil {
-			add("a.college_id = ?", *id)
-		}
-	}
-	if text := strings.TrimSpace(q.Get("q")); text != "" {
-		add("(a.title_ar ILIKE ? OR a.presenter ILIKE ? OR a.approval_no ILIKE ?)",
-			"%"+likeEscaper.Replace(text)+"%")
-	}
-	whereSQL := " WHERE " + strings.Join(conds, " AND ")
-
-	ctx, cancel := portalContext(r)
-	defer cancel()
-
-	var total int
-	if err := h.db.QueryRow(ctx,
-		`SELECT COUNT(*) FROM activities a JOIN users u ON u.id = a.created_by`+whereSQL, args...,
-	).Scan(&total); err != nil {
-		serverError(w, "Failed to count activities", err)
-		return
-	}
-
-	args = append(args, limit, (page-1)*limit)
-	rows, err := h.db.Query(ctx, activitySelect+whereSQL+
-		` ORDER BY a.activity_date DESC, a.created_at DESC LIMIT $`+strconv.Itoa(len(args)-1)+` OFFSET $`+strconv.Itoa(len(args)), args...)
-	if err != nil {
-		serverError(w, "Failed to list activities", err)
-		return
-	}
-	defer rows.Close()
-
-	items := []activityRecord{}
-	for rows.Next() {
-		rec, err := scanActivity(rows)
-		if err != nil {
-			serverError(w, "Failed to read activities", err)
-			return
-		}
-		items = append(items, rec)
-	}
-	if err := rows.Err(); err != nil {
-		serverError(w, "Failed to read activities", err)
-		return
-	}
-	model.RespondPaginated(w, http.StatusOK, items, total, page, limit)
 }

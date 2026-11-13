@@ -14,7 +14,9 @@ import (
 	"github.com/redis/go-redis/v9"
 
 	"github.com/haydary1986/turath-research/backend/internal/config"
+	"github.com/haydary1986/turath-research/backend/internal/handler"
 	"github.com/haydary1986/turath-research/backend/internal/service/journalcheck"
+	"github.com/haydary1986/turath-research/backend/internal/service/loginaudit"
 	syncsvc "github.com/haydary1986/turath-research/backend/internal/service/sync"
 )
 
@@ -32,6 +34,9 @@ func Run(cfg *config.Config, db *pgxpool.Pool, rdb *redis.Client) error {
 	bulkSync := newBulkSync(cfg, db, orchestrator)
 	// A bulk sync interrupted by a restart carries on from where it stopped.
 	bulkSync.Resume(refreshCtx)
+
+	// Login events are kept for loginaudit.RetentionDays; older ones go once a day.
+	go loginaudit.RunRetention(refreshCtx, handler.PruneLoginEvents(db), 24*time.Hour, time.Now)
 
 	router := newRouter(cfg, db, rdb, journals, orchestrator, bulkSync)
 

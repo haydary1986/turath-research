@@ -17,12 +17,16 @@ import (
 
 // ensureResearcher returns the researcher record for the applicant, creating and
 // linking one (users.researcher_id) on first use. Runs inside the caller's tx.
+// An existing record with the applicant's email becomes theirs only if the email is
+// verified (see mayLinkByEmail). Otherwise it returns "" — nothing is attributed to that
+// record, and staff link the account by hand or by import.
 func ensureResearcher(ctx context.Context, tx pgx.Tx, rec requestRecord) (string, error) {
 	// Already linked through the user account?
 	var researcherID *string
+	var emailVerified bool
 	if err := tx.QueryRow(ctx,
-		`SELECT researcher_id FROM users WHERE id = $1`, rec.ApplicantID,
-	).Scan(&researcherID); err != nil {
+		`SELECT u.researcher_id, `+verifiedEmailSQL+` FROM users u WHERE u.id = $1`, rec.ApplicantID,
+	).Scan(&researcherID, &emailVerified); err != nil {
 		return "", err
 	}
 	if researcherID != nil {
@@ -30,29 +34,13 @@ func ensureResearcher(ctx context.Context, tx pgx.Tx, rec requestRecord) (string
 	}
 
 	email := strings.ToLower(rec.ApplicantEmail)
-
-	// A researcher with the same university email may already exist (e.g. imported).
-	var id string
-	err := tx.QueryRow(ctx, `SELECT id FROM researchers WHERE lower(email) = $1`, email).Scan(&id)
-	if err != nil && !isNoRows(err) {
+	id, created, err := findOrCreateResearcher(ctx, tx, rec, email)
+	if err != nil {
 		return "", err
 	}
-	if isNoRows(err) {
-		name := rec.ApplicantName
-		if name == "" {
-			name = strings.SplitN(email, "@", 2)[0]
-		}
-		err = tx.QueryRow(ctx, `
-			INSERT INTO researchers (name_ar, email, department_id, status)
-			VALUES ($1, $2, $3, 'active')
-			ON CONFLICT (email) DO UPDATE SET email = researchers.email
-			RETURNING id
-		`, name, email, rec.DepartmentID).Scan(&id)
-		if err != nil {
-			return "", err
-		}
+	if !mayLinkByEmail(emailVerified, created) {
+		return "", nil
 	}
-
 	if _, err := tx.Exec(ctx,
 		`UPDATE users SET researcher_id = $2 WHERE id = $1 AND researcher_id IS NULL`,
 		rec.ApplicantID, id,
@@ -60,6 +48,32 @@ func ensureResearcher(ctx context.Context, tx pgx.Tx, rec requestRecord) (string
 		return "", err
 	}
 	return id, nil
+}
+
+// findOrCreateResearcher returns the researcher with this university email (e.g. imported),
+// creating one when none exists; created tells which happened.
+func findOrCreateResearcher(ctx context.Context, tx pgx.Tx, rec requestRecord, email string) (string, bool, error) {
+	var id string
+	err := tx.QueryRow(ctx, `SELECT id FROM researchers WHERE lower(email) = $1`, email).Scan(&id)
+	if err == nil {
+		return id, false, nil
+	}
+	if !isNoRows(err) {
+		return "", false, err
+	}
+	name := rec.ApplicantName
+	if name == "" {
+		name = strings.SplitN(email, "@", 2)[0]
+	}
+	// xmax = 0 only for a row this statement inserted, not one a concurrent insert won.
+	var inserted bool
+	err = tx.QueryRow(ctx, `
+		INSERT INTO researchers (name_ar, email, department_id, status)
+		VALUES ($1, $2, $3, 'active')
+		ON CONFLICT (email) DO UPDATE SET email = researchers.email
+		RETURNING id, (xmax = 0)
+	`, name, email, rec.DepartmentID).Scan(&id, &inserted)
+	return id, inserted, err
 }
 
 var quartileToRanking = map[string]string{"Q1": "Q1", "Q2": "Q2", "Q3": "Q3", "Q4": "Q4"}
@@ -201,6 +215,11 @@ func materializePublication(ctx context.Context, tx pgx.Tx, rec requestRecord) e
 	researcherID, err := ensureResearcher(ctx, tx, rec)
 	if err != nil {
 		return err
+	}
+	if researcherID == "" {
+		// The account is not tied to a researcher record yet; staff link it, then the
+		// publication can be credited. Nothing is attributed to an unverified match.
+		return nil
 	}
 	details, err := journalDetailsOf(rec.Details)
 	if err != nil {

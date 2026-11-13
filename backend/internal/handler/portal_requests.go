@@ -319,7 +319,7 @@ func (h *PortalHandler) markSubmitted(ctx context.Context, rec requestRecord, ac
 		SET status = 'pending_dean', request_no = $2, submitted_at = NOW(), decision_note = NULL,
 		    researcher_id = $3, updated_at = NOW()
 		WHERE id = $1 AND status IN ('draft', 'returned')
-	`, rec.ID, *requestNo, researcherID); err != nil {
+	`, rec.ID, *requestNo, nilIfEmpty(researcherID)); err != nil {
 		return err
 	}
 	from := rec.Status

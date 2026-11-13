@@ -16,6 +16,7 @@ import (
 	"github.com/haydary1986/turath-research/backend/internal/middleware"
 	"github.com/haydary1986/turath-research/backend/internal/model"
 	"github.com/haydary1986/turath-research/backend/internal/service/googleauth"
+	"github.com/haydary1986/turath-research/backend/internal/service/loginaudit"
 )
 
 type AuthHandler struct {
@@ -61,14 +62,22 @@ type userInfo struct {
 }
 
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
-	var req loginRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		model.RespondError(w, http.StatusBadRequest, "Invalid request body")
-		return
+	attempt := loginaudit.Event{Method: loginaudit.MethodPassword}
+	fail := func(status int, message, reason string) {
+		attempt.Reason = reason
+		recordLogin(r, h.db, attempt)
+		model.RespondError(w, status, message)
 	}
 
+	var req loginRequest
+	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, maxJSONBody)).Decode(&req); err != nil {
+		fail(http.StatusBadRequest, "Invalid request body", loginaudit.ReasonInvalidRequest)
+		return
+	}
+	attempt.Email = req.Email
+
 	if req.Email == "" || req.Password == "" {
-		model.RespondError(w, http.StatusBadRequest, "Email and password are required")
+		fail(http.StatusBadRequest, "Email and password are required", loginaudit.ReasonInvalidRequest)
 		return
 	}
 
@@ -86,25 +95,37 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		&user.Role, &user.InstitutionID, &user.CollegeID, &user.DepartmentID,
 	)
 	if err != nil {
-		model.RespondError(w, http.StatusUnauthorized, "Invalid email or password")
+		reason := loginaudit.ReasonUnknownUser
+		if !isNoRows(err) {
+			slog.Error("login: user lookup failed", "error", err)
+			reason = loginaudit.ReasonServerError
+		}
+		fail(http.StatusUnauthorized, "Invalid email or password", reason)
 		return
 	}
+	attempt.UserID = &user.ID
 
 	if err := bcrypt.CompareHashAndPassword([]byte(passwordHash), []byte(req.Password)); err != nil {
-		model.RespondError(w, http.StatusUnauthorized, "Invalid email or password")
+		reason := loginaudit.ReasonWrongPassword
+		if passwordHash == unusablePasswordHash {
+			reason = loginaudit.ReasonGoogleOnlyAccount
+		}
+		fail(http.StatusUnauthorized, "Invalid email or password", reason)
 		return
 	}
-
-	// Update last_login_at
-	_, _ = h.db.Exec(ctx, `UPDATE users SET last_login_at = NOW() WHERE id = $1`, user.ID)
 
 	token, err := h.generateToken(user)
 	if err != nil {
 		slog.Error("failed to generate token", "error", err)
-		model.RespondError(w, http.StatusInternalServerError, "Failed to generate token")
+		fail(http.StatusInternalServerError, "Failed to generate token", loginaudit.ReasonServerError)
 		return
 	}
 
+	if _, err := h.db.Exec(ctx, `UPDATE users SET last_login_at = NOW() WHERE id = $1`, user.ID); err != nil {
+		slog.Error("login: failed to record last login", "user_id", user.ID, "error", err)
+	}
+	attempt.Success = true
+	recordLogin(r, h.db, attempt)
 	model.RespondJSON(w, http.StatusOK, authResponse{Token: token, User: user})
 }
 

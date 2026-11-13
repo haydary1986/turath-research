@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"log/slog"
 	"net/http"
@@ -10,6 +11,7 @@ import (
 
 	"github.com/haydary1986/turath-research/backend/internal/model"
 	"github.com/haydary1986/turath-research/backend/internal/service/googleauth"
+	"github.com/haydary1986/turath-research/backend/internal/service/loginaudit"
 )
 
 // unusablePasswordHash can never match a bcrypt comparison, so Google-only accounts cannot use password login.
@@ -35,53 +37,66 @@ func (h *AuthHandler) Config(w http.ResponseWriter, _ *http.Request) {
 // GoogleLogin signs a person in with a Google ID token, creating a researcher account on first sign-in.
 // Only accounts of the configured university domain are accepted.
 func (h *AuthHandler) GoogleLogin(w http.ResponseWriter, r *http.Request) {
+	attempt := loginaudit.Event{Method: loginaudit.MethodGoogle}
+	fail := func(status int, message, reason string) {
+		attempt.Reason = reason
+		recordLogin(r, h.db, attempt)
+		model.RespondError(w, status, message)
+	}
 	if h.verifier == nil {
-		model.RespondError(w, http.StatusServiceUnavailable, "google_not_configured")
+		fail(http.StatusServiceUnavailable, "google_not_configured", loginaudit.ReasonNotConfigured)
 		return
 	}
 	var req struct {
 		Credential string `json:"credential"`
 	}
-	if !decodeBody(w, r, &req) {
+	r.Body = http.MaxBytesReader(w, r.Body, maxJSONBody)
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		fail(http.StatusBadRequest, "Invalid request body", loginaudit.ReasonInvalidRequest)
 		return
 	}
 	if req.Credential == "" {
-		model.RespondError(w, http.StatusBadRequest, "credential is required")
+		fail(http.StatusBadRequest, "credential is required", loginaudit.ReasonInvalidRequest)
 		return
 	}
 
 	ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
 	defer cancel()
 
+	// The credential itself is never logged or stored; only the verified email is.
 	identity, err := h.verifier.Verify(ctx, req.Credential)
+	attempt.Email = identity.Email
 	switch {
 	case errors.Is(err, googleauth.ErrDomainNotAllowed):
 		slog.Warn("google sign-in rejected: domain not allowed")
-		model.RespondError(w, http.StatusForbidden, "domain_not_allowed")
+		fail(http.StatusForbidden, "domain_not_allowed", loginaudit.ReasonDomainNotAllowed)
 		return
 	case err != nil:
 		slog.Warn("google sign-in rejected: invalid token", "error", err)
-		model.RespondError(w, http.StatusUnauthorized, "invalid_google_token")
+		fail(http.StatusUnauthorized, "invalid_google_token", loginaudit.ReasonInvalidToken)
 		return
 	}
 
 	user, err := h.findOrCreateGoogleUser(ctx, identity)
 	if errors.Is(err, errGoogleAccountMismatch) {
-		model.RespondError(w, http.StatusForbidden, "account_conflict")
+		fail(http.StatusForbidden, "account_conflict", loginaudit.ReasonAccountConflict)
 		return
 	}
 	if err != nil {
 		slog.Error("google sign-in: user lookup failed", "error", err)
-		model.RespondError(w, http.StatusInternalServerError, "Sign-in failed")
+		fail(http.StatusInternalServerError, "Sign-in failed", loginaudit.ReasonServerError)
 		return
 	}
+	attempt.UserID = &user.ID
 
 	token, err := h.generateToken(user)
 	if err != nil {
 		slog.Error("failed to generate token", "error", err)
-		model.RespondError(w, http.StatusInternalServerError, "Failed to generate token")
+		fail(http.StatusInternalServerError, "Failed to generate token", loginaudit.ReasonServerError)
 		return
 	}
+	attempt.Success = true
+	recordLogin(r, h.db, attempt)
 	model.RespondJSON(w, http.StatusOK, authResponse{Token: token, User: user})
 }
 

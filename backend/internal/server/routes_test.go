@@ -161,3 +161,33 @@ func TestPublicSiteRoutesNeedNoToken(t *testing.T) {
 		}
 	}
 }
+
+// The login log, account activity and responsibility management are the admin's alone.
+func TestAuditAndResponsibilityRoutesAreAdminOnly(t *testing.T) {
+	router := testRouter()
+	refused := []string{
+		middleware.RoleResearcher, middleware.RoleCollegeDean, middleware.RoleDepartmentHead,
+		middleware.RoleScientificAffairs, middleware.RoleVPResearch,
+	}
+	routes := []route{
+		{"GET", "/admin/login-events"}, {"GET", "/admin/accounts"}, {"GET", "/admin/accounts/summary"},
+		{"GET", "/admin/users/x/responsibilities"}, {"PUT", "/admin/users/x/responsibilities"},
+	}
+	for _, role := range refused {
+		token := tokenFor(t, role)
+		for _, rt := range routes {
+			if code := status(t, router, rt.method, rt.path, token); code != http.StatusForbidden {
+				t.Errorf("%s %s as %s: got %d", rt.method, rt.path, role, code)
+			}
+		}
+	}
+	admin := tokenFor(t, middleware.RoleAdmin)
+	if code := status(t, router, "PUT", "/admin/users/not-a-uuid/responsibilities", admin); code != http.StatusNotFound {
+		t.Errorf("admin reaches the responsibility handler: got %d", code)
+	}
+	for _, rt := range routes {
+		if code := status(t, router, rt.method, rt.path, ""); code != http.StatusUnauthorized {
+			t.Errorf("%s %s without a token: got %d", rt.method, rt.path, code)
+		}
+	}
+}

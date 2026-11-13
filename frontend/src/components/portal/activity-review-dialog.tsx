@@ -94,7 +94,14 @@ export function ActivityReviewDialog({ activity: a, locale, onClose, onDecided }
             <Detail label={ta("fields.attendanceMode")}>
               {a.attendance_mode ? ta(`modes.${a.attendance_mode}`) : null}
             </Detail>
-            <Detail label={ta("fields.type")}>{ta(`types.${a.activity_type}`)}</Detail>
+            <Detail label={ta("fields2.category")}>{ta(`categories.${a.category}`)}</Detail>
+            {a.category === "infrastructure" ? (
+              <Detail label={ta("fields2.itemCount")}>{a.item_count}</Detail>
+            ) : (
+              <Detail label={ta(`detailLabels.${a.category}`)}>{a.category_detail}</Detail>
+            )}
+            {a.category === "workshops" && <Detail label={ta("fields.type")}>{ta(`types.${a.activity_type}`)}</Detail>}
+            <Detail label={ta("fields2.notes")} wide>{a.notes}</Detail>
             <Detail label={ta("fields.date")}>{formatDate(a.activity_date, locale)}</Detail>
             <Detail label={ta("fields.location")}>{a.location}</Detail>
             <Detail label={ta("fields.presenter")}>{a.presenter}</Detail>

@@ -51,6 +51,23 @@ var activityTypeAr = map[string]string{
 	"other":      "أخرى",
 }
 
+// activityCategoryAr names the FS 003 sheets as the ministry form does.
+var activityCategoryAr = map[string]string{
+	"infrastructure":           "البنى التحتية",
+	"workshops":                "الورش والندوات والحلقات النقاشية",
+	"courses":                  "الدورات",
+	"local_research":           "البحوث المنشورة محليا",
+	"indexed_research":         "البحوث المنشورة في المستوعبات العالمية",
+	"international_research":   "البحوث المنشورة دوليا",
+	"books":                    "الكتب المؤلفة والمترجمة",
+	"patents":                  "براءات الاختراع",
+	"conferences":              "المؤتمرات العلمية",
+	"international_agreements": "الاتفاقيات الدولية",
+	"local_agreements":         "الاتفاقيات المحلية",
+	"fellowships":              "الزمالات البحثية والدراسة ما بعد الدكتوراه والتفرغ العلمي",
+	"community_service":        "خدمة المجتمع",
+}
+
 var attendanceModeAr = map[string]string{
 	"in_person": "حضوري",
 	"online":    "إلكتروني",
@@ -279,10 +296,10 @@ func reportSheets() []reportSheet {
 		{
 			name: "النشاطات العلمية",
 			headers: []string{
-				"النوع", "العنوان", "المحاضر", "الكلية", "القسم", "التاريخ", "المكان", "نمط الإقامة",
+				"التصنيف (استمارة FS 003)", "النوع", "العنوان", "المحاضر", "الكلية", "القسم", "التاريخ", "المكان", "نمط الإقامة",
 				"الفئة المستهدفة", "الجهة المنظمة", "عدد الحضور", "عدد كتاب الإقامة", "الحالة",
 			},
-			query: `SELECT a.activity_type, a.title_ar, COALESCE(a.presenter, ''), COALESCE(c.name_ar, ''), COALESCE(d.name_ar, ''),
+			query: `SELECT a.category, a.activity_type, a.title_ar, COALESCE(a.presenter, ''), COALESCE(c.name_ar, ''), COALESCE(d.name_ar, ''),
 			        to_char(a.activity_date, 'YYYY-MM-DD'), COALESCE(a.location, ''), COALESCE(a.attendance_mode, ''),
 			        COALESCE(a.target_audience, ''), COALESCE(a.organizer, ''), a.attendees_count::text,
 			        COALESCE(a.approval_no, ''), a.status
@@ -292,9 +309,10 @@ func reportSheets() []reportSheet {
 			 WHERE a.status = 'approved' AND a.activity_date BETWEEN $1 AND $2
 			 ORDER BY c.name_ar, a.activity_date`,
 			transform: map[int]func(string) string{
-				0:  func(s string) string { return labelOr(activityTypeAr, s) },
-				7:  func(s string) string { return labelOr(attendanceModeAr, s) },
-				12: func(s string) string { return labelOr(activityStatusAr, s) },
+				0:  func(s string) string { return labelOr(activityCategoryAr, s) },
+				1:  func(s string) string { return labelOr(activityTypeAr, s) },
+				8:  func(s string) string { return labelOr(attendanceModeAr, s) },
+				13: func(s string) string { return labelOr(activityStatusAr, s) },
 			},
 		},
 	}

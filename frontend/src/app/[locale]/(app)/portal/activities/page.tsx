@@ -1,34 +1,40 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
-import { CalendarDays, Plus, Search } from "lucide-react";
+import { CalendarDays, FileSpreadsheet, Plus, Search } from "lucide-react";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { useHydrated } from "@/hooks/use-hydrated";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { ActivityReviewDialog } from "@/components/portal/activity-review-dialog";
-import { NativeSelect, Textarea } from "@/components/portal/form-controls";
+import { NativeSelect } from "@/components/portal/form-controls";
+import {
+  ActivityForm, activityPayload, activityToForm, emptyActivityForm, type ActivityFormState,
+} from "@/components/portal/activity-form";
+import { FS003Export } from "@/components/portal/fs003-export";
 import { RequireAuth } from "@/components/portal/require-auth";
 import { usePortalErrors } from "@/components/portal/use-portal-errors";
 import { formatDate, isStaffRole, type Org } from "@/lib/portal/types";
 import { Alert } from "@/components/ui/alert";
-import { activityStatusKey, currentDecisionNote, type Activity } from "@/lib/portal/activity";
+import {
+  ACTIVITY_CATEGORIES, activityStatusKey, canExportFS003, currentDecisionNote, enterableCategories,
+  isCategory, type Activity,
+} from "@/lib/portal/activity";
+import { useMyResponsibilities } from "@/lib/portal/my-access";
 import { ACTIVITY_STATUS_FAMILY, FAMILY_TINT } from "@/lib/portal/status";
 import { canManageSite, type StaffAnnouncement } from "@/lib/site/types";
 import { useRouter } from "@/i18n/routing";
+import { useSearchParams } from "next/navigation";
 
-const TYPES = ["seminar", "workshop", "panel", "lecture", "course", "conference", "other"] as const;
 const STATUSES = ["pending", "approved", "returned", "rejected"] as const;
-const MODES = ["in_person", "online", "hybrid"] as const;
 const STEPS = ["register", "review", "report"] as const;
 const PAGE_SIZE = 20;
 const SKELETON_ROWS = [0, 1, 2, 3, 4];
@@ -37,55 +43,32 @@ const STATUS_TINT: Record<string, string> = Object.fromEntries(
   Object.entries(ACTIVITY_STATUS_FAMILY).map(([status, family]) => [status, FAMILY_TINT[family]])
 );
 
-interface FormState {
-  activity_type: string;
-  title_ar: string;
-  description: string;
-  presenter: string;
-  college_id: string;
-  department_id: string;
-  activity_date: string;
-  location: string;
-  attendees_count: number;
-  target_audience: string;
-  organizer: string;
-  attendance_mode: string;
-}
-
-const EMPTY_FORM: FormState = {
-  activity_type: "seminar",
-  title_ar: "",
-  description: "",
-  presenter: "",
-  college_id: "",
-  department_id: "",
-  activity_date: "",
-  location: "",
-  attendees_count: 0,
-  target_audience: "",
-  organizer: "",
-  attendance_mode: "",
-};
-
 function ActivitiesPage() {
   const t = useTranslations("portal");
   const ta = useTranslations("portal.activities");
-  const tc = useTranslations("common");
   const toMessage = usePortalErrors();
   const locale = useLocale();
   const hydrated = useHydrated();
   const { user } = useAuth();
   const staff = isStaffRole(user?.role);
+  const responsibilities = useMyResponsibilities();
+  const categories = enterableCategories(user?.role, responsibilities);
+  const canExport = hydrated && canExportFS003(user?.role, responsibilities);
+  const searchParams = useSearchParams();
+  const initialCategory = searchParams.get("category") ?? "";
 
   const [items, setItems] = useState<Activity[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadFailed, setLoadFailed] = useState(false);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
-  const [filters, setFilters] = useState({ q: "", type: "", status: "", year: "" });
+  const [filters, setFilters] = useState({
+    q: "", category: isCategory(initialCategory) ? initialCategory : "", status: "", year: "", mine: false,
+  });
+  const [exporting, setExporting] = useState(false);
   const [colleges, setColleges] = useState<Org[]>([]);
   const [departments, setDepartments] = useState<Org[]>([]);
-  const [form, setForm] = useState<FormState | null>(null);
+  const [form, setForm] = useState<ActivityFormState | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -93,7 +76,8 @@ function ActivitiesPage() {
   const load = useCallback(() => {
     const params = new URLSearchParams({ page: String(page), limit: String(PAGE_SIZE) });
     if (filters.q.trim()) params.set("q", filters.q.trim());
-    if (filters.type) params.set("type", filters.type);
+    if (filters.category) params.set("category", filters.category);
+    if (filters.mine) params.set("mine", "true");
     if (filters.status) params.set("status", filters.status);
     if (filters.year) params.set("year", filters.year);
     api
@@ -126,20 +110,19 @@ function ActivitiesPage() {
 
   function startEdit(a: Activity) {
     setEditingId(a.id);
-    setForm({
-      activity_type: a.activity_type,
-      title_ar: a.title_ar,
-      description: a.description ?? "",
-      presenter: a.presenter ?? "",
-      college_id: a.college_id ?? "",
-      department_id: a.department_id ?? "",
-      activity_date: a.activity_date,
-      location: a.location ?? "",
-      attendees_count: a.attendees_count,
-      target_audience: a.target_audience ?? "",
-      organizer: a.organizer ?? "",
-      attendance_mode: a.attendance_mode ?? "",
-    });
+    setForm(activityToForm(a));
+  }
+
+  function startNew() {
+    setEditingId(null);
+    if (form) {
+      setForm(null);
+      return;
+    }
+    const preferred = filters.category && categories.includes(filters.category as never)
+      ? filters.category
+      : categories.includes("workshops") ? "workshops" : categories[0];
+    setForm(emptyActivityForm(preferred, user?.college_id ?? "", user?.department_id ?? ""));
   }
 
   async function save() {
@@ -148,9 +131,9 @@ function ActivitiesPage() {
     setBusy(true);
     try {
       if (editingId) {
-        await api.put(`/api/v1/activities/${editingId}`, form);
+        await api.put(`/api/v1/activities/${editingId}`, activityPayload(form));
       } else {
-        await api.post("/api/v1/activities", form);
+        await api.post("/api/v1/activities", activityPayload(form));
       }
       setForm(null);
       setEditingId(null);
@@ -172,15 +155,18 @@ function ActivitiesPage() {
           <h1 className="text-2xl font-bold">{ta("title")}</h1>
           <p className="text-sm text-muted-foreground">{ta("intro")}</p>
         </div>
-        <Button
-          onClick={() => {
-            setEditingId(null);
-            setForm(form ? null : { ...EMPTY_FORM, college_id: user?.college_id ?? "", department_id: user?.department_id ?? "" });
-          }}
-        >
-          <Plus className="size-4" />
-          <span>{ta("new")}</span>
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          {canExport && (
+            <Button variant="outline" onClick={() => setExporting((v) => !v)}>
+              <FileSpreadsheet className="size-4" />
+              <span>{ta("fs003.open")}</span>
+            </Button>
+          )}
+          <Button onClick={startNew}>
+            <Plus className="size-4" />
+            <span>{ta("new")}</span>
+          </Button>
+        </div>
       </div>
 
       <ol className="grid gap-3 sm:grid-cols-3">
@@ -196,95 +182,21 @@ function ActivitiesPage() {
 
       {error && <Alert variant="danger">{error}</Alert>}
 
+      {exporting && <FS003Export colleges={colleges} onClose={() => setExporting(false)} />}
+
       {form && (
-        <Card>
-          <CardHeader>
-            <CardTitle>{editingId ? t("ui.edit") : ta("new")}</CardTitle>
-          </CardHeader>
-          <CardContent className="grid gap-4 md:grid-cols-2">
-            {editingReturned && (
-              <Alert variant="info" className="md:col-span-2">{ta("resubmitHint")}</Alert>
-            )}
-            <div className="space-y-2 md:col-span-2">
-              <Label htmlFor="act-title">{ta("fields.title")} *</Label>
-              <Input id="act-title" dir="rtl" value={form.title_ar}
-                onChange={(e) => setForm({ ...form, title_ar: e.target.value })} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="act-type">{ta("fields.type")} *</Label>
-              <NativeSelect id="act-type" value={form.activity_type}
-                onChange={(e) => setForm({ ...form, activity_type: e.target.value })}>
-                {TYPES.map((x) => <option key={x} value={x}>{ta(`types.${x}`)}</option>)}
-              </NativeSelect>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="act-date">{ta("fields.date")} *</Label>
-              <Input id="act-date" type="date" dir="ltr" value={form.activity_date}
-                onChange={(e) => setForm({ ...form, activity_date: e.target.value })} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="act-college">{t("fields.college")} *</Label>
-              <NativeSelect id="act-college" value={form.college_id}
-                onChange={(e) => setForm({ ...form, college_id: e.target.value, department_id: "" })}>
-                <option value="">{t("options.none")}</option>
-                {colleges.map((c) => <option key={c.id} value={c.id}>{c.name_ar}</option>)}
-              </NativeSelect>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="act-dept">{t("fields.department")}</Label>
-              <NativeSelect id="act-dept" value={form.department_id}
-                onChange={(e) => setForm({ ...form, department_id: e.target.value })}>
-                <option value="">{t("options.none")}</option>
-                {departments.filter((d) => !form.college_id || d.college_id === form.college_id)
-                  .map((d) => <option key={d.id} value={d.id}>{d.name_ar}</option>)}
-              </NativeSelect>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="act-presenter">{ta("fields.presenter")}</Label>
-              <Input id="act-presenter" value={form.presenter}
-                onChange={(e) => setForm({ ...form, presenter: e.target.value })} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="act-location">{ta("fields.location")}</Label>
-              <Input id="act-location" value={form.location}
-                onChange={(e) => setForm({ ...form, location: e.target.value })} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="act-attendees">{ta("fields.attendees")}</Label>
-              <Input id="act-attendees" type="number" min={0} dir="ltr" value={form.attendees_count}
-                onChange={(e) => setForm({ ...form, attendees_count: Number(e.target.value) || 0 })} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="act-mode">{ta("fields.attendanceMode")}</Label>
-              <NativeSelect id="act-mode" value={form.attendance_mode}
-                onChange={(e) => setForm({ ...form, attendance_mode: e.target.value })}>
-                <option value="">{t("options.none")}</option>
-                {MODES.map((m) => <option key={m} value={m}>{ta(`modes.${m}`)}</option>)}
-              </NativeSelect>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="act-audience">{ta("fields.targetAudience")}</Label>
-              <Input id="act-audience" value={form.target_audience}
-                onChange={(e) => setForm({ ...form, target_audience: e.target.value })} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="act-organizer">{ta("fields.organizer")}</Label>
-              <Input id="act-organizer" value={form.organizer}
-                onChange={(e) => setForm({ ...form, organizer: e.target.value })} />
-            </div>
-            <div className="space-y-2 md:col-span-2">
-              <Label htmlFor="act-desc">{ta("fields.description")}</Label>
-              <Textarea id="act-desc" value={form.description}
-                onChange={(e) => setForm({ ...form, description: e.target.value })} />
-            </div>
-            <div className="flex gap-2 md:col-span-2">
-              <Button disabled={busy} onClick={save}>{tc("save")}</Button>
-              <Button variant="outline" onClick={() => { setForm(null); setEditingId(null); }}>
-                {tc("cancel")}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+        <ActivityForm
+          form={form}
+          editing={editingId !== null}
+          editingReturned={editingReturned}
+          categories={categories}
+          colleges={colleges}
+          departments={departments}
+          busy={busy}
+          onChange={setForm}
+          onSave={save}
+          onCancel={() => { setForm(null); setEditingId(null); }}
+        />
       )}
 
       <Card>
@@ -295,10 +207,10 @@ function ActivitiesPage() {
               <Input className="ps-10" placeholder={ta("searchPlaceholder")} value={filters.q}
                 onChange={(e) => { setFilters({ ...filters, q: e.target.value }); setPage(1); }} />
             </div>
-            <NativeSelect className="w-auto" value={filters.type}
-              onChange={(e) => { setFilters({ ...filters, type: e.target.value }); setPage(1); }}>
-              <option value="">{ta("allTypes")}</option>
-              {TYPES.map((x) => <option key={x} value={x}>{ta(`types.${x}`)}</option>)}
+            <NativeSelect className="w-auto max-w-64" value={filters.category}
+              onChange={(e) => { setFilters({ ...filters, category: e.target.value }); setPage(1); }}>
+              <option value="">{ta("allCategories")}</option>
+              {ACTIVITY_CATEGORIES.map((x) => <option key={x} value={x}>{ta(`categories.${x}`)}</option>)}
             </NativeSelect>
             <NativeSelect className="w-auto" value={filters.status}
               onChange={(e) => { setFilters({ ...filters, status: e.target.value }); setPage(1); }}>
@@ -310,6 +222,11 @@ function ActivitiesPage() {
               <option value="">{ta("allYears")}</option>
               {yearOptions.map((y) => <option key={y} value={y}>{y}</option>)}
             </NativeSelect>
+            <label className="flex items-center gap-2 text-sm">
+              <input type="checkbox" checked={filters.mine}
+                onChange={(e) => { setFilters({ ...filters, mine: e.target.checked }); setPage(1); }} />
+              {ta("mine")}
+            </label>
           </div>
         </CardHeader>
         <CardContent>
@@ -326,7 +243,7 @@ function ActivitiesPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>{ta("fields.type")}</TableHead>
+                  <TableHead>{ta("fields2.category")}</TableHead>
                   <TableHead>{ta("fields.title")}</TableHead>
                   <TableHead>{t("fields.college")}</TableHead>
                   <TableHead>{ta("fields.date")}</TableHead>
@@ -342,7 +259,7 @@ function ActivitiesPage() {
                     key={a.id}
                     activity={a}
                     viewerIsOwner={hydrated && user?.id === a.created_by}
-                    canEdit={hydrated && user?.id === a.created_by && (a.status === "pending" || a.status === "returned")}
+                    canEdit={hydrated && a.can_edit}
                     canDecide={
                       hydrated && staff && (a.status === "pending" || a.status === "returned") &&
                       (user?.role === "admin" || user?.id !== a.created_by)
@@ -408,11 +325,17 @@ function ActivityRow({ activity: a, viewerIsOwner, canEdit, canDecide, canAnnoun
 
   return (
     <TableRow>
-      <TableCell>{ta(`types.${a.activity_type}`)}</TableCell>
+      <TableCell className="max-w-48">
+        <span className="block font-medium">{ta(`categories.${a.category}`)}</span>
+        {a.category === "workshops" && (
+          <span className="block text-xs text-muted-foreground">{ta(`types.${a.activity_type}`)}</span>
+        )}
+      </TableCell>
       <TableCell className="max-w-xs">
         <span className="block truncate font-medium" title={a.title_ar}>{a.title_ar}</span>
         <span className="block truncate text-xs text-muted-foreground">
           {a.creator_name}{a.presenter ? ` — ${a.presenter}` : ""}
+          {a.category === "infrastructure" ? ` — ${a.item_count ?? ""}` : a.category_detail ? ` — ${a.category_detail}` : ""}
         </span>
       </TableCell>
       <TableCell>{a.college_name ?? "—"}</TableCell>
@@ -459,7 +382,9 @@ function ActivityRow({ activity: a, viewerIsOwner, canEdit, canDecide, canAnnoun
 export default function Page() {
   return (
     <RequireAuth>
-      <ActivitiesPage />
+      <Suspense>
+        <ActivitiesPage />
+      </Suspense>
     </RequireAuth>
   );
 }

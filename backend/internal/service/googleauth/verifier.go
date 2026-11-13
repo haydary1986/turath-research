@@ -95,7 +95,8 @@ func (v *Verifier) Verify(ctx context.Context, raw string) (Identity, error) {
 
 	email := strings.ToLower(strings.TrimSpace(claims.Email))
 	if emailDomain(email) != v.domain || strings.ToLower(claims.HostedDomain) != v.domain {
-		return Identity{}, ErrDomainNotAllowed
+		// The verified email is returned with the error for the login audit only; the caller must not sign it in.
+		return Identity{Email: email}, ErrDomainNotAllowed
 	}
 
 	return Identity{

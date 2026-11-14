@@ -17,6 +17,7 @@ import (
 	"github.com/haydary1986/turath-research/backend/internal/handler"
 	"github.com/haydary1986/turath-research/backend/internal/service/journalcheck"
 	"github.com/haydary1986/turath-research/backend/internal/service/loginaudit"
+	"github.com/haydary1986/turath-research/backend/internal/service/rissync"
 	syncsvc "github.com/haydary1986/turath-research/backend/internal/service/sync"
 )
 
@@ -38,7 +39,14 @@ func Run(cfg *config.Config, db *pgxpool.Pool, rdb *redis.Client) error {
 	// Login events are kept for loginaudit.RetentionDays; older ones go once a day.
 	go loginaudit.RunRetention(refreshCtx, handler.PruneLoginEvents(db), 24*time.Hour, time.Now)
 
-	router := newRouter(cfg, db, rdb, journals, orchestrator, bulkSync)
+	// Two-way profile sync with the RIS: admins can always run it by hand; it also runs on
+	// a schedule once RIS_SYNC_SCHEDULE=on.
+	risEngine := rissync.NewEngine(db, rissync.NewClient(cfg.RIS.URL, cfg.RIS.ServiceKey))
+	if risEngine != nil && cfg.RIS.Schedule {
+		go risEngine.RunSchedule(refreshCtx, cfg.RIS.Interval)
+	}
+
+	router := newRouter(cfg, db, rdb, journals, orchestrator, bulkSync, risEngine)
 
 	srv := &http.Server{
 		Addr:         ":" + cfg.Server.Port,

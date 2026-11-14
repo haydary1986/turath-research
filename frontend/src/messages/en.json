@@ -188,7 +188,8 @@
       "groupTools": "Publishing tools",
       "groupResearch": "Research",
       "groupOutputs": "Letters & reports",
-      "groupAdmin": "Administration"
+      "groupAdmin": "Administration",
+      "risSync": "RIS sync"
     },
     "kinds": {
       "research_plan": "Research plan registration",
@@ -391,7 +392,10 @@
       "email_taken": "A user with this email already exists; find them in the list and change their role",
       "not_allowed": "Not allowed for individual research",
       "mail_disabled": "Notification email is not configured",
-      "mail_send_failed": "The message could not be sent; check the mail server settings."
+      "mail_send_failed": "The message could not be sent; check the mail server settings.",
+      "ris_not_configured": "The RIS connection is not configured",
+      "ris_sync_busy": "A sync is already running; wait for it to finish",
+      "review_not_found": "This difference was already resolved"
     },
     "ui": {
       "newRequest": "Submit a new request",
@@ -1230,6 +1234,83 @@
       "sendTest": "Send test message",
       "sending": "Sending…",
       "sent": "A test message was sent to {to}. Check the inbox (and the spam folder)."
+    },
+    "risSync": {
+      "title": "Sync with the Researcher Information System (RIS)",
+      "intro": "Exchange researcher data between this portal and ris.uoturath.edu.iq in both directions: name, college and department, phone and research profile links. Researchers are matched by university email.",
+      "runsTitle": "Sync runs",
+      "dryRun": "Dry run (no writes)",
+      "apply": "Apply sync",
+      "running": "Running…",
+      "configured": "Connected",
+      "notConfigured": "Not configured",
+      "scheduled": "Automatic every {minutes} min",
+      "manualOnly": "Manual only",
+      "linked": "{count} researchers linked",
+      "openReviews": "{count} differences awaiting you",
+      "hint": "A dry run shows what would change without writing anything. On a researcher's first sync the name and department come from the portal, missing links and phones are filled from either side, and real differences are sent to you.",
+      "noRuns": "No sync has run yet.",
+      "startedAt": "Started",
+      "mode": "Type",
+      "details": "Details",
+      "runFailed": "failed",
+      "modes": {
+        "dry_run": "Dry run",
+        "apply": "Apply"
+      },
+      "counts": {
+        "matched": "Matched",
+        "to_ris": "To RIS",
+        "to_portal": "To portal",
+        "reviews": "To review",
+        "skipped": "Skipped",
+        "failed": "Failed"
+      },
+      "changesTitle": "Run details ({mode})",
+      "field": "Field",
+      "direction": "Direction",
+      "allFields": "All fields",
+      "allDirections": "All directions",
+      "loading": "Loading…",
+      "noChanges": "No changes.",
+      "researcher": "Researcher",
+      "before": "Before",
+      "after": "After",
+      "actions": {
+        "to_ris": "Portal → RIS",
+        "to_portal": "RIS → portal",
+        "review": "To review",
+        "agree": "In agreement"
+      },
+      "notes": {
+        "empty_required": "Not sent: empty, but required in RIS",
+        "department_unmapped": "Department not matched between the systems",
+        "failed": "Write failed",
+        "taken": "The value belongs to another researcher"
+      },
+      "fields": {
+        "name_ar": "Arabic name",
+        "name_en": "English name",
+        "department": "Department",
+        "phone": "Phone",
+        "orcid": "ORCID",
+        "google_scholar": "Google Scholar",
+        "scopus": "Scopus",
+        "researchgate": "ResearchGate",
+        "linkedin": "LinkedIn",
+        "webofscience": "Web of Science"
+      },
+      "reviewsTitle": "Differences awaiting your decision ({count})",
+      "reviewsHint": "The same field holds two different values in the two systems. Choose the right one; it is written to the other side and the field syncs again.",
+      "noReviews": "No pending differences.",
+      "inPortal": "In the portal",
+      "inRIS": "In RIS",
+      "decision": "Decision",
+      "usePortal": "Keep portal",
+      "useRIS": "Take RIS",
+      "takenHint": "The RIS value belongs to another researcher in the portal.",
+      "confirmApply": "Changes will be written to both the portal and RIS. Continue?",
+      "unmapped": "RIS departments with no portal match (their researchers' department is not synced): {names}"
     }
   },
   "notifications": {

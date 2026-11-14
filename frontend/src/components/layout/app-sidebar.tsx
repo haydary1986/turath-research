@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import {
+  ArrowLeftRight,
   LayoutDashboard,
   Users,
   FileText,
@@ -215,6 +216,7 @@ export function AppSidebar() {
               { href: "/portal/users", label: pt("users"), icon: UserCog },
               { href: "/portal/import", label: pt("import"), icon: FileUp },
               { href: "/portal/audit", label: pt("audit"), icon: ShieldCheck },
+              { href: "/portal/ris-sync", label: pt("risSync"), icon: ArrowLeftRight },
             ]
           : []),
       ],

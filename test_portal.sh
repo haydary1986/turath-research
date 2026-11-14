@@ -1021,6 +1021,17 @@ BAD_TOOL=$(echo "$DEPT_SITE" | python3 -c "import sys,json; d=json.load(sys.stdi
 call PUT /site "$SA" "$BAD_TOOL"; expect "a non-https tool link is refused" 422
 grep -q 'id="footer-tools"' "$TMP/dept.html" && grep -q 'href="https://www.scopus.com/sources"' "$TMP/dept.html" && grep -q 'id="footer-colleges"' "$TMP/dept.html" && ok "footer shows research tools and colleges" || bad "footer" "tools or colleges missing"
 
+echo "== RIS sync admin (RIS not configured locally) =="
+call GET /admin/ris-sync "$SA"; expect "scientific affairs cannot open the RIS sync" 403
+call GET /admin/ris-sync "$ADM"; expect "admin reads the RIS sync status" 200
+[ "$(echo "$BODY" | jq_ "d['data']['configured']")" = "False" ] && ok "unconfigured RIS is reported" || bad "ris status" "$BODY"
+call POST /admin/ris-sync/runs "$ADM" '{"mode":"wipe"}'; expect "unknown run mode refused" 422
+call POST /admin/ris-sync/runs "$ADM" '{"mode":"dry_run"}'; expect "a run needs the RIS configured" 409
+call GET /admin/ris-sync/reviews "$ADM"; expect "admin lists sync reviews" 200
+call POST /admin/ris-sync/reviews/00000000-0000-0000-0000-000000000000/resolve "$ADM" '{"use":"both"}'; expect "unknown resolution refused" 422
+call GET /admin/mail "$ADM"; expect "admin reads the mail status" 200
+call POST /admin/mail/test "$ADM" '{"to":"not-an-email"}'; expect "test mail needs a valid address" 422
+
 echo "== publications list filters =="
 call GET "/publications?limit=5" "$RES"; expect "publications list readable" 200
 [ "$(echo "$BODY" | jq_ "all('authors' in p and 'journal_name' in p for p in d['data'])")" = "True" ] && ok "rows carry authors and venue" || bad "row shape" "${BODY:0:300}"

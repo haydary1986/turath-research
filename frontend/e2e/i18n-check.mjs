@@ -56,6 +56,7 @@ const PORTAL_PATHS = [
   "/portal/new/journal_verification",
   "/portal/new/appreciation_letter",
   "/portal/new/title_change",
+  "/portal/ris-sync",
   "/portal/activities",
   "/portal/audit",
   "/portal/import",
@@ -86,7 +87,7 @@ const AR_ALLOWLIST = [
   "PNG", "JPG", "JPEG", "xlsx", "KB", "MB", "Q1", "Q2", "Q3", "Q4",
   "Facebook", "Instagram", "YouTube", "Telegram", "TikTok", "WhatsApp",
   // Names of external sources and terms glossed in parentheses after their Arabic form.
-  "Predatory Journals", "Beall's list", "Retraction Watch Hijacked Journal Checker", "Retraction Watch", "Quartile", "Impact Factor", "07XXXXXXXXX",
+  "Predatory Journals", "Beall's list", "Retraction Watch Hijacked Journal Checker", "Retraction Watch", "RIS", "Quartile", "Impact Factor", "07XXXXXXXXX",
   "Hijacked Journal", "Coverage", "Sources", "Source list", "Master Journal List", "Journal Citation Reports",
   "Elsevier", "Clarivate", "SCIE", "SSCI", "AHCI", "ESCI", "Yahoo", "DeepSeek", "IP",
 ];

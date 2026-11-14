@@ -17,6 +17,7 @@ type Config struct {
 	Scopus   ScopusConfig
 	CrossRef CrossRefConfig
 	OpenAlex OpenAlexConfig
+	RIS      RISConfig
 	BulkSync BulkSyncConfig
 	ORCID    ORCIDConfig
 	Google   GoogleConfig
@@ -71,6 +72,16 @@ type BulkSyncConfig struct {
 type OpenAlexConfig struct {
 	APIKey         string
 	InstitutionROR string
+}
+
+// RISConfig connects to the RIS (ris.uoturath.edu.iq) Supabase for the two-way profile
+// sync. Without URL and key the sync is off. Schedule runs it every Interval when true;
+// otherwise it runs only when an admin starts it.
+type RISConfig struct {
+	URL        string
+	ServiceKey string
+	Schedule   bool
+	Interval   time.Duration
 }
 
 // GoogleConfig enables "Sign in with Google" restricted to one institutional domain.
@@ -137,6 +148,12 @@ func Load() (*Config, error) {
 		OpenAlex: OpenAlexConfig{
 			APIKey:         getEnv("OPENALEX_API_KEY", ""),
 			InstitutionROR: getEnv("UNIVERSITY_ROR", "019vd4365"),
+		},
+		RIS: RISConfig{
+			URL:        getEnv("RIS_API_URL", ""),
+			ServiceKey: getEnv("RIS_SERVICE_KEY", ""),
+			Schedule:   getEnv("RIS_SYNC_SCHEDULE", "off") == "on",
+			Interval:   time.Duration(getEnvInt("RIS_SYNC_INTERVAL_MINUTES", 10)) * time.Minute,
 		},
 		BulkSync: BulkSyncConfig{
 			Delay:      time.Duration(getEnvInt("BULK_SYNC_DELAY_SECONDS", 5)) * time.Second,

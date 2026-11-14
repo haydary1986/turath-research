@@ -19,6 +19,7 @@ import (
 	"github.com/haydary1986/turath-research/backend/internal/service/journalcheck"
 	"github.com/haydary1986/turath-research/backend/internal/service/mailer"
 	"github.com/haydary1986/turath-research/backend/internal/service/presence"
+	"github.com/haydary1986/turath-research/backend/internal/service/rissync"
 	syncsvc "github.com/haydary1986/turath-research/backend/internal/service/sync"
 )
 
@@ -27,7 +28,7 @@ const adminMailTestsPerMin = 5
 
 func NewRouter(cfg *config.Config, db *pgxpool.Pool, rdb *redis.Client, journals *journalcheck.Service) *chi.Mux {
 	orchestrator := syncsvc.NewOrchestrator(db, cfg.CrossRef.Mailto, cfg.OpenAlex.APIKey)
-	return newRouter(cfg, db, rdb, journals, orchestrator, newBulkSync(cfg, db, orchestrator))
+	return newRouter(cfg, db, rdb, journals, orchestrator, newBulkSync(cfg, db, orchestrator), nil)
 }
 
 func newBulkSync(cfg *config.Config, db *pgxpool.Pool, orchestrator *syncsvc.Orchestrator) *syncsvc.BulkRunner {
@@ -37,7 +38,7 @@ func newBulkSync(cfg *config.Config, db *pgxpool.Pool, orchestrator *syncsvc.Orc
 }
 
 func newRouter(cfg *config.Config, db *pgxpool.Pool, rdb *redis.Client, journals *journalcheck.Service,
-	orchestrator *syncsvc.Orchestrator, bulkSync *syncsvc.BulkRunner) *chi.Mux {
+	orchestrator *syncsvc.Orchestrator, bulkSync *syncsvc.BulkRunner, risEngine *rissync.Engine) *chi.Mux {
 	r := chi.NewRouter()
 
 	// ── Global middleware ─────────────────────────
@@ -74,6 +75,7 @@ func newRouter(cfg *config.Config, db *pgxpool.Pool, rdb *redis.Client, journals
 	})
 	portalH := handler.NewPortalHandler(db, cfg.Server.UploadDir, mail, cfg.Server.FrontendURL, journals)
 	adminMailH := handler.NewAdminMailHandler(mail, cfg.Server.FrontendURL)
+	risSyncH := handler.NewAdminRISSyncHandler(db, risEngine, cfg.RIS.Schedule, cfg.RIS.Interval)
 	// Role and organization come from the database (cached ~60 s per user), not the JWT.
 	identities := identity.NewCache(identityLoader(db), identity.DefaultTTL, time.Now)
 	adminUsersH := handler.NewAdminUserHandler(db, identities.Invalidate, cfg.Google.AllowedDomain)
@@ -287,6 +289,11 @@ func newRouter(cfg *config.Config, db *pgxpool.Pool, rdb *redis.Client, journals
 				r.Get("/admin/users", adminUsersH.List)
 				r.Post("/admin/users", adminUsersH.Create)
 				r.Get("/admin/mail", adminMailH.Status)
+				r.Get("/admin/ris-sync", risSyncH.Status)
+				r.Post("/admin/ris-sync/runs", risSyncH.Start)
+				r.Get("/admin/ris-sync/runs/{id}/changes", risSyncH.Changes)
+				r.Get("/admin/ris-sync/reviews", risSyncH.Reviews)
+				r.Post("/admin/ris-sync/reviews/{id}/resolve", risSyncH.Resolve)
 				r.With(middleware.RateLimit(adminMailTestsPerMin, time.Minute)).Post("/admin/mail/test", adminMailH.SendTest)
 				r.Put("/admin/users/{id}", adminUsersH.Update)
 				r.Get("/admin/users/{id}/responsibilities", responsibilityH.List)

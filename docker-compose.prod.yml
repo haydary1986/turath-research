@@ -72,6 +72,11 @@ services:
       SMTP_PASS: ${SMTP_PASS:-}
       SMTP_FROM: ${SMTP_FROM:-}
       SMTP_FROM_NAME: ${SMTP_FROM_NAME:-شعبة الشؤون العلمية — جامعة التراث}
+      # Two-way profile sync with the RIS (ris.uoturath.edu.iq); off unless URL and key are set.
+      RIS_API_URL: ${RIS_API_URL:-}
+      RIS_SERVICE_KEY: ${RIS_SERVICE_KEY:-}
+      RIS_SYNC_SCHEDULE: ${RIS_SYNC_SCHEDULE:-off}
+      RIS_SYNC_INTERVAL_MINUTES: ${RIS_SYNC_INTERVAL_MINUTES:-10}
       RUN_MIGRATIONS: "true"
       UPLOAD_DIR: /data/uploads
       RATE_LIMIT_PER_MIN: ${RATE_LIMIT_PER_MIN:-300}

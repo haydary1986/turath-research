@@ -11,9 +11,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Textarea } from "@/components/portal/form-controls";
-import { CharCount } from "./char-count";
 import { DirectorEditor } from "./director-editor";
+import { BilingualField } from "./bilingual-field";
 import { Field } from "./editor-parts";
 import { FaqEditor } from "./faq-editor";
 import { LinksEditor } from "./links-editor";
@@ -75,6 +74,7 @@ export function SiteContentForm() {
         void save();
       }}
     >
+      <Alert variant="info">{te("bilingual.intro")}</Alert>
       <Tabs defaultValue="content">
         <TabsList>
           <TabsTrigger value="content">{te("tabs.content")}</TabsTrigger>
@@ -88,17 +88,15 @@ export function SiteContentForm() {
               <CardTitle>{tc("hero")}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <Field id="hero_title" label={tc("heroTitle")}>
-                <Input id="hero_title" required maxLength={SITE_LIMITS.heroTitle} value={draft.hero_title} onChange={(e) => update({ hero_title: e.target.value })} />
-              </Field>
-              <Field id="hero_subtitle" label={tc("heroSubtitle")}>
-                <Textarea id="hero_subtitle" rows={2} value={draft.hero_subtitle} onChange={(e) => update({ hero_subtitle: e.target.value })} />
-                <CharCount value={draft.hero_subtitle} max={SITE_LIMITS.heroSubtitle} />
-              </Field>
-              <Field id="about" label={tc("about")} hint={t("formatHint")}>
-                <Textarea id="about" rows={8} value={draft.about} onChange={(e) => update({ about: e.target.value })} />
-                <CharCount value={draft.about} max={SITE_LIMITS.about} />
-              </Field>
+              <BilingualField id="hero_title" label={tc("heroTitle")} required max={SITE_LIMITS.heroTitle}
+                ar={draft.hero_title} en={draft.hero_title_en}
+                onChange={(v) => update({ hero_title: v.ar ?? draft.hero_title, hero_title_en: v.en ?? draft.hero_title_en })} />
+              <BilingualField id="hero_subtitle" label={tc("heroSubtitle")} multiline rows={2} max={SITE_LIMITS.heroSubtitle}
+                ar={draft.hero_subtitle} en={draft.hero_subtitle_en}
+                onChange={(v) => update({ hero_subtitle: v.ar ?? draft.hero_subtitle, hero_subtitle_en: v.en ?? draft.hero_subtitle_en })} />
+              <BilingualField id="about" label={tc("about")} multiline rows={8} max={SITE_LIMITS.about} hint={t("formatHint")}
+                ar={draft.about} en={draft.about_en}
+                onChange={(v) => update({ about: v.ar ?? draft.about, about_en: v.en ?? draft.about_en })} />
             </CardContent>
           </Card>
           <ServicesEditor services={draft.services} onChange={(services) => update({ services })} />
@@ -138,14 +136,12 @@ export function SiteContentForm() {
                 <Input id="contact_phone" type="tel" dir="ltr" maxLength={SITE_LIMITS.phone} value={draft.contact.phone}
                   onChange={(e) => update({ contact: { ...draft.contact, phone: e.target.value } })} />
               </Field>
-              <Field id="contact_location" label={tc("location")}>
-                <Input id="contact_location" maxLength={SITE_LIMITS.location} value={draft.contact.location}
-                  onChange={(e) => update({ contact: { ...draft.contact, location: e.target.value } })} />
-              </Field>
-              <Field id="contact_hours" label={tc("hours")}>
-                <Input id="contact_hours" maxLength={SITE_LIMITS.hours} value={draft.contact.hours}
-                  onChange={(e) => update({ contact: { ...draft.contact, hours: e.target.value } })} />
-              </Field>
+              <BilingualField id="contact_location" label={tc("location")} max={SITE_LIMITS.location} className="sm:col-span-2"
+                ar={draft.contact.location} en={draft.contact.location_en}
+                onChange={(v) => update({ contact: { ...draft.contact, location: v.ar ?? draft.contact.location, location_en: v.en ?? draft.contact.location_en } })} />
+              <BilingualField id="contact_hours" label={tc("hours")} max={SITE_LIMITS.hours} className="sm:col-span-2"
+                ar={draft.contact.hours} en={draft.contact.hours_en}
+                onChange={(v) => update({ contact: { ...draft.contact, hours: v.ar ?? draft.contact.hours, hours_en: v.en ?? draft.contact.hours_en } })} />
             </CardContent>
           </Card>
           <LinksEditor idPrefix="college" title={te("colleges.title")} hint={te("colleges.hint")} addLabel={te("colleges.add")}

@@ -34,6 +34,7 @@ import {
   type RequestDetail,
 } from "@/lib/portal/types";
 import { useAuth } from "@/lib/auth";
+import { Bidi, Ltr } from "@/components/i18n/bidi";
 
 function DetailSkeleton() {
   return (
@@ -115,18 +116,14 @@ function RequestPage() {
           <p className="text-sm text-muted-foreground">
             {t(`kinds.${request.kind}`)}
             {request.request_no && (
-              <span className="ms-2 font-mono text-xs" dir="ltr">
-                {request.request_no}
-              </span>
+              <Ltr className="ms-2 font-mono text-xs">{request.request_no}</Ltr>
             )}
           </p>
-          <h1 className="break-words text-2xl font-bold" dir="auto">
-            {requestTitle(request)}
-          </h1>
+          <Bidi as="h1" block text={requestTitle(request)} className="break-words text-2xl font-bold" />
         </div>
         <div className="flex items-center gap-2">
           {canPrint && (
-            <Button variant="outline" size="sm" render={<Link href={`/portal/requests/${request.id}/print`} />}>
+            <Button variant="outline" size="sm" nativeButton={false} render={<Link href={`/portal/requests/${request.id}/print`} />}>
               <Printer className="size-4" aria-hidden />
               {t("ui.printForm")}
             </Button>
@@ -150,7 +147,7 @@ function RequestPage() {
           <div className="flex flex-wrap items-center justify-between gap-3">
             <span>{t("forms.planSignHint")}</span>
             <div className="flex flex-wrap gap-2">
-              <Button variant="outline" size="sm" render={<Link href={`/portal/requests/${request.id}/print`} />}>
+              <Button variant="outline" size="sm" nativeButton={false} render={<Link href={`/portal/requests/${request.id}/print`} />}>
                 <Printer className="size-4" aria-hidden />
                 {t("forms.downloadFilled")}
               </Button>
@@ -169,7 +166,7 @@ function RequestPage() {
       {request.decision_note && (
         <div className="rounded-lg border-s-4 border-primary bg-muted p-3 text-sm">
           <p className="mb-1 text-xs text-muted-foreground">{t("ui.decisionNote")}</p>
-          <p className="whitespace-pre-line">{request.decision_note}</p>
+          <Bidi as="p" block text={request.decision_note} className="whitespace-pre-line" />
         </div>
       )}
 
@@ -179,7 +176,7 @@ function RequestPage() {
             <CheckCircle2 className="size-5 shrink-0" aria-hidden />
             {t("ui.letterIssuedBanner")}
           </div>
-          <Button size="sm" render={<Link href={`/portal/letters/${detail.letter_id}`} />}>
+          <Button size="sm" nativeButton={false} render={<Link href={`/portal/letters/${detail.letter_id}`} />}>
             {t("ui.viewLetter")}
           </Button>
         </div>
@@ -239,7 +236,7 @@ function RequestPage() {
                   </ul>
                 )}
                 <div className="flex flex-wrap gap-2">
-                  <Button variant="outline" render={<Link href={`/portal/requests/${request.id}/edit`} />}>
+                  <Button variant="outline" nativeButton={false} render={<Link href={`/portal/requests/${request.id}/edit`} />}>
                     {t("ui.edit")}
                   </Button>
                   <Button disabled={submitting || missingRequired.length > 0} onClick={submit}>

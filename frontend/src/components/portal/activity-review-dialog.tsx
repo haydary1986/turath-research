@@ -14,6 +14,7 @@ import { Textarea } from "@/components/portal/form-controls";
 import { usePortalErrors } from "@/components/portal/use-portal-errors";
 import { validateApproval, validateRefusal, type Activity } from "@/lib/portal/activity";
 import { formatDate } from "@/lib/portal/types";
+import { Bidi, Ltr } from "@/components/i18n/bidi";
 
 interface ActivityReviewDialogProps {
   activity: Activity;
@@ -87,10 +88,10 @@ export function ActivityReviewDialog({ activity: a, locale, onClose, onDecided }
         <section aria-labelledby={`details-${a.id}`} className="space-y-3">
           <h3 id={`details-${a.id}`} className="font-semibold">{ta("review.details")}</h3>
           <dl className="grid gap-3 rounded-lg bg-muted/40 p-3 sm:grid-cols-2">
-            <Detail label={ta("fields.title")} wide>{a.title_ar}</Detail>
-            <Detail label={ta("fields.description")} wide>{a.description}</Detail>
-            <Detail label={ta("fields.targetAudience")}>{a.target_audience}</Detail>
-            <Detail label={ta("fields.organizer")}>{a.organizer}</Detail>
+            <Detail label={ta("fields.title")} wide><Bidi block text={a.title_ar} fallback="—" /></Detail>
+            <Detail label={ta("fields.description")} wide><Bidi block text={a.description} fallback="—" /></Detail>
+            <Detail label={ta("fields.targetAudience")}><Bidi block text={a.target_audience} fallback="—" /></Detail>
+            <Detail label={ta("fields.organizer")}><Bidi block text={a.organizer} fallback="—" /></Detail>
             <Detail label={ta("fields.attendanceMode")}>
               {a.attendance_mode ? ta(`modes.${a.attendance_mode}`) : null}
             </Detail>
@@ -98,19 +99,19 @@ export function ActivityReviewDialog({ activity: a, locale, onClose, onDecided }
             {a.category === "infrastructure" ? (
               <Detail label={ta("fields2.itemCount")}>{a.item_count}</Detail>
             ) : (
-              <Detail label={ta(`detailLabels.${a.category}`)}>{a.category_detail}</Detail>
+              <Detail label={ta(`detailLabels.${a.category}`)}><Bidi block text={a.category_detail} fallback="—" /></Detail>
             )}
             {a.category === "workshops" && <Detail label={ta("fields.type")}>{ta(`types.${a.activity_type}`)}</Detail>}
-            <Detail label={ta("fields2.notes")} wide>{a.notes}</Detail>
-            <Detail label={ta("fields.date")}>{formatDate(a.activity_date, locale)}</Detail>
-            <Detail label={ta("fields.location")}>{a.location}</Detail>
-            <Detail label={ta("fields.presenter")}>{a.presenter}</Detail>
+            <Detail label={ta("fields2.notes")} wide><Bidi block text={a.notes} fallback="—" /></Detail>
+            <Detail label={ta("fields.date")}><Ltr>{formatDate(a.activity_date, locale)}</Ltr></Detail>
+            <Detail label={ta("fields.location")}><Bidi block text={a.location} fallback="—" /></Detail>
+            <Detail label={ta("fields.presenter")}><Bidi block text={a.presenter} fallback="—" /></Detail>
             <Detail label={ta("fields.attendees")}>{a.attendees_count}</Detail>
-            <Detail label={t("fields.college")}>{a.college_name}</Detail>
-            <Detail label={t("fields.department")}>{a.department_name}</Detail>
-            <Detail label={ta("fields.registeredBy")} wide>{a.creator_name}</Detail>
+            <Detail label={t("fields.college")}><Bidi block text={a.college_name} fallback="—" /></Detail>
+            <Detail label={t("fields.department")}><Bidi block text={a.department_name} fallback="—" /></Detail>
+            <Detail label={ta("fields.registeredBy")} wide><Bidi block text={a.creator_name} fallback="—" /></Detail>
             {a.decision_note && (
-              <Detail label={ta("review.previousNote")} wide>{a.decision_note}</Detail>
+              <Detail label={ta("review.previousNote")} wide><Bidi block text={a.decision_note} fallback="—" /></Detail>
             )}
           </dl>
         </section>

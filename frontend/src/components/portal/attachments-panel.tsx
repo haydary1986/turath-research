@@ -8,6 +8,7 @@ import { api, fetchObjectUrl } from "@/lib/api";
 import type { Attachment } from "@/lib/portal/types";
 import { usePortalErrors } from "./use-portal-errors";
 import { Alert } from "@/components/ui/alert";
+import { Bidi, Ltr } from "@/components/i18n/bidi";
 
 interface AttachmentsPanelProps {
   requestId: string;
@@ -146,10 +147,8 @@ export function AttachmentsPanel({
                   className="flex min-w-0 items-center gap-2 text-primary hover:underline"
                 >
                   <FileText className="size-4 shrink-0" />
-                  <span className="truncate">{file.original_name}</span>
-                  <span className="shrink-0 text-xs text-muted-foreground">
-                    {formatSize(file.size_bytes)}
-                  </span>
+                  <Bidi text={file.original_name} className="truncate" />
+                  <Ltr className="shrink-0 text-xs text-muted-foreground">{formatSize(file.size_bytes)}</Ltr>
                 </button>
                 {canRemove(file) && (
                   <Button

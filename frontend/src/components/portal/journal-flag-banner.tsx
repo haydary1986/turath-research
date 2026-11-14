@@ -4,6 +4,7 @@ import { useTranslations } from "next-intl";
 import { ShieldAlert, ShieldCheck, ShieldX } from "lucide-react";
 import { FAMILY_TINT, SCREENING_FAMILY } from "@/lib/portal/status";
 import type { JournalFlag } from "@/lib/portal/types";
+import { Bidi } from "@/components/i18n/bidi";
 
 const ICONS: Record<string, typeof ShieldX> = {
   predatory: ShieldX,
@@ -32,9 +33,9 @@ export function JournalFlagBanner({ flag }: { flag?: JournalFlag | null }) {
       <Icon className="mt-0.5 size-5 shrink-0" aria-hidden />
       <div className="min-w-0">
         <p className="font-semibold">
-          {t(`flag.${flag.classification}`)}: <span dir="auto">{flag.name}</span>
+          {t(`flag.${flag.classification}`)}: <Bidi text={flag.name} />
         </p>
-        {flag.note && <p className="mt-1 whitespace-pre-line">{flag.note}</p>}
+        <Bidi as="p" block text={flag.note} className="mt-1 whitespace-pre-line" />
         <p className="mt-1 text-xs opacity-80">{t("flag.hint")}</p>
       </div>
     </div>

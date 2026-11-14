@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/table";
 import { formatDate, requestTitle, type PortalRequest } from "@/lib/portal/types";
 import { StatusBadge } from "./status-badge";
+import { Bidi, Ltr } from "@/components/i18n/bidi";
 
 interface RequestsTableProps {
   items: PortalRequest[];
@@ -41,21 +42,25 @@ export function RequestsTable({ items, locale, showApplicant = false }: Requests
       <TableBody>
         {items.map((r) => (
           <TableRow key={r.id}>
-            <TableCell dir="ltr" className="whitespace-nowrap">
+            <TableCell className="whitespace-nowrap">
               <Link href={`/portal/requests/${r.id}`} className="font-medium text-primary hover:underline">
-                {r.request_no ?? "—"}
+                <Ltr>{r.request_no ?? "—"}</Ltr>
               </Link>
             </TableCell>
             <TableCell>{t(`kinds.${r.kind}`)}</TableCell>
-            <TableCell className="max-w-xs truncate" dir="auto" title={requestTitle(r)}>
-              {requestTitle(r)}
+            <TableCell className="max-w-xs">
+              <Bidi block text={requestTitle(r)} title={requestTitle(r)} className="truncate" />
             </TableCell>
-            {showApplicant && <TableCell>{r.applicant_name}</TableCell>}
+            {showApplicant && (
+              <TableCell>
+                <Bidi block text={r.applicant_name} />
+              </TableCell>
+            )}
             <TableCell>
               <StatusBadge status={r.status} />
             </TableCell>
-            <TableCell dir="ltr" className="whitespace-nowrap">
-              {formatDate(r.submitted_at ?? r.created_at, locale)}
+            <TableCell className="whitespace-nowrap">
+              <Ltr>{formatDate(r.submitted_at ?? r.created_at, locale)}</Ltr>
             </TableCell>
           </TableRow>
         ))}

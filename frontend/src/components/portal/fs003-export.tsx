@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { FileSpreadsheet } from "lucide-react";
 import { downloadFile } from "@/lib/api";
 import { Alert } from "@/components/ui/alert";
@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { NativeSelect } from "@/components/portal/form-controls";
 import { fs003Filename } from "@/lib/portal/activity";
 import type { Org } from "@/lib/portal/types";
+import { DataOption } from "@/components/i18n/data-option";
 
 /** The current Baghdad month as [first day, last day] in YYYY-MM-DD. */
 function currentMonth(): [string, string] {
@@ -30,6 +31,7 @@ interface FS003ExportProps {
 /** Downloads the ministry form FS 003 for a period, optionally for one college. */
 export function FS003Export({ colleges, onClose }: FS003ExportProps) {
   const t = useTranslations("portal");
+  const locale = useLocale();
   const tf = useTranslations("portal.activities.fs003");
   const errors = useTranslations("portal.errors");
   const tc = useTranslations("common");
@@ -83,7 +85,7 @@ export function FS003Export({ colleges, onClose }: FS003ExportProps) {
             <Label htmlFor="fs-college">{t("fields.college")}</Label>
             <NativeSelect id="fs-college" value={collegeId} onChange={(e) => setCollegeId(e.target.value)}>
               <option value="">{tf("allColleges")}</option>
-              {colleges.map((c) => <option key={c.id} value={c.id}>{c.name_ar}</option>)}
+              {colleges.map((c) => <DataOption key={c.id} value={c.id} ar={c.name_ar} en={c.name_en} locale={locale} />)}
             </NativeSelect>
           </div>
           <div className="space-y-2">

@@ -3,10 +3,10 @@
 import { useTranslations } from "next-intl";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { NativeSelect, Textarea } from "@/components/portal/form-controls";
+import { NativeSelect } from "@/components/portal/form-controls";
 import { ServiceIcon } from "@/components/site/service-icon";
 import { SERVICE_ICONS, SITE_LIMITS, isSafeServiceLink, type SiteService } from "@/lib/site/types";
-import { CharCount } from "./char-count";
+import { BilingualField } from "./bilingual-field";
 import { Field, ListHeader, RowControls, move, removeAt, replaceAt } from "./editor-parts";
 
 interface ServicesEditorProps {
@@ -26,7 +26,7 @@ export function ServicesEditor({ services, onChange }: ServicesEditorProps) {
         title={tc("services")}
         addLabel={tc("addService")}
         canAdd={services.length < SITE_LIMITS.services}
-        onAdd={() => onChange([...services, { title: "", description: "", icon: "", link: "" }])}
+        onAdd={() => onChange([...services, { title: "", title_en: "", description: "", description_en: "", icon: "", link: "" }])}
       />
       <CardContent className="space-y-3">
         {services.map((service, i) => {
@@ -38,20 +38,15 @@ export function ServicesEditor({ services, onChange }: ServicesEditorProps) {
                 <span className="mt-6 flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground" aria-hidden>
                   <ServiceIcon name={service.icon} className="size-5" />
                 </span>
-                <div className="flex-1">
-                  <Field id={`service_title_${i}`} label={tc("serviceTitle")}>
-                    <Input id={`service_title_${i}`} required maxLength={SITE_LIMITS.serviceTitle} value={service.title}
-                      onChange={(e) => set(i, { title: e.target.value })} />
-                  </Field>
-                </div>
+                <BilingualField id={`service_title_${i}`} label={tc("serviceTitle")} required max={SITE_LIMITS.serviceTitle}
+                  className="flex-1" ar={service.title} en={service.title_en}
+                  onChange={(v) => set(i, { title: v.ar ?? service.title, title_en: v.en ?? service.title_en })} />
                 <RowControls index={i} count={services.length}
                   onMove={(to) => onChange(move(services, i, to))} onRemove={() => onChange(removeAt(services, i))} />
               </div>
-              <Field id={`service_desc_${i}`} label={tc("serviceDescription")}>
-                <Textarea id={`service_desc_${i}`} rows={2} value={service.description}
-                  onChange={(e) => set(i, { description: e.target.value })} />
-                <CharCount value={service.description} max={SITE_LIMITS.serviceDescription} />
-              </Field>
+              <BilingualField id={`service_desc_${i}`} label={tc("serviceDescription")} multiline rows={2}
+                max={SITE_LIMITS.serviceDescription} ar={service.description} en={service.description_en}
+                onChange={(v) => set(i, { description: v.ar ?? service.description, description_en: v.en ?? service.description_en })} />
               <div className="grid gap-3 sm:grid-cols-[12rem_1fr]">
                 <Field id={`service_icon_${i}`} label={te("serviceIcon")}>
                   <NativeSelect id={`service_icon_${i}`} value={service.icon} onChange={(e) => set(i, { icon: e.target.value })}>

@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { FileUp, Paperclip, Trash2 } from "lucide-react";
 import { api, downloadFile } from "@/lib/api";
 import {
+  ANNOUNCEMENT_LANGS,
   ANNOUNCEMENT_TYPES,
   SITE_LIMITS,
   type AnnouncementInput,
@@ -16,14 +17,17 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { NativeSelect, Textarea } from "@/components/portal/form-controls";
+import { Bidi } from "@/components/i18n/bidi";
+import { dirOf } from "@/lib/i18n/text-lang";
 import { CharCount } from "./char-count";
 import { useSiteErrors } from "./use-site-errors";
 
-const EMPTY: AnnouncementInput = { type: "circular", title: "", body: "", event_date: "", reference_no: "" };
+const EMPTY: AnnouncementInput = { type: "circular", lang: "ar", title: "", body: "", event_date: "", reference_no: "" };
 
 function toInput(a: StaffAnnouncement): AnnouncementInput {
   return {
     type: a.type,
+    lang: a.lang ?? "ar",
     title: a.title,
     body: a.body,
     event_date: a.event_date ?? "",
@@ -105,7 +109,7 @@ export function AnnouncementEditor({ announcement, onSaved, onClose }: Announcem
             void save();
           }}
         >
-          <div className="grid gap-4 sm:grid-cols-[12rem_1fr]">
+          <div className="grid gap-4 sm:grid-cols-[12rem_12rem_1fr]">
             <div className="space-y-1.5">
               <Label htmlFor="ann_type">{t("type")}</Label>
               <NativeSelect id="ann_type" className="h-9" value={form.type} onChange={(e) => set({ type: e.target.value as AnnouncementInput["type"] })}>
@@ -113,9 +117,18 @@ export function AnnouncementEditor({ announcement, onSaved, onClose }: Announcem
               </NativeSelect>
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="ann_title">{t("title")}</Label>
-              <Input id="ann_title" required maxLength={SITE_LIMITS.title} value={form.title} onChange={(e) => set({ title: e.target.value })} />
+              <Label htmlFor="ann_lang">{t("lang")}</Label>
+              <NativeSelect id="ann_lang" className="h-9" aria-describedby="ann_lang_hint" value={form.lang}
+                onChange={(e) => set({ lang: e.target.value as AnnouncementInput["lang"] })}>
+                {ANNOUNCEMENT_LANGS.map((lang) => <option key={lang} value={lang}>{t(`langs.${lang}`)}</option>)}
+              </NativeSelect>
             </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="ann_title">{t("title")}</Label>
+              <Input id="ann_title" required lang={form.lang} dir={dirOf(form.lang)} maxLength={SITE_LIMITS.title} value={form.title}
+                onChange={(e) => set({ title: e.target.value })} />
+            </div>
+            <p id="ann_lang_hint" className="text-xs text-muted-foreground sm:col-span-3">{t("langHint")}</p>
           </div>
           {form.type === "circular" ? (
             <div className="space-y-1.5 sm:max-w-xs">
@@ -130,7 +143,7 @@ export function AnnouncementEditor({ announcement, onSaved, onClose }: Announcem
           )}
           <div className="space-y-1.5">
             <Label htmlFor="ann_body">{t("body")}</Label>
-            <Textarea id="ann_body" rows={10} aria-describedby="ann_body_hint" value={form.body} onChange={(e) => set({ body: e.target.value })} />
+            <Textarea id="ann_body" rows={10} lang={form.lang} dir={dirOf(form.lang)} aria-describedby="ann_body_hint" value={form.body} onChange={(e) => set({ body: e.target.value })} />
             <p id="ann_body_hint" className="text-xs text-muted-foreground">{ts("formatHint")}</p>
             <CharCount value={form.body} max={SITE_LIMITS.body} />
           </div>
@@ -148,7 +161,7 @@ export function AnnouncementEditor({ announcement, onSaved, onClose }: Announcem
                     onClick={() => current.attachment && downloadFile(`/api/v1/portal/files/${current.attachment.id}`, current.attachment.name)}
                   >
                     <Paperclip className="size-4 shrink-0" aria-hidden />
-                    <span className="truncate" dir="auto">{current.attachment.name}</span>
+                    <Bidi text={current.attachment.name} className="truncate" />
                   </button>
                 )}
                 <input

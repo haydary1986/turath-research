@@ -6,9 +6,16 @@ export type AnnouncementType = (typeof ANNOUNCEMENT_TYPES)[number];
 export const SERVICE_ICONS = ["research", "verify", "award", "calendar", "search", "shield", "file", "users", "book", "chart"] as const;
 export type ServiceIcon = (typeof SERVICE_ICONS)[number];
 
+/**
+ * Every visible text of the landing-page document has an optional English
+ * counterpart (the *_en fields). Arabic is the primary language: pages fall back to
+ * it when the English value is empty (see lib/i18n/text-lang.ts pickLocalized).
+ */
 export interface SiteService {
   title: string;
+  title_en: string;
   description: string;
+  description_en: string;
   /** A key of SERVICE_ICONS, or "" for the default icon. */
   icon: string;
   /** A site-relative path under /portal, /journals or /news, or "". */
@@ -22,15 +29,20 @@ export type StatKey = (typeof STAT_KEYS)[number];
 export interface StatSetting {
   key: StatKey;
   label: string;
+  label_en: string;
   value: string;
   hidden: boolean;
 }
 
 export interface SiteDirector {
   title: string;
+  title_en: string;
   name: string;
+  name_en: string;
   position: string;
+  position_en: string;
   message: string;
+  message_en: string;
   /** Managed by the photo endpoints; "" when there is no photo. */
   photo_id: string;
 }
@@ -45,25 +57,33 @@ export interface SiteSocial {
 
 export interface SiteFAQItem {
   question: string;
+  question_en: string;
   answer: string;
+  answer_en: string;
 }
 
 export interface SiteContact {
   email: string;
   phone: string;
   location: string;
+  location_en: string;
   hours: string;
+  hours_en: string;
 }
 
 export interface SiteLink {
   label: string;
+  label_en: string;
   url: string;
 }
 
 export interface SiteContent {
   hero_title: string;
+  hero_title_en: string;
   hero_subtitle: string;
+  hero_subtitle_en: string;
   about: string;
+  about_en: string;
   services: SiteService[];
   contact: SiteContact;
   links: SiteLink[];
@@ -80,6 +100,7 @@ export interface SiteContent {
 export interface PublicStat {
   key: StatKey;
   label: string;
+  label_en: string;
   value: string;
   number: number | null;
 }
@@ -112,9 +133,14 @@ export interface AnnouncementAttachment {
   size_bytes: number;
 }
 
+export const ANNOUNCEMENT_LANGS = ["ar", "en"] as const;
+export type AnnouncementLang = (typeof ANNOUNCEMENT_LANGS)[number];
+
 export interface PublicAnnouncement {
   id: string;
   type: AnnouncementType;
+  /** The language the announcement is written in (never machine-translated). */
+  lang: AnnouncementLang;
   title: string;
   body: string;
   event_date: string | null;
@@ -133,6 +159,7 @@ export interface StaffAnnouncement extends PublicAnnouncement {
 
 export interface AnnouncementInput {
   type: AnnouncementType;
+  lang: AnnouncementLang;
   title: string;
   body: string;
   event_date: string;

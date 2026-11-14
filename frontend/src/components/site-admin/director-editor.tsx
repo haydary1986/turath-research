@@ -8,10 +8,7 @@ import { PUBLIC_API, SITE_ADMIN_API, SITE_LIMITS, type SiteContent, type SiteDir
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/portal/form-controls";
-import { CharCount } from "./char-count";
-import { Field } from "./editor-parts";
+import { BilingualField } from "./bilingual-field";
 import { useSiteErrors } from "./use-site-errors";
 
 interface DirectorEditorProps {
@@ -60,22 +57,18 @@ export function DirectorEditor({ director, onChange }: DirectorEditorProps) {
         <p className="text-sm text-muted-foreground">{t("hint")}</p>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Field id="director_title" label={t("blockTitle")}>
-            <Input id="director_title" maxLength={SITE_LIMITS.directorTitle} value={director.title} onChange={(e) => set({ title: e.target.value })} />
-          </Field>
-          <Field id="director_name" label={t("name")}>
-            <Input id="director_name" maxLength={SITE_LIMITS.directorName} value={director.name} onChange={(e) => set({ name: e.target.value })} />
-          </Field>
-          <Field id="director_position" label={t("position")}>
-            <Input id="director_position" maxLength={SITE_LIMITS.directorPosition} value={director.position}
-              onChange={(e) => set({ position: e.target.value })} />
-          </Field>
-        </div>
-        <Field id="director_message" label={t("message")} hint={tp("formatHint")}>
-          <Textarea id="director_message" rows={6} value={director.message} onChange={(e) => set({ message: e.target.value })} />
-          <CharCount value={director.message} max={SITE_LIMITS.directorMessage} />
-        </Field>
+        <BilingualField id="director_title" label={t("blockTitle")} max={SITE_LIMITS.directorTitle}
+          ar={director.title} en={director.title_en}
+          onChange={(v) => set({ title: v.ar ?? director.title, title_en: v.en ?? director.title_en })} />
+        <BilingualField id="director_name" label={t("name")} max={SITE_LIMITS.directorName}
+          ar={director.name} en={director.name_en}
+          onChange={(v) => set({ name: v.ar ?? director.name, name_en: v.en ?? director.name_en })} />
+        <BilingualField id="director_position" label={t("position")} max={SITE_LIMITS.directorPosition}
+          ar={director.position} en={director.position_en}
+          onChange={(v) => set({ position: v.ar ?? director.position, position_en: v.en ?? director.position_en })} />
+        <BilingualField id="director_message" label={t("message")} multiline rows={6} max={SITE_LIMITS.directorMessage}
+          hint={tp("formatHint")} ar={director.message} en={director.message_en}
+          onChange={(v) => set({ message: v.ar ?? director.message, message_en: v.en ?? director.message_en })} />
 
         <div className="flex flex-wrap items-center gap-4 rounded-lg border p-3">
           {director.photo_id ? (

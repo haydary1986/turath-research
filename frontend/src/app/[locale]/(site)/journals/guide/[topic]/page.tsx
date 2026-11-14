@@ -55,11 +55,11 @@ export default async function TopicPage({ params }: Props) {
         <ArticleBody article={article} tocLabel={t("guide.onThisPage")} />
       </div>
       <div className="mt-10 flex flex-wrap items-center gap-3 rounded-xl border bg-muted/40 p-4">
-        <Button render={<Link href={JOURNAL_PATHS.check} />}>
+        <Button nativeButton={false} render={<Link href={JOURNAL_PATHS.check} />}>
           <SearchCheck className="size-4" aria-hidden />
           {t("crumbs.check")}
         </Button>
-        <Button variant="outline" render={<Link href={JOURNAL_PATHS.list} />}>{t("crumbs.list")}</Button>
+        <Button variant="outline" nativeButton={false} render={<Link href={JOURNAL_PATHS.list} />}>{t("crumbs.list")}</Button>
       </div>
       <Alert variant="warning" className="mt-6">{t("checkPage.advisory")}</Alert>
       <JournalLinks locale={locale} current={path} heading={t("guide.topicsTitle")} />

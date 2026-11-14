@@ -30,3 +30,18 @@ export const SAMPLE_LETTER_VARS: Record<LetterPlaceholder, string> = {
   quartile: "Q1",
   publication_date: "15/03/2024",
 };
+
+/**
+ * Labels printed on the appreciation letter. The letter is an official Arabic
+ * document laid out right-to-left on the university letterhead, so it reads the same
+ * whatever language the portal is shown in.
+ */
+export const LETTER_LABELS_AR = {
+  number: "العدد",
+  date: "التاريخ",
+  to: "الى",
+  college: "الكلية",
+  department: "القسم",
+  verifyAt: "للتحقق من صحة الكتاب",
+  internalNo: "رقم التحقق الداخلي",
+} as const;

@@ -124,7 +124,7 @@ function Dashboard() {
             </CardTitle>
             {inboxTotal > 0 && (
               <Button variant="outline" size="sm"
-                render={<Link href="/portal/requests?queue=true" />}>
+                nativeButton={false} render={<Link href="/portal/requests?queue=true" />}>
                 {t("ui.viewAll")}
               </Button>
             )}
@@ -162,7 +162,7 @@ function Dashboard() {
                     <b className="tabular-nums text-foreground">{kindCount(kind, OPEN_STATUSES)}</b>
                   </span>
                 </div>
-                <Button className="w-full" render={<Link href={`/portal/new/${kind}`} />}>
+                <Button className="w-full" nativeButton={false} render={<Link href={`/portal/new/${kind}`} />}>
                   <span>{t("ui.newRequest")}</span>
                   <ArrowLeft className="size-4 ltr:rotate-180" aria-hidden />
                 </Button>
@@ -175,7 +175,7 @@ function Dashboard() {
       <Card>
         <CardHeader className="flex-row items-center justify-between">
           <CardTitle>{t("ui.myRequests")}</CardTitle>
-          <Button variant="outline" size="sm" render={<Link href="/portal/requests" />}>
+          <Button variant="outline" size="sm" nativeButton={false} render={<Link href="/portal/requests" />}>
             {t("ui.allRequests")}
           </Button>
         </CardHeader>

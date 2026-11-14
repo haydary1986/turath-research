@@ -6,6 +6,7 @@ import { FAMILY_TINT } from "@/lib/portal/status";
 import { formatDate } from "@/lib/portal/types";
 import type { AnnouncementType, PublicAnnouncement } from "@/lib/site/types";
 import { cn } from "@/lib/utils";
+import { Bidi } from "@/components/i18n/bidi";
 
 const TYPE_TINT: Record<AnnouncementType, string> = {
   circular: FAMILY_TINT.danger,
@@ -37,7 +38,7 @@ export function AnnouncementMeta({ item, className }: { item: PublicAnnouncement
       {item.reference_no && (
         <span className="inline-flex items-center gap-1">
           <Hash className="size-3.5" aria-hidden />
-          {t("circularNo", { no: item.reference_no })}
+          {t.rich("circularNo", { no: item.reference_no, ref: () => <Bidi text={item.reference_no} /> })}
         </span>
       )}
       {item.event_date && (

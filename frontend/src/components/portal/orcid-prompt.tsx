@@ -36,7 +36,7 @@ export function OrcidPrompt() {
             <p className="text-sm text-muted-foreground">{t("promptBody")}</p>
           </div>
         </div>
-        <Button render={<Link href="/portal/profile" />}>{t("promptAction")}</Button>
+        <Button nativeButton={false} render={<Link href="/portal/profile" />}>{t("promptAction")}</Button>
       </CardContent>
     </Card>
   );

@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { api } from "@/lib/api";
 import { Users, FileText, Quote, TrendingUp, GraduationCap, BarChart3 } from "lucide-react";
+import { Bidi } from "@/components/i18n/bidi";
 
 interface KPIs {
   total_researchers: number;
@@ -145,16 +146,14 @@ export default function DashboardPage() {
                         {i + 1}
                       </span>
                       <div>
-                        <p className="text-sm font-medium">{r.name_ar}</p>
-                        {r.name_en && (
-                          <p className="text-xs text-muted-foreground">{r.name_en}</p>
-                        )}
+                        <Bidi as="p" block text={r.name_ar} className="text-sm font-medium" />
+                        <Bidi as="p" block text={r.name_en} className="text-xs text-muted-foreground" />
                       </div>
                     </div>
                     <div className="flex gap-4 text-xs text-muted-foreground">
-                      <span>h:{r.h_index}</span>
-                      <span>{r.total_citations} cit</span>
-                      <span>{r.total_publications} pub</span>
+                      <span>{t("metrics.hIndex", { value: r.h_index })}</span>
+                      <span>{t("metrics.citations", { count: r.total_citations })}</span>
+                      <span>{t("metrics.publications", { count: r.total_publications })}</span>
                     </div>
                   </div>
                 ))}
@@ -196,9 +195,9 @@ function RecentPublications() {
     <div className="space-y-3">
       {pubs.map((p) => (
         <div key={p.id} className="flex items-start justify-between gap-2">
-          <p className="text-sm line-clamp-2">{p.title_ar || p.title_en || "—"}</p>
+          <Bidi as="p" block text={p.title_ar || p.title_en} className="text-sm line-clamp-2" fallback="—" />
           <span className="shrink-0 text-xs text-muted-foreground">
-            {p.citation_count} cit
+            {dt("metrics.citations", { count: p.citation_count })}
           </span>
         </div>
       ))}

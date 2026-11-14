@@ -21,6 +21,8 @@ import { usePortalErrors } from "@/components/portal/use-portal-errors";
 import { Alert } from "@/components/ui/alert";
 import { FAMILY_TINT, SCREENING_FAMILY } from "@/lib/portal/status";
 import { isStaffRole } from "@/lib/portal/types";
+import { Bidi, Ltr } from "@/components/i18n/bidi";
+import { bidiProps } from "@/components/i18n/bidi";
 
 const CLASSES = ["accredited", "predatory", "suspended"] as const;
 type Classification = (typeof CLASSES)[number];
@@ -153,7 +155,7 @@ function JournalsPage() {
           <p className="text-sm text-muted-foreground">{tj("manual.description")}</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button variant="outline" render={<Link href="/portal/journal-check" />}>
+          <Button variant="outline" nativeButton={false} render={<Link href="/portal/journal-check" />}>
             <SearchCheck className="size-4" />
             <span>{tj("check.title")}</span>
           </Button>
@@ -280,26 +282,25 @@ function JournalsPage() {
                       <TableCell className="max-w-xs">
                         <button type="button" className="block max-w-full truncate text-start font-medium hover:underline"
                           title={entry.name}
+                          {...bidiProps(entry.name)}
                           onClick={() => setForm({
                             id: entry.id, issn: entry.issn ?? "", name: entry.name,
                             publisher: entry.publisher ?? "", classification: entry.classification,
                             note: entry.note ?? "", source: entry.source ?? "",
                           })}>
-                          {entry.name}
+                          <Bidi text={entry.name} />
                         </button>
-                        {entry.note && (
-                          <span className="block truncate text-xs text-muted-foreground" title={entry.note}>{entry.note}</span>
-                        )}
+                        <Bidi block text={entry.note} title={entry.note ?? undefined} className="truncate text-xs text-muted-foreground" />
                       </TableCell>
-                      <TableCell><span dir="ltr">{entry.issn ?? "—"}</span></TableCell>
-                      <TableCell>{entry.publisher ?? "—"}</TableCell>
+                      <TableCell><Ltr>{entry.issn ?? "—"}</Ltr></TableCell>
+                      <TableCell><Bidi block text={entry.publisher} fallback="—" /></TableCell>
                       <TableCell>
                         <Badge variant="secondary" className={CLASS_STYLE[entry.classification].badge}>
                           <Icon className="size-3" />
                           {tj(`classes.${entry.classification}`)}
                         </Badge>
                       </TableCell>
-                      <TableCell className="max-w-40 truncate" title={entry.source ?? ""}>{entry.source ?? "—"}</TableCell>
+                      <TableCell className="max-w-40"><Bidi block text={entry.source} title={entry.source ?? ""} className="truncate" fallback="—" /></TableCell>
                       <TableCell>
                         <Button variant="ghost" size="icon-sm" aria-label={t("ui.remove")}
                           onClick={() => remove(entry.id)}>
@@ -327,7 +328,7 @@ function StaffOnly() {
     <Card className="mx-auto max-w-md">
       <CardContent className="space-y-4 py-8 text-center">
         <p>{tj("staffOnly")}</p>
-        <Button render={<Link href="/portal/journal-check" />}>{tj("check.title")}</Button>
+        <Button nativeButton={false} render={<Link href="/portal/journal-check" />}>{tj("check.title")}</Button>
       </CardContent>
     </Card>
   );

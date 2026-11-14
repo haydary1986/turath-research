@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { NativeSelect } from "@/components/portal/form-controls";
 import { AnnouncementTypeBadge } from "@/components/site/announcement-meta";
+import { Bidi } from "@/components/i18n/bidi";
 import { AnnouncementEditor } from "./announcement-editor";
 import { useSiteErrors } from "./use-site-errors";
 
@@ -152,13 +153,14 @@ export function AnnouncementsManager({ initialEditId }: { initialEditId?: string
                 {a.pinned && <span className="inline-flex items-center gap-1 font-medium text-accent"><Pin className="size-3.5" aria-hidden />{t("pinned")}</span>}
                 {a.attachment && <Paperclip className="size-3.5 text-muted-foreground" aria-label={t("attachment")} />}
                 {a.activity_id && <span className="text-muted-foreground">{t("fromActivity")}</span>}
+                <span className="rounded-full bg-muted px-2 py-0.5 text-muted-foreground">{t(`langs.${a.lang ?? "ar"}`)}</span>
                 <span className="text-muted-foreground">
                   {a.published && a.published_at
                     ? t("publishedAt", { date: formatDate(a.published_at, locale) })
                     : t("createdAt", { date: formatDate(a.created_at, locale) })}
                 </span>
               </div>
-              <p className="mt-1.5 font-semibold">{a.title}</p>
+              <Bidi as="p" block text={a.title} lang={a.lang} className="mt-1.5 font-semibold" />
               <div className="mt-2 flex flex-wrap gap-1.5">
                 <Button size="xs" variant="outline" onClick={() => setEditing(a)}>{t("edit")}</Button>
                 <Button size="xs" variant={a.published ? "outline" : "default"} disabled={busyId === a.id} onClick={() => togglePublish(a)}>
@@ -168,7 +170,7 @@ export function AnnouncementsManager({ initialEditId }: { initialEditId?: string
                   {a.pinned ? t("unpin") : t("pin")}
                 </Button>
                 {a.published && (
-                  <Button size="xs" variant="ghost" render={<Link href={`/news/${a.id}`} target="_blank" />}>
+                  <Button size="xs" variant="ghost" nativeButton={false} render={<Link href={`/news/${a.id}`} target="_blank" />}>
                     <ExternalLink aria-hidden />
                     {t("view")}
                   </Button>

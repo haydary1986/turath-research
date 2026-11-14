@@ -17,15 +17,15 @@ export async function JournalsPromo({ locale }: { locale: string }) {
           <h2 id="journals-promo-title" className="text-xl font-bold text-primary md:text-2xl">{t("title")}</h2>
           <p className="mt-2 max-w-3xl leading-relaxed text-muted-foreground">{t("body")}</p>
           <div className="mt-4 flex flex-wrap gap-2">
-            <Button render={<Link href={JOURNAL_PATHS.check} />}>
+            <Button nativeButton={false} render={<Link href={JOURNAL_PATHS.check} />}>
               <SearchCheck className="size-4" aria-hidden />
               {t("checkCta")}
             </Button>
-            <Button variant="outline" render={<Link href={JOURNAL_PATHS.guide} />}>
+            <Button variant="outline" nativeButton={false} render={<Link href={JOURNAL_PATHS.guide} />}>
               <ShieldAlert className="size-4" aria-hidden />
               {t("guideCta")}
             </Button>
-            <Button variant="ghost" render={<Link href={JOURNAL_PATHS.list} />}>
+            <Button variant="ghost" nativeButton={false} render={<Link href={JOURNAL_PATHS.list} />}>
               <ListChecks className="size-4" aria-hidden />
               {t("listCta")}
             </Button>

@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatDate } from "@/lib/portal/types";
 import { cn } from "@/lib/utils";
+import { Bidi, Ltr } from "@/components/i18n/bidi";
 
 const LIST_TYPES = ["predatory_journal", "predatory_publisher", "hijacked"] as const;
 type ListType = (typeof LIST_TYPES)[number];
@@ -131,23 +132,23 @@ export function PredatoryListBrowser({ endpoints = PORTAL_JOURNAL_ENDPOINTS }: {
         <ul className="divide-y rounded-lg border">
           {items.map((e, i) => (
             <li key={e.slug ?? `${e.name}-${i}`} className="space-y-1 p-3 text-sm">
-              <p className="font-medium" dir="ltr">
+              <p className="font-medium">
                 {e.slug ? (
                   <Link href={JOURNAL_PATHS.entry(e.slug)} className="text-primary hover:text-accent hover:underline">
-                    {e.name}
+                    <Bidi text={e.name} />
                   </Link>
                 ) : (
-                  e.name
+                  <Bidi text={e.name} />
                 )}
               </p>
               {listedHosts(e) && (
-                <p className="text-xs text-muted-foreground" dir="ltr">
+                <p className="text-xs text-muted-foreground">
                   {type === "hijacked" ? `${t("fakeSite")}: ` : ""}
-                  <span className={cn(type === "hijacked" && "text-status-danger-fg")}>{listedHosts(e)}</span>
+                  <Ltr className={cn(type === "hijacked" && "text-status-danger-fg")}>{listedHosts(e)}</Ltr>
                 </p>
               )}
               {type === "hijacked" && (e.authentic_name || e.authentic_url) && (
-                <p className="text-xs" dir="ltr">
+                <p className="text-xs">
                   {t("authentic")}:{" "}
                   {e.authentic_url ? (
                     <a
@@ -156,10 +157,10 @@ export function PredatoryListBrowser({ endpoints = PORTAL_JOURNAL_ENDPOINTS }: {
                       rel="noopener noreferrer nofollow"
                       className="text-status-success-fg hover:underline"
                     >
-                      {e.authentic_name || hostOf(e.authentic_url)}
+                      <Bidi text={e.authentic_name || hostOf(e.authentic_url)} />
                     </a>
                   ) : (
-                    e.authentic_name
+                    <Bidi text={e.authentic_name} />
                   )}
                 </p>
               )}

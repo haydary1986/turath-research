@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { api } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -21,6 +21,8 @@ import { RequireAuth } from "@/components/portal/require-auth";
 import { usePortalErrors } from "@/components/portal/use-portal-errors";
 import type { Org } from "@/lib/portal/types";
 import { Alert } from "@/components/ui/alert";
+import { DataOption } from "@/components/i18n/data-option";
+import { Bidi, Ltr } from "@/components/i18n/bidi";
 
 interface AdminUser {
   id: string;
@@ -39,6 +41,7 @@ const ROLES = [
 
 function Users() {
   const t = useTranslations("portal");
+  const locale = useLocale();
   const tr = useTranslations("portal.responsibilities");
   const toMessage = usePortalErrors();
   const [users, setUsers] = useState<AdminUser[]>([]);
@@ -129,8 +132,8 @@ function Users() {
               {users.map((u) => (
                 <TableRow key={u.id}>
                   <TableCell>
-                    <div className="font-medium">{u.name_ar ?? "—"}</div>
-                    <div className="text-xs text-muted-foreground" dir="ltr">{u.email}</div>
+                    <Bidi block text={u.name_ar} className="font-medium" fallback="—" />
+                    <Ltr className="block text-xs text-muted-foreground">{u.email}</Ltr>
                   </TableCell>
                   <TableCell>
                     <NativeSelect value={u.role} onChange={(e) => patch(u.id, { role: e.target.value })}>
@@ -148,7 +151,7 @@ function Users() {
                     >
                       <option value="">{t("users.noOrg")}</option>
                       {colleges.map((c) => (
-                        <option key={c.id} value={c.id}>{c.name_ar}</option>
+                        <DataOption key={c.id} value={c.id} ar={c.name_ar} en={c.name_en} locale={locale} />
                       ))}
                     </NativeSelect>
                   </TableCell>
@@ -161,7 +164,7 @@ function Users() {
                       {departments
                         .filter((d) => !u.college_id || d.college_id === u.college_id)
                         .map((d) => (
-                          <option key={d.id} value={d.id}>{d.name_ar}</option>
+                          <DataOption key={d.id} value={d.id} ar={d.name_ar} en={d.name_en} locale={locale} />
                         ))}
                     </NativeSelect>
                   </TableCell>

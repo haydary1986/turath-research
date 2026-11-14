@@ -30,6 +30,8 @@ export function LetterNav({ type, letters, label, allLabel, otherLabel, current 
               aria-current={current === letter ? "page" : undefined}
               title={String(count)}
               className={chip}
+              // The A–Z letters index Latin journal names: data, not UI text.
+              data-bidi={letter === LETTER_OTHER ? undefined : ""}
             >
               {letter === LETTER_OTHER ? otherLabel : letter}
             </Link>

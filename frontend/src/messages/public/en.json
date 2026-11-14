@@ -29,7 +29,7 @@
       "step2Title": "Fill in the request and upload the signed form",
       "step2Body": "Choose the request type, complete its details and upload the official form once it is signed by the responsible body.",
       "step3Title": "Follow the approval stages",
-      "step3Body": "The request goes to the college dean, then Scientific Affairs, then the Vice President for Research, with a notification at every stage."
+      "step3Body": "The request goes to the college dean, then Scientific Affairs, then the Vice President for Scientific Affairs, with a notification at every stage."
     },
     "publications": {
       "title": "Latest research published by our faculty",
@@ -127,7 +127,7 @@
     },
     "index": {
       "title": "{list}: A–Z index",
-      "titleLetter": "{list} — letter {letter}",
+      "titleLetter": "{list} — letter <l>{letter}</l>",
       "titleOther": "{list} — names starting with a digit or symbol",
       "description": "{list} in the source list, sorted A–Z, with a page for every entry and the last refresh date.",
       "lettersLabel": "Letters",
@@ -143,9 +143,9 @@
       "metaTitle": "{name} — listed in {list}",
       "metaDescription": "\"{name}\" is listed in the Stop Predatory Journals {list} list (as of {date}). Check the journal before you publish.",
       "statement": {
-        "predatory_journal": "\"{name}\" is listed in the Stop Predatory Journals list as a potential predatory journal.",
-        "predatory_publisher": "\"{name}\" is listed in the Stop Predatory Journals list as a potential predatory publisher.",
-        "hijacked": "\"{name}\" is listed in the Stop Predatory Journals hijacked journals list: one or more websites impersonate this journal."
+        "predatory_journal": "\"<v>{name}</v>\" is listed in the Stop Predatory Journals list as a potential predatory journal.",
+        "predatory_publisher": "\"<v>{name}</v>\" is listed in the Stop Predatory Journals list as a potential predatory publisher.",
+        "hijacked": "\"<v>{name}</v>\" is listed in the Stop Predatory Journals hijacked journals list: one or more websites impersonate this journal."
       },
       "factsTitle": "Listing details",
       "listedName": "Name as listed",
@@ -235,7 +235,8 @@
         "indexed": "Papers of approved journal-verification requests (verified onward) in Scopus or Web of Science, plus papers carrying a Scopus id, without duplicates.",
         "colleges": "Colleges registered in the portal.",
         "activities": "Approved scientific activities dated in the current year."
-      }
+      },
+      "labelHint": "Leave empty to use the default label."
     },
     "publications": {
       "title": "Latest publications",
@@ -300,6 +301,12 @@
       "faq": "FAQ",
       "faq_question": "Question",
       "faq_answer": "Answer"
+    },
+    "bilingual": {
+      "intro": "Every text on the page has two fields: Arabic (primary) and English (optional). The English site shows the Arabic text for any field whose English text is left empty.",
+      "arabic": "{label} (Arabic)",
+      "english": "{label} (English)",
+      "optional": "optional"
     }
   }
 }

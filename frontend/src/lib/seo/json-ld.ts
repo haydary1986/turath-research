@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { SITE_URL, absoluteUrl } from "./site.ts";
 
 /** JSON-LD builders (schema.org) for the public pages. */
@@ -38,6 +39,10 @@ export interface Crumb {
   name: string;
   /** Locale-less path. */
   path: string;
+  /** The name is database text (e.g. a journal name), laid out by its own script. */
+  data?: boolean;
+  /** Visible label when it needs markup (the structured data keeps `name`). */
+  label?: ReactNode;
 }
 
 export function breadcrumbLd(locale: string, crumbs: Crumb[]): JsonLdObject {

@@ -13,6 +13,8 @@ import {
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Bidi } from "@/components/i18n/bidi";
+import { pickName } from "@/lib/i18n/text-lang";
 
 interface Notification {
   id: string;
@@ -119,13 +121,9 @@ export function NotificationsBell() {
                 <span className="flex items-start gap-2">
                   {!n.is_read && <span className="mt-1.5 size-2 shrink-0 rounded-full bg-primary" />}
                   <span className="min-w-0">
-                    <span className="block truncate text-sm font-medium">
-                      {locale === "ar" ? n.title_ar : (n.title_en ?? n.title_ar)}
-                    </span>
-                    {n.body && (
-                      <span className="block truncate text-xs text-muted-foreground">{n.body}</span>
-                    )}
-                    <span className="block text-[11px] text-muted-foreground" dir="ltr">
+                    <Bidi block text={pickName(n.title_ar, n.title_en, locale)?.text} className="truncate text-sm font-medium" />
+                    <Bidi block text={n.body} className="truncate text-xs text-muted-foreground" />
+                    <span className="block text-start text-[11px] text-muted-foreground" dir="ltr" data-bidi="">
                       {new Date(n.created_at).toLocaleString(
                         locale === "ar" ? "ar-IQ-u-nu-latn" : "en-GB"
                       )}

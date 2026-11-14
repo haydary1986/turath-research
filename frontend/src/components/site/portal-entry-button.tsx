@@ -33,7 +33,7 @@ export function PortalEntryButton({ size = "default", tone = "default", signInLa
         tone === "onDark" && "bg-white text-primary shadow-lg shadow-black/20 hover:bg-white/90 [a]:hover:bg-white/90",
         className
       )}
-      render={<Link href={signedIn ? "/portal" : "/auth/login"} />}
+      nativeButton={false} render={<Link href={signedIn ? "/portal" : "/auth/login"} />}
       title={signedIn ? undefined : t("signInHint")}
     >
       <Icon className="size-4" aria-hidden />

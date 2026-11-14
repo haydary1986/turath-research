@@ -17,7 +17,7 @@ const nextConfig: NextConfig = {
         ],
       },
       {
-        source: "/offline.html",
+        source: "/offline-:lang(ar|en).html",
         headers: [{ key: "Cache-Control", value: "no-cache" }],
       },
     ];

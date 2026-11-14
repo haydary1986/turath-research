@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { formatBaghdadTime, type AccountActivity, type AccountSummary } from "@/lib/portal/audit";
 import { cn } from "@/lib/utils";
+import { Bidi, Ltr } from "@/components/i18n/bidi";
 
 const PAGE_SIZE = 25;
 
@@ -98,15 +99,19 @@ export function AccountsActivity() {
                 <TableCell>
                   <div className="flex items-center gap-2 font-medium">
                     <span aria-hidden className={cn("size-2 rounded-full", a.online ? "bg-status-success-fg" : "bg-muted-foreground/30")} />
-                    {a.name_ar ?? "—"}
+                    <Bidi text={a.name_ar} fallback="—" />
                     {a.online && <span className="sr-only">{tu("summary.online")}</span>}
                   </div>
-                  <div className="text-xs text-muted-foreground" dir="ltr">{a.email}</div>
+                  <Ltr className="block text-xs text-muted-foreground">{a.email}</Ltr>
                 </TableCell>
                 <TableCell>{t.has(`users.roleNames.${a.role}`) ? t(`users.roleNames.${a.role}`) : a.role}</TableCell>
-                <TableCell>{a.college_name ?? "—"}</TableCell>
-                <TableCell className="whitespace-nowrap" dir="ltr">{formatBaghdadTime(a.last_seen_at, locale) || tu("never")}</TableCell>
-                <TableCell className="whitespace-nowrap" dir="ltr">{formatBaghdadTime(a.last_login_at, locale) || tu("never")}</TableCell>
+                <TableCell><Bidi block text={a.college_name} fallback="—" /></TableCell>
+                <TableCell className="whitespace-nowrap">
+                  {a.last_seen_at ? <Ltr>{formatBaghdadTime(a.last_seen_at, locale)}</Ltr> : tu("never")}
+                </TableCell>
+                <TableCell className="whitespace-nowrap">
+                  {a.last_login_at ? <Ltr>{formatBaghdadTime(a.last_login_at, locale)}</Ltr> : tu("never")}
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>

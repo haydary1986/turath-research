@@ -40,7 +40,7 @@ function MyResponsibilities() {
                   <Badge variant="secondary">{r.college_name ?? tr("university")}</Badge>
                 </div>
                 <Button size="sm" variant="outline"
-                  render={<Link href={`/portal/activities?category=${r.category}`} />}>
+                  nativeButton={false} render={<Link href={`/portal/activities?category=${r.category}`} />}>
                   {tr("viewRecords")}
                 </Button>
               </CardContent>

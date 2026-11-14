@@ -4,17 +4,25 @@
  * - Precaches a small app shell (offline page, icons, crest, manifest).
  * - Serves hashed build assets (/_next/static) and brand images cache-first.
  * - Page navigations always go to the network; when offline they fall back to
- *   /offline.html. Pages are never stored, so no signed-in screen is cached.
+ *   the offline page in the language of the requested path (/en/... gets
+ *   /offline-en.html, everything else the Arabic /offline-ar.html). Pages are
+ *   never stored, so no signed-in screen is cached.
  * - Never touches /api: API responses (public or authenticated) are not cached.
  * - No push notifications.
  */
-const VERSION = "v1";
+const VERSION = "v2";
 const SHELL_CACHE = `turath-shell-${VERSION}`;
 const STATIC_CACHE = `turath-static-${VERSION}`;
-const OFFLINE_URL = "/offline.html";
+const OFFLINE_URLS = { ar: "/offline-ar.html", en: "/offline-en.html" };
+
+/** The offline page for a navigation: English under /en, Arabic (the default locale) otherwise. */
+function offlineUrlFor(url) {
+  return url.pathname === "/en" || url.pathname.startsWith("/en/") ? OFFLINE_URLS.en : OFFLINE_URLS.ar;
+}
 
 const SHELL_FILES = [
-  OFFLINE_URL,
+  OFFLINE_URLS.ar,
+  OFFLINE_URLS.en,
   "/manifest.webmanifest",
   "/brand/crest.png",
   "/icons/icon-192.png",
@@ -62,7 +70,7 @@ async function networkWithOfflineFallback(request) {
   try {
     return await fetch(request);
   } catch (error) {
-    const offline = await caches.match(OFFLINE_URL);
+    const offline = await caches.match(offlineUrlFor(new URL(request.url)));
     if (offline) return offline;
     throw error;
   }

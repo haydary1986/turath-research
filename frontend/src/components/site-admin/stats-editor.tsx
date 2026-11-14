@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import { BilingualField } from "./bilingual-field";
 import { Field, move, replaceAt } from "./editor-parts";
 
 interface StaffStatsResponse {
@@ -81,10 +82,10 @@ export function StatsEditor({ stats, onChange }: StatsEditorProps) {
               </div>
               <p className="text-xs text-muted-foreground">{t(`what.${stat.key}`)}</p>
               <div className="grid gap-3 sm:grid-cols-2">
-                <Field id={`stat_label_${stat.key}`} label={t("label")}>
-                  <Input id={`stat_label_${stat.key}`} maxLength={SITE_LIMITS.statLabel} value={stat.label}
-                    placeholder={t("labelPlaceholder", { label: tl(stat.key) })} onChange={(e) => set(i, { label: e.target.value })} />
-                </Field>
+                <BilingualField id={`stat_label_${stat.key}`} label={t("label")} max={SITE_LIMITS.statLabel} className="sm:col-span-2"
+                  ar={stat.label} en={stat.label_en} hint={t("labelHint")}
+                  placeholderAr={locale === "ar" ? tl(stat.key) : undefined} placeholderEn={locale === "en" ? tl(stat.key) : undefined}
+                  onChange={(v) => set(i, { label: v.ar ?? stat.label, label_en: v.en ?? stat.label_en })} />
                 <Field id={`stat_value_${stat.key}`} label={t("value")}
                   hint={auto !== null ? t("automatic", { value: formatNumber(auto, locale) }) : undefined}>
                   <div className="flex gap-2">

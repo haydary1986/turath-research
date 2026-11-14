@@ -127,7 +127,7 @@
     },
     "index": {
       "title": "{list}: الفهرس الأبجدي",
-      "titleLetter": "{list} — الحرف {letter}",
+      "titleLetter": "{list} — الحرف <l>{letter}</l>",
       "titleOther": "{list} — أسماء تبدأ برقم أو رمز",
       "description": "قائمة {list} المدرجة في القائمة المصدرية مرتبة أبجديًا، مع رابط لصفحة كل مدخل وتاريخ آخر تحديث.",
       "lettersLabel": "الحروف",
@@ -143,9 +143,9 @@
       "metaTitle": "{name} — مدرجة في قائمة {list}",
       "metaDescription": "«{name}» مدرجة في قائمة {list} المصدرية (Stop Predatory Journals) بتاريخ {date}. تحقق من المجلة قبل النشر.",
       "statement": {
-        "predatory_journal": "وردت «{name}» في قائمة Stop Predatory Journals بوصفها مجلة مفترسة محتملة.",
-        "predatory_publisher": "ورد «{name}» في قائمة Stop Predatory Journals بوصفه ناشرًا مفترسًا محتملًا.",
-        "hijacked": "وردت «{name}» في قائمة Stop Predatory Journals للمجلات المختطفة: موقع أو أكثر ينتحل اسم هذه المجلة."
+        "predatory_journal": "وردت «<v>{name}</v>» في قائمة Stop Predatory Journals بوصفها مجلة مفترسة محتملة.",
+        "predatory_publisher": "ورد «<v>{name}</v>» في قائمة Stop Predatory Journals بوصفه ناشرًا مفترسًا محتملًا.",
+        "hijacked": "وردت «<v>{name}</v>» في قائمة Stop Predatory Journals للمجلات المختطفة: موقع أو أكثر ينتحل اسم هذه المجلة."
       },
       "factsTitle": "بيانات الإدراج",
       "listedName": "الاسم كما ورد في القائمة",
@@ -235,7 +235,8 @@
         "indexed": "بحوث طلبات تدقيق المجلات المعتمدة (من مرحلة «تم التدقيق» فما بعدها) في Scopus أو Web of Science، مضافًا إليها البحوث التي تحمل معرّف Scopus، دون تكرار.",
         "colleges": "عدد الكليات المسجلة في البوابة.",
         "activities": "النشاطات العلمية المعتمدة بتاريخ يقع في السنة الحالية."
-      }
+      },
+      "labelHint": "اتركه فارغًا لاستعمال التسمية الافتراضية."
     },
     "publications": {
       "title": "أحدث البحوث المنشورة",
@@ -300,6 +301,12 @@
       "faq": "الأسئلة الشائعة",
       "faq_question": "السؤال",
       "faq_answer": "الإجابة"
+    },
+    "bilingual": {
+      "intro": "كل نص في الصفحة له حقلان: العربية (الأساس) والإنكليزية (اختيارية). يعرض الموقع الإنكليزي النص العربي لأي حقل تُرك نصه الإنكليزي فارغًا.",
+      "arabic": "{label} بالعربية",
+      "english": "{label} بالإنكليزية",
+      "optional": "اختياري"
     }
   }
 }

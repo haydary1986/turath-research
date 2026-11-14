@@ -3,12 +3,15 @@
 import { useLocale, useTranslations } from "next-intl";
 import { fieldsFor } from "@/lib/portal/fields";
 import { formatDate, type PortalRequest } from "@/lib/portal/types";
+import { Bidi, Ltr } from "@/components/i18n/bidi";
 
 interface Row {
   label: string;
   value: string;
   href?: string;
   ltr?: boolean;
+  /** A translated label (an option name), not text the applicant typed. */
+  chrome?: boolean;
 }
 
 function isSafeUrl(value: string): boolean {
@@ -26,7 +29,7 @@ export function RequestSummary({ request }: { request: PortalRequest }) {
     { label: t("fields.college"), value: request.college_name ?? "—" },
     { label: t("fields.department"), value: request.department_name ?? "—" },
     { label: t("fields.title_ar"), value: request.title_ar ?? "—" },
-    { label: t("fields.title_en"), value: request.title_en ?? "—", ltr: true },
+    { label: t("fields.title_en"), value: request.title_en ?? "—" },
     ...(request.kind === "research_plan"
       ? []
       : [{ label: t("fields.doi"), value: request.doi ?? "—", ltr: true }]),
@@ -36,17 +39,14 @@ export function RequestSummary({ request }: { request: PortalRequest }) {
   for (const field of fieldsFor(request.kind)) {
     const value = request.details[field.key];
     if (!value) continue;
-    const shown =
-      field.type === "select" && t.has(`options.${value}`)
-        ? t(`options.${value}`)
-        : field.type === "date"
-          ? formatDate(value, locale)
-          : value;
+    const translated = field.type === "select" && t.has(`options.${value}`);
+    const shown = translated ? t(`options.${value}`) : field.type === "date" ? formatDate(value, locale) : value;
     rows.push({
       label: t(`fields.${field.key}`),
       value: shown,
       href: field.type === "url" && isSafeUrl(value) ? value : undefined,
-      ltr: field.ltr || field.type === "date",
+      ltr: field.ltr || field.type === "date" || field.type === "url",
+      chrome: translated,
     });
   }
 
@@ -55,13 +55,17 @@ export function RequestSummary({ request }: { request: PortalRequest }) {
       {rows.map((row) => (
         <div key={row.label} className="min-w-0">
           <dt className="text-xs text-muted-foreground">{row.label}</dt>
-          <dd className="break-words font-medium" dir={row.ltr ? "ltr" : undefined}>
+          <dd className="break-words font-medium">
             {row.href ? (
-              <a href={row.href} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+              <a href={row.href} target="_blank" rel="noopener noreferrer" dir="ltr" data-bidi="" className="text-primary hover:underline">
                 {row.value}
               </a>
+            ) : row.chrome || row.value === "—" ? (
+              <span>{row.value}</span>
+            ) : row.ltr ? (
+              <Ltr className="whitespace-pre-line">{row.value}</Ltr>
             ) : (
-              <span className="whitespace-pre-line">{row.value}</span>
+              <Bidi block text={row.value} className="whitespace-pre-line" />
             )}
           </dd>
         </div>

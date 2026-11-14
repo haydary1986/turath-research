@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { Plus, Trash2 } from "lucide-react";
 import { api } from "@/lib/api";
 import { Alert } from "@/components/ui/alert";
@@ -11,6 +11,7 @@ import { NativeSelect } from "@/components/portal/form-controls";
 import { usePortalErrors } from "@/components/portal/use-portal-errors";
 import { ACTIVITY_CATEGORIES, type Responsibility } from "@/lib/portal/activity";
 import type { Org } from "@/lib/portal/types";
+import { DataOption } from "@/components/i18n/data-option";
 
 interface Row {
   key: number;
@@ -29,6 +30,7 @@ interface ResponsibilitiesDialogProps {
 /** Admin control: which FS 003 categories a user enters, each for the university or one college. */
 export function ResponsibilitiesDialog({ userId, userName, colleges, onClose, onSaved }: ResponsibilitiesDialogProps) {
   const tr = useTranslations("portal.responsibilities");
+  const locale = useLocale();
   const ta = useTranslations("portal.activities");
   const toMessage = usePortalErrors();
   const [rows, setRows] = useState<Row[]>([]);
@@ -105,7 +107,7 @@ export function ResponsibilitiesDialog({ userId, userName, colleges, onClose, on
                 <NativeSelect aria-label={tr("scope")} value={row.college_id}
                   onChange={(e) => update(row.key, { college_id: e.target.value })}>
                   <option value="">{tr("university")}</option>
-                  {colleges.map((c) => <option key={c.id} value={c.id}>{c.name_ar}</option>)}
+                  {colleges.map((c) => <DataOption key={c.id} value={c.id} ar={c.name_ar} en={c.name_en} locale={locale} />)}
                 </NativeSelect>
                 <Button variant="outline" size="sm" aria-label={tr("remove")}
                   onClick={() => { setSaved(false); setRows((prev) => prev.filter((r) => r.key !== row.key)); }}>

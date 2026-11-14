@@ -3,6 +3,8 @@ import { BookOpenCheck, CalendarCheck, GraduationCap, Landmark, Medal, type Luci
 import { formatNumber } from "@/lib/site/format";
 import type { PublicStat, StatKey } from "@/lib/site/types";
 import { cn } from "@/lib/utils";
+import { Bidi } from "@/components/i18n/bidi";
+import { Localized } from "@/components/i18n/localized";
 
 const STAT_ICONS: Record<StatKey, LucideIcon> = {
   academics: GraduationCap,
@@ -44,8 +46,12 @@ export async function StatsBar({ locale, stats, className }: StatsBarProps) {
                 <Icon className="size-5" aria-hidden />
               </span>
               <div className="flex min-w-0 flex-col-reverse">
-                <dt className="text-sm leading-snug text-muted-foreground">{stat.label || t(`labels.${stat.key}`)}</dt>
-                <dd className="text-2xl font-bold text-primary tabular-nums" dir="auto">{formatStat(stat, locale)}</dd>
+                <dt className="text-sm leading-snug text-muted-foreground">
+                  <Localized ar={stat.label} en={stat.label_en} locale={locale} fallback={t(`labels.${stat.key}`)} />
+                </dt>
+                <dd className="text-2xl font-bold text-primary tabular-nums">
+                  <Bidi text={formatStat(stat, locale)} />
+                </dd>
               </div>
             </div>
           );

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/routing";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
@@ -19,6 +19,8 @@ const ISSN_FIELDS = new Set(["issn", "issn_online"]);
 import { NativeSelect, Textarea } from "./form-controls";
 import { usePortalErrors } from "./use-portal-errors";
 import { Alert } from "@/components/ui/alert";
+import { DataOption } from "@/components/i18n/data-option";
+import { bidiProps } from "@/components/i18n/bidi";
 
 interface RequestFormProps {
   kind: RequestKind;
@@ -62,6 +64,7 @@ function journalSuggestions(result: JournalCheck): { field: string; value: strin
 
 export function RequestForm({ kind, existing }: RequestFormProps) {
   const t = useTranslations("portal");
+  const locale = useLocale();
   const toMessage = usePortalErrors();
   const router = useRouter();
   const { user } = useAuth();
@@ -207,7 +210,7 @@ export function RequestForm({ kind, existing }: RequestFormProps) {
             >
               <option value="">{t("ui.noRelated")}</option>
               {verifications.map((v) => (
-                <option key={v.id} value={v.id}>
+                <option key={v.id} value={v.id} {...bidiProps(requestTitle(v))}>
                   {v.request_no} — {requestTitle(v)}
                 </option>
               ))}
@@ -288,9 +291,7 @@ export function RequestForm({ kind, existing }: RequestFormProps) {
             >
               <option value="">{t("options.none")}</option>
               {colleges.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name_ar}
-                </option>
+                <DataOption key={c.id} value={c.id} ar={c.name_ar} en={c.name_en} locale={locale} />
               ))}
             </NativeSelect>
           </div>
@@ -303,9 +304,7 @@ export function RequestForm({ kind, existing }: RequestFormProps) {
             >
               <option value="">{t("options.none")}</option>
               {visibleDepartments.map((d) => (
-                <option key={d.id} value={d.id}>
-                  {d.name_ar}
-                </option>
+                <DataOption key={d.id} value={d.id} ar={d.name_ar} en={d.name_en} locale={locale} />
               ))}
             </NativeSelect>
           </div>

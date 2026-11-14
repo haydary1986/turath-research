@@ -1,12 +1,14 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { api } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { TrendingUp, TrendingDown, Minus, Sparkles, Loader2 } from "lucide-react";
 import { Alert } from "@/components/ui/alert";
+import { Bidi, Ltr } from "@/components/i18n/bidi";
 
 interface TrendingTopic {
   topic_ar: string;
@@ -34,13 +36,8 @@ const directionColors = {
   stable: "bg-status-pending-bg text-status-pending-fg",
 };
 
-const directionLabels = {
-  rising: "صاعد",
-  declining: "متراجع",
-  stable: "مستقر",
-};
-
 export default function TrendingTopicsPage() {
+  const t = useTranslations("trends");
   const [topics, setTopics] = useState<TrendingTopic[]>([]);
   const [loading, setLoading] = useState(false);
   const [cached, setCached] = useState(false);
@@ -56,7 +53,7 @@ export default function TrendingTopicsPage() {
         setCached(res.data.cached);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Analysis failed");
+      setError(err instanceof Error && err.message ? err.message : t("failed"));
     } finally {
       setLoading(false);
     }
@@ -66,9 +63,9 @@ export default function TrendingTopicsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">المواضيع الرائجة</h1>
+          <h1 className="text-2xl font-bold">{t("title")}</h1>
           <p className="text-sm text-muted-foreground">
-            تحليل AI لاتجاهات البحث في المؤسسة
+            {t("subtitle")}
           </p>
         </div>
         <Button onClick={analyze} disabled={loading}>
@@ -77,7 +74,7 @@ export default function TrendingTopicsPage() {
           ) : (
             <Sparkles className="size-4" />
           )}
-          <span className="ms-2">{loading ? "جاري التحليل..." : "تحليل الاتجاهات"}</span>
+          <span className="ms-2">{loading ? t("analyzing") : t("analyze")}</span>
         </Button>
       </div>
 
@@ -86,7 +83,7 @@ export default function TrendingTopicsPage() {
       )}
 
       {cached && (
-        <Alert variant="info">نتائج محفوظة مسبقاً (صالحة لمدة 7 أيام)</Alert>
+        <Alert variant="info">{t("cached")}</Alert>
       )}
 
       {topics.length > 0 && (
@@ -98,8 +95,8 @@ export default function TrendingTopicsPage() {
               <Card key={i}>
                 <CardHeader className="flex flex-row items-start justify-between pb-3">
                   <div>
-                    <CardTitle className="text-base">{topic.topic_ar}</CardTitle>
-                    <p className="text-sm text-muted-foreground">{topic.topic_en}</p>
+                    <CardTitle className="text-base"><Bidi text={topic.topic_ar} /></CardTitle>
+                    <Bidi as="p" block text={topic.topic_en} className="text-sm text-muted-foreground" />
                   </div>
                   <div className={`rounded-lg p-2 ${color}`}>
                     <Icon className="size-4" />
@@ -108,13 +105,13 @@ export default function TrendingTopicsPage() {
                 <CardContent>
                   <div className="flex items-center gap-3">
                     <Badge variant={topic.direction === "rising" ? "default" : "secondary"}>
-                      {directionLabels[topic.direction]}
+                      {t(`directions.${topic.direction}`)}
                     </Badge>
                     <span className="text-xs text-muted-foreground">
-                      {topic.researchers} باحث | {topic.publications} بحث
+                      {t("counts", { researchers: topic.researchers, publications: topic.publications })}
                     </span>
                     <div className="ms-auto text-sm font-bold">
-                      {(topic.score * 100).toFixed(0)}%
+                      <Ltr>{(topic.score * 100).toFixed(0)}%</Ltr>
                     </div>
                   </div>
                 </CardContent>
@@ -129,7 +126,7 @@ export default function TrendingTopicsPage() {
           <CardContent className="py-12 text-center">
             <Sparkles className="mx-auto size-10 text-muted-foreground" />
             <p className="mt-4 text-muted-foreground">
-              اضغط «تحليل الاتجاهات» لبدء تحليل AI للمواضيع البحثية الرائجة
+              {t("empty")}
             </p>
           </CardContent>
         </Card>

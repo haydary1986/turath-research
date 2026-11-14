@@ -32,35 +32,45 @@ var (
 
 // Service is one item of the "what we offer" list. Icon is a key from ServiceIcons
 // and Link a site-relative path (see IsSafeServiceLink); both are optional.
+// Every visible text has an optional English counterpart (the *En fields): Arabic
+// is the primary language and the public pages fall back to it when English is empty.
 type Service struct {
-	Title       string `json:"title"`
-	Description string `json:"description"`
-	Icon        string `json:"icon"`
-	Link        string `json:"link"`
+	Title         string `json:"title"`
+	TitleEn       string `json:"title_en"`
+	Description   string `json:"description"`
+	DescriptionEn string `json:"description_en"`
+	Icon          string `json:"icon"`
+	Link          string `json:"link"`
 }
 
 // Contact holds the department's public contact details; every field is optional.
 type Contact struct {
-	Email    string `json:"email"`
-	Phone    string `json:"phone"`
-	Location string `json:"location"`
-	Hours    string `json:"hours"`
+	Email      string `json:"email"`
+	Phone      string `json:"phone"`
+	Location   string `json:"location"`
+	LocationEn string `json:"location_en"`
+	Hours      string `json:"hours"`
+	HoursEn    string `json:"hours_en"`
 }
 
 // Link is a quick link shown on the landing page.
 type Link struct {
-	Label string `json:"label"`
-	URL   string `json:"url"`
+	Label   string `json:"label"`
+	LabelEn string `json:"label_en"`
+	URL     string `json:"url"`
 }
 
 // Content is the whole editable landing-page document.
 type Content struct {
-	HeroTitle    string    `json:"hero_title"`
-	HeroSubtitle string    `json:"hero_subtitle"`
-	About        string    `json:"about"`
-	Services     []Service `json:"services"`
-	Contact      Contact   `json:"contact"`
-	Links        []Link    `json:"links"`
+	HeroTitle      string    `json:"hero_title"`
+	HeroTitleEn    string    `json:"hero_title_en"`
+	HeroSubtitle   string    `json:"hero_subtitle"`
+	HeroSubtitleEn string    `json:"hero_subtitle_en"`
+	About          string    `json:"about"`
+	AboutEn        string    `json:"about_en"`
+	Services       []Service `json:"services"`
+	Contact        Contact   `json:"contact"`
+	Links          []Link    `json:"links"`
 	// Blocks added with the second version of the landing page (content_blocks.go).
 	Stats            []StatSetting `json:"stats"`
 	Director         Director      `json:"director"`
@@ -75,20 +85,26 @@ func NormalizeContent(c Content) Content {
 	services := make([]Service, 0, len(c.Services))
 	for _, s := range c.Services {
 		services = append(services, Service{
-			Title: cleanLine(s.Title), Description: cleanText(s.Description),
+			Title: cleanLine(s.Title), TitleEn: cleanLine(s.TitleEn),
+			Description: cleanText(s.Description), DescriptionEn: cleanText(s.DescriptionEn),
 			Icon: cleanLine(s.Icon), Link: cleanLine(s.Link),
 		})
 	}
 	return Content{
-		HeroTitle:    cleanLine(c.HeroTitle),
-		HeroSubtitle: cleanText(c.HeroSubtitle),
-		About:        cleanText(c.About),
-		Services:     services,
+		HeroTitle:      cleanLine(c.HeroTitle),
+		HeroTitleEn:    cleanLine(c.HeroTitleEn),
+		HeroSubtitle:   cleanText(c.HeroSubtitle),
+		HeroSubtitleEn: cleanText(c.HeroSubtitleEn),
+		About:          cleanText(c.About),
+		AboutEn:        cleanText(c.AboutEn),
+		Services:       services,
 		Contact: Contact{
-			Email:    strings.ToLower(cleanLine(c.Contact.Email)),
-			Phone:    cleanLine(c.Contact.Phone),
-			Location: cleanLine(c.Contact.Location),
-			Hours:    cleanLine(c.Contact.Hours),
+			Email:      strings.ToLower(cleanLine(c.Contact.Email)),
+			Phone:      cleanLine(c.Contact.Phone),
+			Location:   cleanLine(c.Contact.Location),
+			LocationEn: cleanLine(c.Contact.LocationEn),
+			Hours:      cleanLine(c.Contact.Hours),
+			HoursEn:    cleanLine(c.Contact.HoursEn),
 		},
 		Links:            normalizeLinks(c.Links),
 		Stats:            normalizeStats(c.Stats),
@@ -103,7 +119,7 @@ func NormalizeContent(c Content) Content {
 func normalizeLinks(in []Link) []Link {
 	out := make([]Link, 0, len(in))
 	for _, l := range in {
-		out = append(out, Link{Label: cleanLine(l.Label), URL: cleanLine(l.URL)})
+		out = append(out, Link{Label: cleanLine(l.Label), LabelEn: cleanLine(l.LabelEn), URL: cleanLine(l.URL)})
 	}
 	return out
 }
@@ -112,15 +128,20 @@ func normalizeLinks(in []Link) []Link {
 func ValidateContent(c Content) []string {
 	var p problems
 	p.text("hero_title", c.HeroTitle, true, MaxHeroTitle)
+	p.text("hero_title_en", c.HeroTitleEn, false, MaxHeroTitle)
 	p.text("hero_subtitle", c.HeroSubtitle, false, MaxHeroSubtitle)
+	p.text("hero_subtitle_en", c.HeroSubtitleEn, false, MaxHeroSubtitle)
 	p.text("about", c.About, false, MaxAbout)
+	p.text("about_en", c.AboutEn, false, MaxAbout)
 
 	if len(c.Services) > MaxServices {
 		p.add("services", CodeTooMany)
 	}
 	for _, s := range c.Services {
 		p.text("service_title", s.Title, true, MaxServiceTitle)
+		p.text("service_title_en", s.TitleEn, false, MaxServiceTitle)
 		p.text("service_description", s.Description, false, MaxServiceDesc)
+		p.text("service_description_en", s.DescriptionEn, false, MaxServiceDesc)
 		if s.Icon != "" && !IsServiceIcon(s.Icon) {
 			p.add("service_icon", CodeInvalid)
 		}
@@ -143,6 +164,7 @@ func validateLinks(p *problems, list, item string, links []Link, limit int) {
 	}
 	for _, l := range links {
 		p.text(item+"_label", l.Label, true, MaxLinkLabel)
+		p.text(item+"_label_en", l.LabelEn, false, MaxLinkLabel)
 		validateHTTPS(p, item+"_url", l.URL)
 	}
 }
@@ -172,7 +194,9 @@ func validateContact(p *problems, c Contact) {
 		p.add("contact_phone", CodeInvalid)
 	}
 	p.text("contact_location", c.Location, false, MaxLocation)
+	p.text("contact_location_en", c.LocationEn, false, MaxLocation)
 	p.text("contact_hours", c.Hours, false, MaxHours)
+	p.text("contact_hours_en", c.HoursEn, false, MaxHours)
 }
 
 // IsSafeHTTPSURL accepts only absolute https URLs with a host and no embedded credentials.

@@ -6,11 +6,12 @@ import { api } from "@/lib/api";
 import { useHydrated } from "@/hooks/use-hydrated";
 import { contactEntries, type ContactEntry, type ResearcherContact } from "@/lib/portal/research-profile";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Bidi, Ltr } from "@/components/i18n/bidi";
 
 const HREF_PREFIX = { tel: "tel:", mailto: "mailto:" } as const;
 
 function ContactValue({ entry }: { entry: ContactEntry }) {
-  const value = <bdi dir="ltr">{entry.value}</bdi>;
+  const value = entry.kind === "text" ? <Bidi text={entry.value} /> : <Ltr>{entry.value}</Ltr>;
   if (entry.kind === "text") return value;
   return (
     <a className="text-primary hover:underline" href={`${HREF_PREFIX[entry.kind]}${entry.value}`}>

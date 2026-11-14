@@ -12,6 +12,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell,
 } from "recharts";
+import { Bidi, Ltr } from "@/components/i18n/bidi";
 
 interface ResearcherStats {
   id: string;
@@ -26,9 +27,6 @@ interface ResearcherStats {
 }
 
 const COLORS = ["#2563eb", "#16a34a", "#eab308", "#dc2626", "#6b7280"];
-const RANKING_LABELS: Record<string, string> = {
-  Q1: "Q1", Q2: "Q2", Q3: "Q3", Q4: "Q4", unranked: "غير مصنف",
-};
 
 type Props = { params: Promise<{ id: string }> };
 
@@ -36,6 +34,7 @@ export default function ResearcherProfilePage({ params }: Props) {
   const { id } = use(params);
   const t = useTranslations("researcher");
   const ct = useTranslations("common");
+  const dt = useTranslations("dashboard");
   const [stats, setStats] = useState<ResearcherStats | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -59,7 +58,7 @@ export default function ResearcherProfilePage({ params }: Props) {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold">{stats.name_ar}</h1>
+        <Bidi as="h1" block text={stats.name_ar} className="text-2xl font-bold" />
       </div>
 
       <ResearcherContactCard researcherId={id} />
@@ -87,11 +86,11 @@ export default function ResearcherProfilePage({ params }: Props) {
         {/* Publications by Year */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-sm">الأبحاث حسب السنة</CardTitle>
+            <CardTitle className="text-sm">{t("byYear")}</CardTitle>
           </CardHeader>
           <CardContent>
             {stats.publications_by_year.length === 0 ? (
-              <p className="text-sm text-muted-foreground">لا توجد بيانات</p>
+              <p className="text-sm text-muted-foreground">{t("noData")}</p>
             ) : (
               <ResponsiveContainer width="100%" height={250}>
                 <BarChart data={stats.publications_by_year}>
@@ -109,11 +108,11 @@ export default function ResearcherProfilePage({ params }: Props) {
         {/* Journal Distribution */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-sm">توزيع تصنيف المجلات</CardTitle>
+            <CardTitle className="text-sm">{t("rankingDistribution")}</CardTitle>
           </CardHeader>
           <CardContent>
             {stats.journal_distribution.length === 0 ? (
-              <p className="text-sm text-muted-foreground">لا توجد بيانات</p>
+              <p className="text-sm text-muted-foreground">{t("noData")}</p>
             ) : (
               <div className="flex items-center gap-6">
                 <ResponsiveContainer width="50%" height={200}>
@@ -140,7 +139,7 @@ export default function ResearcherProfilePage({ params }: Props) {
                         className="size-3 rounded-full"
                         style={{ backgroundColor: COLORS[i % COLORS.length] }}
                       />
-                      <span>{RANKING_LABELS[d.ranking] || d.ranking}</span>
+                      <span>{d.ranking === "unranked" ? t("unranked") : <Ltr>{d.ranking}</Ltr>}</span>
                       <span className="font-bold">{d.count}</span>
                     </div>
                   ))}
@@ -154,11 +153,11 @@ export default function ResearcherProfilePage({ params }: Props) {
       {/* Top Publications */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-sm">أكثر الأبحاث استشهاداً</CardTitle>
+          <CardTitle className="text-sm">{t("topCited")}</CardTitle>
         </CardHeader>
         <CardContent>
           {stats.top_publications.length === 0 ? (
-            <p className="text-sm text-muted-foreground">لا توجد بيانات</p>
+            <p className="text-sm text-muted-foreground">{t("noData")}</p>
           ) : (
             <div className="space-y-3">
               {stats.top_publications.map((p, i) => (
@@ -167,14 +166,14 @@ export default function ResearcherProfilePage({ params }: Props) {
                     {i + 1}
                   </span>
                   <div className="flex-1">
-                    <p className="text-sm">{p.title}</p>
+                    <Bidi as="p" block text={p.title} className="text-sm" />
                     <div className="mt-1 flex gap-3 text-xs text-muted-foreground">
-                      {p.year && <span>{p.year}</span>}
-                      {p.doi && <span dir="ltr">{p.doi}</span>}
+                      {p.year && <Ltr>{p.year}</Ltr>}
+                      {p.doi && <Ltr>{p.doi}</Ltr>}
                     </div>
                   </div>
                   <Badge variant="secondary" className="shrink-0">
-                    {p.citation_count} cit
+                    {dt("metrics.citations", { count: p.citation_count })}
                   </Badge>
                 </div>
               ))}
@@ -187,13 +186,13 @@ export default function ResearcherProfilePage({ params }: Props) {
       {stats.co_authors.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-sm">المؤلفون المشاركون</CardTitle>
+            <CardTitle className="text-sm">{t("coAuthors")}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex flex-wrap gap-2">
               {stats.co_authors.map((ca) => (
                 <Badge key={ca.name} variant="outline">
-                  {ca.name} ({ca.papers})
+                  <Bidi text={ca.name} /> (<Ltr>{ca.papers}</Ltr>)
                 </Badge>
               ))}
             </div>

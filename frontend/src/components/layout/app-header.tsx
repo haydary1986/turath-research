@@ -18,6 +18,7 @@ import { Languages, LogOut } from "lucide-react";
 import { NotificationsBell } from "@/components/layout/notifications-bell";
 import { useAuth } from "@/lib/auth";
 import { useHydrated } from "@/hooks/use-hydrated";
+import { Bidi, Ltr } from "@/components/i18n/bidi";
 
 function initials(name: string): string {
   const parts = name.trim().split(/\s+/).slice(0, 2);
@@ -48,18 +49,16 @@ function UserMenu() {
         aria-label={t("accountMenu")}
         className="flex items-center gap-2 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
-        <span className="flex size-8 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
-          {initials(name)}
+        <span className="flex size-8 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground" aria-hidden>
+          <Bidi text={initials(name)} />
         </span>
-        <span className="hidden max-w-36 truncate text-sm font-medium md:inline">{name}</span>
+        <Bidi text={name} className="hidden max-w-36 truncate text-sm font-medium md:inline" />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-64">
         <DropdownMenuGroup>
           <DropdownMenuLabel className="space-y-1">
-            <p className="truncate font-semibold">{name}</p>
-            <p className="truncate text-xs font-normal text-muted-foreground" dir="ltr">
-              {user.email}
-            </p>
+            <Bidi as="p" block text={name} className="truncate font-semibold" />
+            <Ltr className="block truncate text-xs font-normal text-muted-foreground">{user.email}</Ltr>
             <Badge variant="secondary" className="mt-1">
               {roles.has(user.role) ? roles(user.role) : user.role}
             </Badge>
@@ -94,7 +93,7 @@ export function AppHeader() {
       <NotificationsBell />
       <Button variant="ghost" size="sm" onClick={toggleLocale}>
         <Languages className="size-4" />
-        <span className="ms-2 hidden text-xs sm:inline">
+        <span className="ms-2 hidden text-xs sm:inline" lang={locale === "ar" ? "en" : "ar"}>
           {locale === "ar" ? "English" : "العربية"}
         </span>
       </Button>

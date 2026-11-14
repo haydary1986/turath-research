@@ -59,7 +59,7 @@ export default async function PredatoryGuidePage({ params }: Props) {
         <h1 className="text-2xl font-bold text-primary text-balance md:text-4xl">{article.title}</h1>
         <p className="mt-4 text-lg leading-loose text-foreground/90">{article.intro}</p>
         <p className="mt-2 text-xs text-muted-foreground">{t("guide.lastUpdated", { date: formatDate(ARTICLES_UPDATED, locale) })}</p>
-        <Button className="mt-5" render={<Link href={JOURNAL_PATHS.check} />}>
+        <Button className="mt-5" nativeButton={false} render={<Link href={JOURNAL_PATHS.check} />}>
           <SearchCheck className="size-4" aria-hidden />
           {t("crumbs.check")}
         </Button>
@@ -87,7 +87,7 @@ export default async function PredatoryGuidePage({ params }: Props) {
         <ul className="flex flex-wrap gap-2">
           {SOURCE_LINKS.map((l) => (
             <li key={l.key}>
-              <Button variant="outline" size="sm" render={<a href={l.href} target="_blank" rel="noopener noreferrer" />}>
+              <Button variant="outline" size="sm" nativeButton={false} render={<a href={l.href} target="_blank" rel="noopener noreferrer" />}>
                 <ExternalLink className="size-4" aria-hidden />
                 {tp(`links.${l.key}`)}
               </Button>

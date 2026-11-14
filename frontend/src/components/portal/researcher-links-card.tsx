@@ -63,7 +63,7 @@ function LinksCard({ researcherId }: { researcherId: string }) {
                 key={key}
                 variant="outline"
                 size="sm"
-                render={<a href={links[key] ?? undefined} target="_blank" rel="noopener noreferrer" />}
+                nativeButton={false} render={<a href={links[key] ?? undefined} target="_blank" rel="noopener noreferrer" />}
               >
                 <span>{fields(label)}</span>
                 <ExternalLink className="size-3.5" aria-hidden />

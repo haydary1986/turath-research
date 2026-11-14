@@ -1,6 +1,9 @@
 package publicsite
 
-import "time"
+import (
+	"strings"
+	"time"
+)
 
 // Announcement types.
 const (
@@ -15,12 +18,22 @@ const (
 	MaxReferenceNo = 100
 )
 
+// Languages an announcement can be written in; Arabic is the default.
+const (
+	LangArabic  = "ar"
+	LangEnglish = "en"
+)
+
+// IsLang reports whether l is a supported announcement language.
+func IsLang(l string) bool { return l == LangArabic || l == LangEnglish }
+
 // IsType reports whether t is a known announcement type.
 func IsType(t string) bool { return t == TypeActivity || t == TypeCircular }
 
 // AnnouncementInput is an announcement as edited by staff.
 type AnnouncementInput struct {
 	Type        string `json:"type"`
+	Lang        string `json:"lang"`
 	Title       string `json:"title"`
 	Body        string `json:"body"`
 	EventDate   string `json:"event_date"`
@@ -32,10 +45,14 @@ type AnnouncementInput struct {
 func NormalizeAnnouncement(in AnnouncementInput) AnnouncementInput {
 	out := AnnouncementInput{
 		Type:        cleanLine(in.Type),
+		Lang:        strings.ToLower(cleanLine(in.Lang)),
 		Title:       cleanLine(in.Title),
 		Body:        cleanText(in.Body),
 		EventDate:   cleanLine(in.EventDate),
 		ReferenceNo: cleanLine(in.ReferenceNo),
+	}
+	if out.Lang == "" {
+		out.Lang = LangArabic
 	}
 	switch out.Type {
 	case TypeActivity:
@@ -51,6 +68,9 @@ func ValidateAnnouncement(in AnnouncementInput) []string {
 	var p problems
 	if !IsType(in.Type) {
 		p.add("type", CodeInvalid)
+	}
+	if !IsLang(in.Lang) {
+		p.add("lang", CodeInvalid)
 	}
 	p.text("title", in.Title, true, MaxTitle)
 	p.text("body", in.Body, false, MaxBody)

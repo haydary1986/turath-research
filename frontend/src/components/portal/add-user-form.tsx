@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { UserPlus } from "lucide-react";
 import { api } from "@/lib/api";
 import { Alert } from "@/components/ui/alert";
@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import type { Org } from "@/lib/portal/types";
 import { NativeSelect } from "./form-controls";
 import { usePortalErrors } from "./use-portal-errors";
+import { DataOption } from "@/components/i18n/data-option";
 
 export interface CreatedUser {
   id: string;
@@ -34,6 +35,7 @@ const EMPTY = { email: "", name_ar: "", role: "researcher", college_id: "", depa
 /** Pre-registers a university account: its owner signs in with Google and finds the role ready. */
 export function AddUserForm({ roles, colleges, departments, onCreated }: AddUserFormProps) {
   const t = useTranslations("portal");
+  const locale = useLocale();
   const toMessage = usePortalErrors();
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState(EMPTY);
@@ -116,7 +118,7 @@ export function AddUserForm({ roles, colleges, departments, onCreated }: AddUser
             >
               <option value="">{t("users.noOrg")}</option>
               {colleges.map((c) => (
-                <option key={c.id} value={c.id}>{c.name_ar}</option>
+                <DataOption key={c.id} value={c.id} ar={c.name_ar} en={c.name_en} locale={locale} />
               ))}
             </NativeSelect>
           </div>
@@ -129,7 +131,7 @@ export function AddUserForm({ roles, colleges, departments, onCreated }: AddUser
             >
               <option value="">{t("users.noOrg")}</option>
               {visibleDepartments.map((d) => (
-                <option key={d.id} value={d.id}>{d.name_ar}</option>
+                <DataOption key={d.id} value={d.id} ar={d.name_ar} en={d.name_en} locale={locale} />
               ))}
             </NativeSelect>
           </div>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useTranslations } from "next-intl";
+import { LETTER_LABELS_AR } from "@/lib/portal/letter";
 import QRCode from "qrcode";
 import { fetchObjectUrl } from "@/lib/api";
 
@@ -81,13 +81,14 @@ interface LetterViewProps {
 
 /** A4 appreciation letter laid over the uploaded letterhead; identical on screen and in print. */
 export function LetterView({ letter, verifyUrl }: LetterViewProps) {
-  const t = useTranslations("portal.letter");
+  const t = (key: keyof typeof LETTER_LABELS_AR): string => LETTER_LABELS_AR[key];
   const background = useProtectedImage(letter.background_file_id);
   const signature = useProtectedImage(letter.signature_file_id);
   const qr = useQrCode(verifyUrl);
 
   return (
     <div
+      lang="ar"
       dir="rtl"
       className="relative mx-auto overflow-hidden bg-white text-black shadow-lg print:shadow-none"
       style={{ width: "210mm", minHeight: "297mm", fontFamily: "var(--font-cairo), sans-serif" }}
@@ -152,8 +153,8 @@ export function LetterView({ letter, verifyUrl }: LetterViewProps) {
 
         {verifyUrl && (
           <div className="mt-auto flex items-end justify-between gap-4 pt-8">
-            <p className="text-[10px] text-gray-600" dir="ltr">
-              {t("verifyAt")}: {verifyUrl}
+            <p className="text-[10px] text-gray-600">
+              {t("verifyAt")}: <span dir="ltr">{verifyUrl}</span>
             </p>
             {qr && (
               // eslint-disable-next-line @next/next/no-img-element -- locally generated data URL

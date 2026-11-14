@@ -1,6 +1,6 @@
 "use client";
 
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,6 +16,7 @@ import {
   type Activity,
 } from "@/lib/portal/activity";
 import type { Org } from "@/lib/portal/types";
+import { DataOption } from "@/components/i18n/data-option";
 
 const MODES = ["in_person", "online", "hybrid"] as const;
 const RESEARCH = ["local_research", "indexed_research", "international_research"];
@@ -123,6 +124,7 @@ export function ActivityForm({
   const t = useTranslations("portal");
   const ta = useTranslations("portal.activities");
   const tc = useTranslations("common");
+  const locale = useLocale();
   const set = (change: Partial<ActivityFormState>) => onChange({ ...form, ...change });
   const institutional = isInstitutional(form.category);
   const event = isEventCategory(form.category);
@@ -185,7 +187,7 @@ export function ActivityForm({
           <NativeSelect id="act-college" value={form.college_id}
             onChange={(e) => set({ college_id: e.target.value, department_id: "" })}>
             <option value="">{institutional ? ta("universityLevel") : t("options.none")}</option>
-            {colleges.map((c) => <option key={c.id} value={c.id}>{c.name_ar}</option>)}
+            {colleges.map((c) => <DataOption key={c.id} value={c.id} ar={c.name_ar} en={c.name_en} locale={locale} />)}
           </NativeSelect>
         </div>
         <div className="space-y-2">
@@ -194,7 +196,7 @@ export function ActivityForm({
             onChange={(e) => set({ department_id: e.target.value })}>
             <option value="">{t("options.none")}</option>
             {departments.filter((d) => !form.college_id || d.college_id === form.college_id)
-              .map((d) => <option key={d.id} value={d.id}>{d.name_ar}</option>)}
+              .map((d) => <DataOption key={d.id} value={d.id} ar={d.name_ar} en={d.name_en} locale={locale} />)}
           </NativeSelect>
         </div>
         {event && <EventFields form={form} set={set} />}

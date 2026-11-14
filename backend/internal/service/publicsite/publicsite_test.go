@@ -120,6 +120,8 @@ func TestAnnouncementValidation(t *testing.T) {
 		{"long body", AnnouncementInput{Type: TypeCircular, Title: "x", Body: strings.Repeat("x", MaxBody+1)}, []string{"body:too_long"}},
 		{"bad date", AnnouncementInput{Type: TypeActivity, Title: "x", EventDate: "20/11/2026"}, []string{"event_date:invalid_date"}},
 		{"long reference", AnnouncementInput{Type: TypeCircular, Title: "x", ReferenceNo: strings.Repeat("1", MaxReferenceNo+1)}, []string{"reference_no:too_long"}},
+		{"english announcement", AnnouncementInput{Type: TypeCircular, Lang: " EN ", Title: "Circular"}, nil},
+		{"unknown language", AnnouncementInput{Type: TypeCircular, Lang: "fr", Title: "x"}, []string{"lang:invalid"}},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -139,6 +141,15 @@ func TestNormalizeAnnouncementDropsFieldsOfTheOtherType(t *testing.T) {
 	activity := NormalizeAnnouncement(AnnouncementInput{Type: TypeActivity, Title: "x", EventDate: "2026-01-02", ReferenceNo: "5"})
 	if activity.ReferenceNo != "" || activity.EventDate != "2026-01-02" {
 		t.Fatalf("activity = %+v", activity)
+	}
+}
+
+func TestNormalizeAnnouncementDefaultsToArabic(t *testing.T) {
+	if got := NormalizeAnnouncement(AnnouncementInput{Type: TypeCircular, Title: "x"}).Lang; got != LangArabic {
+		t.Fatalf("lang = %q, want ar", got)
+	}
+	if got := NormalizeAnnouncement(AnnouncementInput{Type: TypeCircular, Title: "x", Lang: "En"}).Lang; got != LangEnglish {
+		t.Fatalf("lang = %q, want en", got)
 	}
 }
 

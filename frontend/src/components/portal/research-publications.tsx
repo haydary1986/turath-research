@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
+import { Bidi } from "@/components/i18n/bidi";
 
 interface Props {
   publications: ProfilePublication[];
@@ -44,10 +45,10 @@ export function ResearchPublications({ publications, total, hasOrcid, syncing }:
               <TableBody>
                 {publications.map((p) => (
                   <TableRow key={p.id}>
-                    <TableCell className="min-w-64 whitespace-normal" dir="auto">{p.title}</TableCell>
-                    <TableCell className="min-w-40 whitespace-normal" dir="auto">{p.journal ?? "—"}</TableCell>
+                    <TableCell className="min-w-64 whitespace-normal"><Bidi block text={p.title} /></TableCell>
+                    <TableCell className="min-w-40 whitespace-normal"><Bidi block text={p.journal} fallback="—" /></TableCell>
                     <TableCell className="tabular-nums">{p.year ?? "—"}</TableCell>
-                    <TableCell dir="ltr" className="text-start">
+                    <TableCell className="text-start" dir="ltr" data-bidi="">
                       {p.doi ? (
                         <a
                           href={`https://doi.org/${encodeURI(p.doi)}`}

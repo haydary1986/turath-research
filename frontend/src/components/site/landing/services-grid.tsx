@@ -3,6 +3,7 @@ import { ArrowLeft, ArrowRight, Lock } from "lucide-react";
 import { BALANCED_GRID, balancedCardClass } from "@/lib/site/grid";
 import { isSafeServiceLink, requiresSignIn, type SiteService } from "@/lib/site/types";
 import { cn } from "@/lib/utils";
+import { Localized } from "@/components/i18n/localized";
 import { ServiceIcon } from "../service-icon";
 import { Section } from "./section";
 import { ServiceLink } from "./service-link";
@@ -20,11 +21,10 @@ function ServiceBody({ service, locale, cta, locked }: { service: SiteService; l
       <span className="flex size-12 items-center justify-center rounded-xl bg-primary text-primary-foreground transition-colors group-hover:bg-accent">
         <ServiceIcon name={service.icon} className="size-6" />
       </span>
-      <h3 className="mt-4 text-lg font-bold text-primary">{service.title}</h3>
+      <Localized as="h3" block ar={service.title} en={service.title_en} locale={locale} className="mt-4 text-lg font-bold text-primary" />
       {/* Plain text: the card itself is a link, so the description must not contain links. */}
-      {service.description && (
-        <p className="mt-2 text-sm leading-relaxed whitespace-pre-line text-muted-foreground">{service.description}</p>
-      )}
+      <Localized as="p" block ar={service.description} en={service.description_en} locale={locale}
+        className="mt-2 text-sm leading-relaxed whitespace-pre-line text-muted-foreground" />
       {cta && (
         <span className="mt-auto inline-flex items-center gap-1.5 pt-4 text-sm font-semibold text-accent">
           {cta}

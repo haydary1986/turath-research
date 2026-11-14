@@ -16,7 +16,9 @@
     "noResults": "No results found",
     "actions": "Actions",
     "logout": "Sign out",
-    "accountMenu": "Account menu"
+    "accountMenu": "Account menu",
+    "toggleSidebar": "Toggle sidebar",
+    "close": "Close"
   },
   "nav": {
     "dashboard": "Dashboard",
@@ -42,7 +44,12 @@
     "recentPublications": "Recent Publications",
     "topResearchers": "Top Researchers",
     "recentPlaceholder": "Recent publications will appear here after data import",
-    "topPlaceholder": "Top researchers will appear here after data import"
+    "topPlaceholder": "Top researchers will appear here after data import",
+    "metrics": {
+      "hIndex": "h-index: {value}",
+      "citations": "{count, plural, one {# citation} other {# citations}}",
+      "publications": "{count, plural, one {# publication} other {# publications}}"
+    }
   },
   "sidebar": {
     "brand": "Al-Turath University",
@@ -68,7 +75,13 @@
     "active": "Active",
     "inactive": "Inactive",
     "profile": "Profile",
-    "metrics": "Metrics"
+    "metrics": "Metrics",
+    "byYear": "Publications by year",
+    "rankingDistribution": "Journal ranking distribution",
+    "topCited": "Most cited publications",
+    "coAuthors": "Co-authors",
+    "noData": "No data",
+    "unranked": "Unranked"
   },
   "publication": {
     "title": "Publications",
@@ -82,11 +95,21 @@
     "ranking": "Ranking",
     "citations": "Citations",
     "authors": "Authors",
-    "abstract": "Abstract"
+    "abstract": "Abstract",
+    "types": {
+      "journal_article": "Journal article",
+      "conference_paper": "Conference paper",
+      "book_chapter": "Book chapter",
+      "book": "Book",
+      "preprint": "Preprint",
+      "thesis": "Thesis",
+      "patent": "Patent",
+      "report": "Report"
+    }
   },
   "auth": {
-    "login": "Login",
-    "logout": "Logout",
+    "login": "Sign in",
+    "logout": "Sign out",
     "email": "Email",
     "password": "Password",
     "signInWithGoogle": "Sign in with your university Google account",
@@ -103,7 +126,7 @@
       "generic": "Sign-in failed, please try again"
     },
     "portalName": "Scientific Affairs Portal",
-    "universityName": "University of Turath"
+    "universityName": "Al-Turath University"
   },
   "portal": {
     "title": "Scientific Affairs Portal",
@@ -146,7 +169,7 @@
     },
     "statuses": {
       "draft": "Draft",
-      "pending": "With scientific affairs",
+      "pending": "With Scientific Affairs",
       "returned": "Returned",
       "approved": "Approved",
       "rejected": "Rejected",
@@ -166,11 +189,11 @@
       "not_eligible": "Mark not eligible",
       "awaiting_signatures": "Send to committee",
       "completed": "Complete",
-      "dean_approve": "Initial approval — forward to scientific affairs",
-      "back_to_sa": "Send back to scientific affairs",
+      "dean_approve": "Initial approval — forward to Scientific Affairs",
+      "back_to_sa": "Send back to Scientific Affairs",
       "vp_confirm": "Confirm decision: {decision}",
       "raise_to_vp": "Raise recommendation to the VP",
-      "pending": "Forward to scientific affairs"
+      "pending": "Forward to Scientific Affairs"
     },
     "roles": {
       "research_form": "Research registration form signed by the department scientific committee",
@@ -315,9 +338,9 @@
       "bulk_sync_not_active": "No sync is running",
       "too_many": "Too many items",
       "activity_not_approved": "Only approved activities can be published.",
-      "activity_category_forbidden": "You are not responsible for entering this category here. Infrastructure and agreements are entered by their responsible person or scientific affairs.",
-      "fs003_forbidden": "The FS 003 form is available to scientific affairs, the VP for research and holders of data-entry responsibilities.",
-      "researcher_not_linked": "A researcher record with this email exists but is not linked to your account yet. Sign in with your university Google account or ask scientific affairs to link it.",
+      "activity_category_forbidden": "You are not responsible for entering this category here. Infrastructure and agreements are entered by their responsible person or Scientific Affairs.",
+      "fs003_forbidden": "The FS 003 form is available to Scientific Affairs, the Vice President for Scientific Affairs and holders of data-entry responsibilities.",
+      "researcher_not_linked": "A researcher record with this email exists but is not linked to your account yet. Sign in with your university Google account or ask Scientific Affairs to link it.",
       "account_not_found": "This account no longer exists. Please sign in again.",
       "auth_unavailable": "Your permissions could not be checked right now. Try again shortly.",
       "domain_not_allowed": "The email must be on the university domain @uoturath.edu.iq",
@@ -352,7 +375,7 @@
       "fileHint": "PDF or image, up to 5 MB",
       "open": "Open",
       "decisionNote": "Reviewer note",
-      "reviewActions": "Scientific affairs actions",
+      "reviewActions": "Scientific Affairs actions",
       "noteLabel": "Note (required when rejecting or returning)",
       "apply": "Apply",
       "issueLetter": "Issue appreciation letter",
@@ -383,8 +406,8 @@
       "required": "Required",
       "attached": "Attached",
       "missing": "Missing",
-      "saDecision": "Recommended decision of scientific affairs",
-      "decisionLabel": "Scientific affairs decision",
+      "saDecision": "Recommended decision of Scientific Affairs",
+      "decisionLabel": "Scientific Affairs decision",
       "openRequests": "In progress",
       "doneRequests": "Completed",
       "openShort": "Open",
@@ -453,7 +476,7 @@
       "roleNames": {
         "admin": "Administrator",
         "vp_research": "Vice President for Scientific Affairs",
-        "scientific_affairs": "Scientific affairs officer",
+        "scientific_affairs": "Scientific Affairs officer",
         "college_dean": "College dean",
         "department_head": "Department head (view only)",
         "researcher": "Faculty / researcher"
@@ -498,7 +521,7 @@
         "linkedin_url": "LinkedIn",
         "web_of_science_url": "Web of Science",
         "employee_no": "Employee number",
-        "account_status": "Account status (linked / needs_review)"
+        "account_status": "Account status"
       },
       "errors": {
         "name_required": "Name missing",
@@ -526,7 +549,7 @@
         "orcid_kept": "Row saved; the stored ORCID was kept because the file differs"
       }
     },
-    "university": "University of Turath",
+    "university": "Al-Turath University",
     "activities": {
       "title": "Scientific activities",
       "new": "New activity",
@@ -545,7 +568,7 @@
         "other": "Other"
       },
       "statuses": {
-        "pending": "Awaiting scientific affairs approval",
+        "pending": "Awaiting Scientific Affairs approval",
         "approved": "Approved",
         "returned": "Returned to the organizer for edits",
         "rejected": "Rejected",
@@ -571,22 +594,22 @@
         "online": "Online",
         "hybrid": "Hybrid"
       },
-      "intro": "The organizer registers the activity, scientific affairs reviews and approves it and records the approval letter number, and it then counts in the ministry report.",
+      "intro": "The organizer registers the activity, Scientific Affairs reviews and approves it and records the approval letter number, and it then counts in the ministry report.",
       "steps": {
         "register": "The organizer registers the activity",
-        "review": "Scientific affairs reviews, approves and records the letter number",
+        "review": "Scientific Affairs reviews, approves and records the letter number",
         "report": "The activity counts in the ministry report"
       },
       "actions": "Actions",
       "reviewAction": "Review activity",
-      "decisionNote": "Scientific affairs note",
+      "decisionNote": "Scientific Affairs note",
       "loadFailed": "Could not load activities. Refresh the page or try again later.",
-      "resubmitHint": "Saving your edits sends the activity back to scientific affairs for a new review.",
+      "resubmitHint": "Saving your edits sends the activity back to Scientific Affairs for a new review.",
       "review": {
         "title": "Review activity",
         "intro": "Read the activity details first, then choose an action.",
         "details": "Activity details",
-        "previousNote": "Earlier note from scientific affairs",
+        "previousNote": "Earlier note from Scientific Affairs",
         "approveTitle": "Approve the activity",
         "approveHint": "Enter the approval letter number, the official letter authorizing the activity. The organizer sees it and it appears in the ministry report. Approval is final.",
         "approvalNoteLabel": "Note to the organizer (optional)",
@@ -652,7 +675,7 @@
         "itemCount": "Count"
       },
       "universityLevel": "University level",
-      "institutionalHint": "Institutional category: entered by its responsible person or scientific affairs. Leave the college empty for a university-level record.",
+      "institutionalHint": "Institutional category: entered by its responsible person or Scientific Affairs. Leave the college empty for a university-level record.",
       "researchHint": "Research verified through the portal is added to the form automatically; enter here only research that did not pass through the portal.",
       "mine": "My records only",
       "fs003": {
@@ -683,7 +706,7 @@
         "predatory": "Warning: predatory journal",
         "suspended": "Notice: publication in this journal is suspended",
         "accredited": "Accredited journal",
-        "hint": "Automatic watchlist check — the final call rests with scientific affairs"
+        "hint": "Automatic watchlist check — the final call rests with Scientific Affairs"
       },
       "import": "Import from Excel",
       "importResult": "Import finished: {created} added, {updated} updated, {problems} problems",
@@ -701,7 +724,7 @@
         "checking": "Checking...",
         "hint": "Compares the journal with predatory and hijacked lists and with the OpenAlex, Crossref and DOAJ indexes.",
         "panelTitle": "Automatic journal check",
-        "advisory": "This is advisory evidence for scientific affairs, not a decision. The final call rests with scientific affairs.",
+        "advisory": "This is advisory evidence for Scientific Affairs, not a decision. The final call rests with Scientific Affairs.",
         "failed": "The check could not run right now. This does not mean the journal is fine; try again later.",
         "canonicalName": "Name in the indexes",
         "publisher": "Publisher",
@@ -732,11 +755,11 @@
         },
         "scopusNote": "Scopus indexing and quartile cannot be checked automatically, so verify them by hand. This does not mean the journal is not indexed.",
         "facts": {
-          "type": "Type: {value}",
-          "hIndex": "h-index: {value}",
-          "citedness": "2-year mean citedness (OpenAlex, not an impact factor): {value}",
-          "works": "Works: {value}",
-          "dois": "DOIs: {value}",
+          "type": "Type: <v>{value}</v>",
+          "hIndex": "h-index: <v>{value}</v>",
+          "citedness": "2-year mean citedness (OpenAlex, not an impact factor): <v>{value}</v>",
+          "works": "Works: <v>{value}</v>",
+          "dois": "DOIs: <v>{value}</v>",
           "inDoaj": "In DOAJ according to OpenAlex",
           "open": "Open"
         },
@@ -751,7 +774,7 @@
           "url": "Journal link match",
           "homepage": "Indexed website match"
         },
-        "authentic": "Authentic journal: {name}",
+        "authentic": "Authentic journal: <v>{name}</v>",
         "listCaveat": "These are public, volunteer-run lists and a sound journal can share a listed name, so check the link before judging.",
         "reasons": {
           "manual_predatory": "Marked predatory in the ministry exceptions",
@@ -793,13 +816,13 @@
         },
         "tooShort": "Enter a complete ISSN (8 characters) or a journal name of at least {min} letters.",
         "retry": "Try again",
-        "pageSubtitle": "Check any journal before publishing in it. The result is advisory; scientific affairs make the final decision."
+        "pageSubtitle": "Check any journal before publishing in it. The result is advisory; Scientific Affairs makes the final decision."
       },
       "manual": {
         "title": "Ministry exceptions",
         "description": "A secondary list for ministry or university decisions only, such as an accredited or suspended journal. It takes precedence over the automatic check; predatory journals need not be entered here."
       },
-      "staffOnly": "Managing journal exceptions is limited to scientific affairs. You can check any journal on the check page."
+      "staffOnly": "Managing journal exceptions is limited to Scientific Affairs. You can check any journal on the check page."
     },
     "reports": {
       "title": "Reports",
@@ -905,7 +928,7 @@
         "generic": "The data could not be refreshed. Try later"
       },
       "contactFormTitle": "Contact details",
-      "contactFormHint": "Visible only to scientific affairs, the research VP and admins. Notifications always go to your university email.",
+      "contactFormHint": "Visible only to Scientific Affairs, the Vice President for Scientific Affairs and admins. Notifications always go to your university email.",
       "contactTitle": "Contact details",
       "contactError": "Could not load contact details",
       "contactEmail": "University email",
@@ -1088,7 +1111,13 @@
         "publishedAt": "Published {date}",
         "view": "View",
         "statusFilter": "Status",
-        "typeFilter": "Type"
+        "typeFilter": "Type",
+        "lang": "Language",
+        "langs": {
+          "ar": "Arabic",
+          "en": "English"
+        },
+        "langHint": "Write the announcement in one language. It is shown as written on both the Arabic and the English site, without translation."
       },
       "fields": {
         "hero_title": "Main title",
@@ -1110,13 +1139,14 @@
         "event_date": "Activity date",
         "reference_no": "Circular number",
         "published": "Publication state",
-        "pinned": "Pinning"
+        "pinned": "Pinning",
+        "lang": "Language"
       },
-      "forbidden": "This page is available to administrators and scientific affairs staff only."
+      "forbidden": "This page is available to administrators and Scientific Affairs staff only."
     },
     "responsibilities": {
       "title": "My responsibilities",
-      "intro": "Categories you are responsible for entering. You see, edit and export every record of them within your scope; approval stays with scientific affairs.",
+      "intro": "Categories you are responsible for entering. You see, edit and export every record of them within your scope; approval stays with Scientific Affairs.",
       "none": "You hold no data-entry responsibility.",
       "manage": "Data-entry responsibilities",
       "manageTitle": "Data-entry responsibilities of {name}",
@@ -1245,7 +1275,7 @@
       "next": "Next",
       "pinned": "Pinned",
       "readMore": "Read more",
-      "circularNo": "Circular no. {no}",
+      "circularNo": "Circular no. <ref>{no}</ref>",
       "eventDate": "Activity date: {date}",
       "publishedOn": "Published {date}",
       "attachment": "Attachment",
@@ -1261,5 +1291,51 @@
       "rights": "© {year} Al-Turath University — Scientific Affairs Department",
       "portal": "Scientific Affairs Portal"
     }
+  },
+  "aiInsights": {
+    "title": "AI insights",
+    "subtitle": "Personalised recommendations and advice generated by DeepSeek",
+    "collaborationTab": "Collaboration recommendations",
+    "strategyTab": "Publishing strategy",
+    "analyzing": "Analysing...",
+    "analyzeCollaboration": "Analyse collaboration opportunities",
+    "analyzeStrategy": "Analyse publishing strategy",
+    "failed": "The analysis failed, please try again",
+    "match": "{score}% match",
+    "collaborationEmpty": "Press the button to analyse research collaboration opportunities",
+    "summary": "Summary",
+    "journals": "Suggested journals",
+    "actions": "Action items",
+    "topics": "Suggested topics",
+    "strategyEmpty": "Press the button to get personalised publishing advice"
+  },
+  "trends": {
+    "title": "Trending topics",
+    "subtitle": "AI analysis of research trends at the university",
+    "analyzing": "Analysing...",
+    "analyze": "Analyse trends",
+    "failed": "The analysis failed, please try again",
+    "cached": "Previously saved results (valid for 7 days)",
+    "directions": {
+      "rising": "Rising",
+      "declining": "Declining",
+      "stable": "Stable"
+    },
+    "counts": "{researchers, plural, one {# researcher} other {# researchers}} | {publications, plural, one {# publication} other {# publications}}",
+    "empty": "Press “Analyse trends” to start an AI analysis of trending research topics"
+  },
+  "searchPage": {
+    "placeholder": "Search for a researcher, a publication or a journal...",
+    "results": "{count, plural, one {# result} other {# results}}",
+    "types": {
+      "researcher": "Researcher",
+      "publication": "Publication",
+      "journal": "Journal"
+    }
+  },
+  "notFound": {
+    "title": "Page not found",
+    "body": "We could not find the page you asked for. It may have moved, or the link may be wrong.",
+    "home": "Back to the home page"
   }
 }

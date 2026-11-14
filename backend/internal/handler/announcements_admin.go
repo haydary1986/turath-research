@@ -52,9 +52,9 @@ func (h *PortalHandler) CreateAnnouncement(w http.ResponseWriter, r *http.Reques
 	defer cancel()
 	var id string
 	err := h.db.QueryRow(ctx, `
-		INSERT INTO announcements (kind, title, body, event_date, reference_no, created_by)
-		VALUES ($1, $2, $3, NULLIF($4, '')::date, NULLIF($5, ''), $6)
-		RETURNING id`, in.Type, in.Title, in.Body, in.EventDate, in.ReferenceNo, user.UserID).Scan(&id)
+		INSERT INTO announcements (kind, title, body, event_date, reference_no, created_by, lang)
+		VALUES ($1, $2, $3, NULLIF($4, '')::date, NULLIF($5, ''), $6, $7)
+		RETURNING id`, in.Type, in.Title, in.Body, in.EventDate, in.ReferenceNo, user.UserID, in.Lang).Scan(&id)
 	if err != nil {
 		serverError(w, "Failed to save announcement", err)
 		return
@@ -77,8 +77,8 @@ func (h *PortalHandler) UpdateAnnouncement(w http.ResponseWriter, r *http.Reques
 	defer cancel()
 	tag, err := h.db.Exec(ctx, `
 		UPDATE announcements SET kind = $2, title = $3, body = $4,
-			event_date = NULLIF($5, '')::date, reference_no = NULLIF($6, ''), updated_at = NOW()
-		WHERE id = $1`, id, in.Type, in.Title, in.Body, in.EventDate, in.ReferenceNo)
+			event_date = NULLIF($5, '')::date, reference_no = NULLIF($6, ''), lang = $7, updated_at = NOW()
+		WHERE id = $1`, id, in.Type, in.Title, in.Body, in.EventDate, in.ReferenceNo, in.Lang)
 	if err != nil {
 		serverError(w, "Failed to save announcement", err)
 		return

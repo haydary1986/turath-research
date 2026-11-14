@@ -98,3 +98,68 @@ func TestNormalizeNeverReturnsNilBlockLists(t *testing.T) {
 		t.Fatalf("normalised = %+v", out)
 	}
 }
+
+func TestEnglishFieldsAreOptionalButBounded(t *testing.T) {
+	c := validContent()
+	c.HeroTitleEn = "Scientific Affairs Department"
+	c.Services = []Service{{Title: "خدمة", TitleEn: "Service", DescriptionEn: "  An English description  "}}
+	c.Director = Director{Name: "د. فلان", NameEn: "Dr. Example", MessageEn: "Hello"}
+	c.FAQ = []FAQItem{{Question: "س", Answer: "ج", QuestionEn: "Q?"}}
+	out := NormalizeContent(c)
+	if got := ValidateContent(out); len(got) != 0 {
+		t.Fatalf("unexpected problems: %v", got)
+	}
+	if out.Services[0].DescriptionEn != "An English description" {
+		t.Fatalf("english description not cleaned: %q", out.Services[0].DescriptionEn)
+	}
+
+	cases := []struct {
+		name   string
+		mutate func(*Content)
+		want   string
+	}{
+		{"long english hero", func(c *Content) { c.HeroTitleEn = strings.Repeat("x", MaxHeroTitle+1) }, "hero_title_en:too_long"},
+		{"long english service", func(c *Content) { c.Services = []Service{{Title: "x", TitleEn: strings.Repeat("x", MaxServiceTitle+1)}} }, "service_title_en:too_long"},
+		{"long english link label", func(c *Content) {
+			c.Links = []Link{{Label: "x", LabelEn: strings.Repeat("x", MaxLinkLabel+1), URL: "https://a.iq"}}
+		}, "link_label_en:too_long"},
+		{"long english college label", func(c *Content) {
+			c.Colleges = []Link{{Label: "x", LabelEn: strings.Repeat("x", MaxLinkLabel+1), URL: "https://a.iq"}}
+		}, "college_label_en:too_long"},
+		{"long english stat label", func(c *Content) {
+			c.Stats = []StatSetting{{Key: StatAcademics, LabelEn: strings.Repeat("x", MaxStatLabel+1)}}
+		}, "stat_label_en:too_long"},
+		{"long english director message", func(c *Content) { c.Director.MessageEn = strings.Repeat("x", MaxDirectorMessage+1) }, "director_message_en:too_long"},
+		{"long english answer", func(c *Content) {
+			c.FAQ = []FAQItem{{Question: "q", Answer: "a", AnswerEn: strings.Repeat("x", MaxFAQAnswer+1)}}
+		}, "faq_answer_en:too_long"},
+		{"long english hours", func(c *Content) { c.Contact.HoursEn = strings.Repeat("x", MaxHours+1) }, "contact_hours_en:too_long"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			c := validContent()
+			tc.mutate(&c)
+			if got := ValidateContent(NormalizeContent(c)); !slices.Contains(got, tc.want) {
+				t.Fatalf("got %v, want %q", got, tc.want)
+			}
+		})
+	}
+}
+
+func TestEnglishFieldsSurviveNormalisation(t *testing.T) {
+	in := Content{
+		HeroTitle: "ع", HeroTitleEn: "E", HeroSubtitleEn: "S", AboutEn: "A",
+		Contact:  Contact{LocationEn: "Baghdad", HoursEn: "8-2"},
+		Links:    []Link{{Label: "ع", LabelEn: "L", URL: "https://a.iq"}},
+		Colleges: []Link{{Label: "ع", LabelEn: "C", URL: "https://a.iq"}},
+		Stats:    []StatSetting{{Key: StatColleges, LabelEn: "Colleges"}},
+		Director: Director{TitleEn: "T", NameEn: "N", PositionEn: "P", MessageEn: "M"},
+	}
+	out := NormalizeContent(in)
+	if out.HeroTitleEn != "E" || out.HeroSubtitleEn != "S" || out.AboutEn != "A" ||
+		out.Contact.LocationEn != "Baghdad" || out.Contact.HoursEn != "8-2" ||
+		out.Links[0].LabelEn != "L" || out.Colleges[0].LabelEn != "C" || out.Stats[0].LabelEn != "Colleges" ||
+		out.Director.TitleEn != "T" || out.Director.NameEn != "N" || out.Director.PositionEn != "P" || out.Director.MessageEn != "M" {
+		t.Fatalf("english fields lost: %+v", out)
+	}
+}

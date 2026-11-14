@@ -6,6 +6,7 @@ import { UniversityLogo } from "@/components/brand/university-logo";
 import { articlesFor, TOPIC_SLUGS } from "@/lib/journals/articles";
 import { JOURNAL_PATHS } from "@/lib/journals/lists";
 import type { SiteContent, SiteLink } from "@/lib/site/types";
+import { Localized } from "@/components/i18n/localized";
 import { SocialIcon } from "./social-icon";
 
 const linkClass =
@@ -20,13 +21,13 @@ function Column({ id, title, children }: { id: string; title: string; children: 
   );
 }
 
-function ExternalLinks({ links, newTab }: { links: SiteLink[]; newTab: string }) {
+function ExternalLinks({ links, newTab, locale }: { links: SiteLink[]; newTab: string; locale: string }) {
   return (
     <ul className="space-y-2 text-sm">
       {links.map((link, i) => (
         <li key={i}>
           <a href={link.url} target="_blank" rel="noopener noreferrer" className={`${linkClass} inline-flex items-center gap-1.5`}>
-            {link.label}
+            <Localized ar={link.label} en={link.label_en} locale={locale} />
             <ExternalLink className="size-3 opacity-70" aria-hidden />
             <span className="sr-only">{newTab}</span>
           </a>
@@ -42,18 +43,22 @@ interface ContactRow {
   value: ReactNode;
 }
 
-function contactRows(contact: SiteContent["contact"], t: (key: string) => string): ContactRow[] {
+function contactRows(contact: SiteContent["contact"], t: (key: string) => string, locale: string): ContactRow[] {
   const rows: (ContactRow | false)[] = [
     !!contact.email && {
       icon: Mail, label: t("email"),
-      value: <a href={`mailto:${contact.email}`} dir="ltr" className={linkClass}>{contact.email}</a>,
+      value: <a href={`mailto:${contact.email}`} dir="ltr" data-bidi="" className={linkClass}>{contact.email}</a>,
     },
     !!contact.phone && {
       icon: Phone, label: t("phone"),
-      value: <a href={`tel:${contact.phone.replace(/[^\d+]/g, "")}`} dir="ltr" className={linkClass}>{contact.phone}</a>,
+      value: <a href={`tel:${contact.phone.replace(/[^\d+]/g, "")}`} dir="ltr" data-bidi="" className={linkClass}>{contact.phone}</a>,
     },
-    !!contact.location && { icon: MapPin, label: t("location"), value: contact.location },
-    !!contact.hours && { icon: Clock, label: t("hours"), value: contact.hours },
+    !!(contact.location || contact.location_en) && {
+      icon: MapPin, label: t("location"), value: <Localized ar={contact.location} en={contact.location_en} locale={locale} />,
+    },
+    !!(contact.hours || contact.hours_en) && {
+      icon: Clock, label: t("hours"), value: <Localized ar={contact.hours} en={contact.hours_en} locale={locale} />,
+    },
   ];
   return rows.filter((row): row is ContactRow => !!row);
 }
@@ -66,7 +71,7 @@ export async function SiteFooter({ locale, content }: { locale: string; content:
   const tj = await getTranslations({ locale, namespace: "journals.crumbs" });
   const articles = articlesFor(locale);
   const year = new Date().getFullYear();
-  const contact = content ? contactRows(content.contact, (key) => tf(key)) : [];
+  const contact = content ? contactRows(content.contact, (key) => tf(key), locale) : [];
 
   return (
     <footer id="contact" className="mt-20 bg-sidebar text-sidebar-foreground">
@@ -122,7 +127,7 @@ export async function SiteFooter({ locale, content }: { locale: string; content:
 
         {!!content?.colleges.length && (
           <Column id="footer-colleges" title={tf("collegesTitle")}>
-            <ExternalLinks links={content.colleges} newTab={tf("opensInNewTab")} />
+            <ExternalLinks links={content.colleges} newTab={tf("opensInNewTab")} locale={locale} />
           </Column>
         )}
 
@@ -132,7 +137,7 @@ export async function SiteFooter({ locale, content }: { locale: string; content:
             <li><Link href="/news" className={linkClass}>{t("nav.news")}</Link></li>
             <li><Link href="/portal" className={linkClass}>{t("footer.portal")}</Link></li>
           </ul>
-          {!!content?.links.length && <ExternalLinks links={content.links} newTab={tf("opensInNewTab")} />}
+          {!!content?.links.length && <ExternalLinks links={content.links} newTab={tf("opensInNewTab")} locale={locale} />}
         </Column>
       </div>
       <div className="border-t border-sidebar-border">

@@ -106,7 +106,7 @@ function LetterPage() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between print:hidden">
-        <Button variant="outline" render={<Link href={`/portal/requests/${letter.request_id}`} />}>
+        <Button variant="outline" nativeButton={false} render={<Link href={`/portal/requests/${letter.request_id}`} />}>
           <ArrowRight className="size-4 ltr:-scale-x-100" />
           <span>{t("ui.backToRequest")}</span>
         </Button>

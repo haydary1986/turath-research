@@ -13,6 +13,7 @@ import { JOURNAL_PATHS, SOURCE_LIST_URL, type JournalEntryDetail } from "@/lib/j
 import { loadSiteContent } from "@/lib/site/public-data";
 import { formatDate } from "@/lib/portal/types";
 import { absoluteUrl, metaDescription, pageMetadata } from "@/lib/seo/site";
+import { Bidi, Ltr } from "@/components/i18n/bidi";
 
 type Props = { params: Promise<{ locale: string; slug: string }> };
 
@@ -68,21 +69,21 @@ export default async function EntryPage({ params }: Props) {
     t("entry.correctionBody", { url: pageUrl })
   );
   const facts: { label: string; value: ReactNode }[] = [
-    { label: t("entry.listedName"), value: <span dir="ltr">{entry.name}</span> },
+    { label: t("entry.listedName"), value: <Bidi text={entry.name} /> },
     { label: t("entry.listType"), value: list },
     {
       label: hijacked ? t("entry.fakeHost") : t("entry.host"),
-      value: entry.hosts.length ? <span dir="ltr" className={hijacked ? "text-status-danger-fg" : undefined}>{entry.hosts.join(" · ")}</span> : t("entry.noHost"),
+      value: entry.hosts.length ? <Ltr className={hijacked ? "text-status-danger-fg" : undefined}>{entry.hosts.join(" · ")}</Ltr> : t("entry.noHost"),
     },
   ];
   if (hijacked && entry.authentic_name) {
-    facts.push({ label: t("entry.authenticJournal"), value: <span dir="ltr">{entry.authentic_name}</span> });
+    facts.push({ label: t("entry.authenticJournal"), value: <Bidi text={entry.authentic_name} /> });
   }
   if (hijacked && entry.authentic_url) {
     facts.push({
       label: t("entry.authenticSite"),
       value: (
-        <a href={entry.authentic_url} target="_blank" rel="noopener noreferrer nofollow" dir="ltr"
+        <a href={entry.authentic_url} target="_blank" rel="noopener noreferrer nofollow" dir="ltr" data-bidi=""
           className="inline-flex items-center gap-1 break-all text-status-success-fg hover:underline">
           {entry.authentic_url}
           <ExternalLink className="size-3.5 shrink-0" aria-hidden />
@@ -99,7 +100,7 @@ export default async function EntryPage({ params }: Props) {
         </a>
       ),
     },
-    { label: t("entry.lastRefresh"), value: formatDate(refreshedAt(detail), locale) }
+    { label: t("entry.lastRefresh"), value: <Ltr>{formatDate(refreshedAt(detail), locale)}</Ltr> }
   );
 
   return (
@@ -110,13 +111,15 @@ export default async function EntryPage({ params }: Props) {
           { name: t("crumbs.hub"), path: JOURNAL_PATHS.hub },
           { name: t("crumbs.list"), path: JOURNAL_PATHS.list },
           { name: list, path: JOURNAL_PATHS.index(entry.list_type) },
-          { name: entry.name, path: JOURNAL_PATHS.entry(entry.slug) },
+          { name: entry.name, path: JOURNAL_PATHS.entry(entry.slug), data: true },
         ]}
       />
       <header className="mt-4">
         <p className="text-sm font-semibold text-accent">{list}</p>
-        <h1 className="mt-1 text-2xl font-bold break-words text-primary md:text-3xl" dir="auto">{entry.name}</h1>
-        <p className="mt-4 text-lg leading-relaxed">{t(`entry.statement.${entry.list_type}`, { name: entry.name })}</p>
+        <Bidi as="h1" block text={entry.name} className="mt-1 text-2xl font-bold break-words text-primary md:text-3xl" />
+        <p className="mt-4 text-lg leading-relaxed">
+          {t.rich(`entry.statement.${entry.list_type}`, { name: entry.name, v: () => <Bidi text={entry.name} /> })}
+        </p>
       </header>
 
       <section aria-labelledby="facts-title" className="mt-8 rounded-xl border bg-card">
@@ -136,7 +139,7 @@ export default async function EntryPage({ params }: Props) {
         <p className="mt-2 leading-loose">{t(`entry.meaning.${entry.list_type}`)}</p>
         <h2 className="mt-6 text-xl font-bold text-primary">{t("entry.whatToDoTitle")}</h2>
         <p className="mt-2 leading-loose">{t("entry.whatToDo")}</p>
-        <Button className="mt-4" render={<Link href={`${JOURNAL_PATHS.check}?q=${encodeURIComponent(entry.name)}`} />}>
+        <Button className="mt-4" nativeButton={false} render={<Link href={`${JOURNAL_PATHS.check}?q=${encodeURIComponent(entry.name)}`} />}>
           <SearchCheck className="size-4" aria-hidden />
           {t("entry.checkCta")}
         </Button>

@@ -16,6 +16,7 @@ import { Alert } from "@/components/ui/alert";
 import { FormTemplatesCard } from "@/components/portal/form-templates-card";
 import { LETTER_PLACEHOLDERS, SAMPLE_LETTER_VARS, renderBody } from "@/lib/portal/letter";
 import type { Attachment, LetterTemplate } from "@/lib/portal/types";
+import { Bidi } from "@/components/i18n/bidi";
 
 type Draft = Omit<LetterTemplate, "id" | "is_active"> & { id: string | null };
 
@@ -157,7 +158,7 @@ function Templates() {
           {templates.map((tpl) => (
             <div key={tpl.id} className="flex items-center gap-2 rounded-lg border p-2">
               <button type="button" className="text-sm font-medium hover:underline" onClick={() => setDraft(toDraft(tpl))}>
-                {tpl.name}
+                <Bidi text={tpl.name} />
               </button>
               {tpl.is_active ? (
                 <Badge>{t("templates.active")}</Badge>

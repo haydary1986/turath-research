@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Ltr } from "@/components/i18n/bidi";
 
 export interface LinksFormValues {
   orcid: string;
@@ -71,7 +72,7 @@ export function ResearchLinksForm({ values, saving, onChange, onSubmit }: Props)
               onChange={(e) => onChange("orcid", e.target.value)}
             />
             <p className="text-xs text-muted-foreground">
-              {t("example")} <bdi dir="ltr">{ORCID_EXAMPLE}</bdi>
+              {t("example")} <Ltr>{ORCID_EXAMPLE}</Ltr>
             </p>
             <p className="text-xs font-medium text-foreground">{t("hintOrcid")}</p>
           </div>

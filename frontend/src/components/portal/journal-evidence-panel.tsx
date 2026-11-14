@@ -1,5 +1,6 @@
 "use client";
 
+import { Fragment, type ReactNode } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { CircleHelp, ExternalLink, Loader2, ShieldAlert, ShieldX, SearchCheck } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
@@ -10,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { FAMILY_TINT, JOURNAL_VERDICT_FAMILY, type StatusFamily } from "@/lib/portal/status";
 import type { JournalCheck, JournalSourceEvidence, JournalSourceStatus } from "@/lib/portal/types";
 import { JournalFlagBanner } from "./journal-flag-banner";
+import { Bidi, Ltr } from "@/components/i18n/bidi";
 
 const VERDICT_ICON: Record<JournalCheck["verdict"], LucideIcon> = {
   danger: ShieldX,
@@ -30,22 +32,31 @@ const SOURCE_KEYS = ["openalex", "crossref", "doaj"] as const;
 
 function SourceRow({ name, evidence }: { name: string; evidence: JournalSourceEvidence }) {
   const t = useTranslations("portal.journals.check");
-  const facts: string[] = [];
-  if (evidence.type) facts.push(t("facts.type", { value: evidence.type }));
-  if (evidence.h_index != null) facts.push(t("facts.hIndex", { value: evidence.h_index }));
+  // Values come from the indexes (e.g. the type "journal"), so each is isolated as data.
+  const value = (v: string | number) => function FactValue() {
+    return <Bidi text={String(v)} />;
+  };
+  const facts: ReactNode[] = [];
+  if (evidence.type) facts.push(t.rich("facts.type", { value: evidence.type, v: value(evidence.type) }));
+  if (evidence.h_index != null) facts.push(t.rich("facts.hIndex", { value: evidence.h_index, v: value(evidence.h_index) }));
   if (evidence.two_year_mean_citedness != null) {
-    facts.push(t("facts.citedness", { value: evidence.two_year_mean_citedness.toFixed(2) }));
+    const citedness = evidence.two_year_mean_citedness.toFixed(2);
+    facts.push(t.rich("facts.citedness", { value: citedness, v: value(citedness) }));
   }
-  if (evidence.works_count != null) facts.push(t("facts.works", { value: evidence.works_count }));
-  if (evidence.total_dois != null) facts.push(t("facts.dois", { value: evidence.total_dois }));
+  if (evidence.works_count != null) facts.push(t.rich("facts.works", { value: evidence.works_count, v: value(evidence.works_count) }));
+  if (evidence.total_dois != null) facts.push(t.rich("facts.dois", { value: evidence.total_dois, v: value(evidence.total_dois) }));
   if (evidence.in_doaj && name !== t("sources.doaj")) facts.push(t("facts.inDoaj"));
 
   return (
     <li className="flex flex-wrap items-start justify-between gap-2 border-b py-2 last:border-b-0">
       <div className="min-w-0">
-        <p className="font-medium" dir="ltr">{name}</p>
-        {evidence.title && <p className="text-xs" dir="auto">{evidence.title}</p>}
-        {facts.length > 0 && <p className="text-xs text-muted-foreground">{facts.join(" · ")}</p>}
+        <p className="font-medium">{name}</p>
+        <Bidi as="p" block text={evidence.title} className="text-xs" />
+        {facts.length > 0 && (
+          <p className="text-xs text-muted-foreground">
+            {facts.map((fact, i) => <Fragment key={i}>{i > 0 && " · "}{fact}</Fragment>)}
+          </p>
+        )}
         {evidence.url && (
           <a href={evidence.url} target="_blank" rel="noopener noreferrer nofollow"
             className="inline-flex items-center gap-1 text-xs text-primary hover:underline">
@@ -131,10 +142,12 @@ export function JournalEvidencePanel({ result, loading, failed, onRetry, childre
                   {result.reference_hits.map((hit) => (
                     <li key={`${hit.list}-${hit.name}-${hit.matched_by}`} className="rounded-lg border p-2">
                       <p className="font-medium">{t(`lists.${hit.list}`)} · {t(`matchedBy.${hit.matched_by}`)}</p>
-                      <p dir="auto">{hit.name}</p>
-                      {hit.url && <a href={hit.url} target="_blank" rel="noopener noreferrer nofollow" dir="ltr" className="block break-all text-xs text-muted-foreground">{hit.url}</a>}
-                      {hit.authentic_name && <p className="text-xs">{t("authentic", { name: hit.authentic_name })}</p>}
-                      {hit.authentic_url && <a href={hit.authentic_url} target="_blank" rel="noopener noreferrer nofollow" dir="ltr" className="block break-all text-xs text-primary hover:underline">{hit.authentic_url}</a>}
+                      <Bidi as="p" block text={hit.name} />
+                      {hit.url && <a href={hit.url} target="_blank" rel="noopener noreferrer nofollow" dir="ltr" data-bidi="" className="block break-all text-xs text-muted-foreground">{hit.url}</a>}
+                      {hit.authentic_name && (
+                        <p className="text-xs">{t.rich("authentic", { name: hit.authentic_name, v: () => <Bidi text={hit.authentic_name} /> })}</p>
+                      )}
+                      {hit.authentic_url && <a href={hit.authentic_url} target="_blank" rel="noopener noreferrer nofollow" dir="ltr" data-bidi="" className="block break-all text-xs text-primary hover:underline">{hit.authentic_url}</a>}
                     </li>
                   ))}
                 </ul>
@@ -144,9 +157,9 @@ export function JournalEvidencePanel({ result, loading, failed, onRetry, childre
 
             {(result.canonical_name || result.publisher || result.issns.length > 0) && (
               <dl className="grid gap-1 sm:grid-cols-[auto_1fr] sm:gap-x-3">
-                {result.canonical_name && (<><dt className="text-muted-foreground">{t("canonicalName")}</dt><dd dir="auto">{result.canonical_name}</dd></>)}
-                {result.publisher && (<><dt className="text-muted-foreground">{t("publisher")}</dt><dd dir="auto">{result.publisher}</dd></>)}
-                {result.issns.length > 0 && (<><dt className="text-muted-foreground">{t("issns")}</dt><dd dir="ltr" className="text-start">{result.issns.join(", ")}</dd></>)}
+                {result.canonical_name && (<><dt className="text-muted-foreground">{t("canonicalName")}</dt><Bidi as="dd" text={result.canonical_name} /></>)}
+                {result.publisher && (<><dt className="text-muted-foreground">{t("publisher")}</dt><Bidi as="dd" text={result.publisher} /></>)}
+                {result.issns.length > 0 && (<><dt className="text-muted-foreground">{t("issns")}</dt><dd className="text-start"><Ltr>{result.issns.join(", ")}</Ltr></dd></>)}
               </dl>
             )}
 

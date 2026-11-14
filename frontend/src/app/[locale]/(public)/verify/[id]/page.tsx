@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import { CheckCircle2, XCircle } from "lucide-react";
 import { api } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Bidi, Ltr } from "@/components/i18n/bidi";
 
 interface Verification {
   letter_no: string;
@@ -57,23 +58,23 @@ export default function VerifyLetterPage() {
             <dl className="space-y-1 text-sm">
               <div>
                 <dt className="inline text-muted-foreground">{t("letter.number")}: </dt>
-                <dd className="inline font-medium" dir="ltr">{result.diwan_no || result.letter_no}</dd>
+                <dd className="inline font-medium"><Ltr>{result.diwan_no || result.letter_no}</Ltr></dd>
               </div>
               {result.diwan_no && (
                 <div>
                   <dt className="inline text-muted-foreground">{t("letter.internalNo")}: </dt>
-                  <dd className="inline font-medium" dir="ltr">{result.letter_no}</dd>
+                  <dd className="inline font-medium"><Ltr>{result.letter_no}</Ltr></dd>
                 </div>
               )}
               <div>
                 <dt className="inline text-muted-foreground">{t("letter.issuedTo")}: </dt>
-                <dd className="inline font-medium">{result.recipient_name}</dd>
+                <dd className="inline font-medium"><Bidi text={result.recipient_name} /></dd>
               </div>
               <div>
                 <dt className="inline text-muted-foreground">{t("letter.issuedOn")}: </dt>
-                <dd className="inline font-medium" dir="ltr">{result.issued_date}</dd>
+                <dd className="inline font-medium"><Ltr>{result.issued_date}</Ltr></dd>
               </div>
-              {result.signer_title && <p className="text-muted-foreground">{result.signer_title}</p>}
+              <Bidi as="p" block text={result.signer_title} className="text-center text-muted-foreground" />
             </dl>
           </div>
         )}

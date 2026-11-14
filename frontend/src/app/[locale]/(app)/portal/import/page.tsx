@@ -12,6 +12,7 @@ import {
 import { RequireAuth } from "@/components/portal/require-auth";
 import { Alert } from "@/components/ui/alert";
 import { BulkSyncPanel } from "@/components/portal/bulk-sync-panel";
+import { Bidi, Ltr } from "@/components/i18n/bidi";
 
 interface Problem {
   line: number;
@@ -90,6 +91,7 @@ function ImportPage() {
             {COLUMNS.map((c) => (
               <span key={c} className="rounded-lg border px-2 py-1">
                 {ti(`columns.${c}`)}
+                {c === "account_status" && <> (<Ltr>linked / needs_review</Ltr>)</>}
                 {(c === "name_ar" || c === "email") && <b className="text-destructive"> *</b>}
               </span>
             ))}
@@ -116,7 +118,7 @@ function ImportPage() {
               <FileSpreadsheet className="size-4" />
               <span>{ti("chooseFile")}</span>
             </Button>
-            {file && <span className="text-sm" dir="ltr">{file.name}</span>}
+            {file && <Bidi text={file.name} className="text-sm" />}
             <Button disabled={!file || busy} onClick={() => run(true)}>
               {ti("check")}
             </Button>
@@ -183,11 +185,11 @@ function ImportPage() {
                   {report.preview.map((row) => (
                     <TableRow key={row.line}>
                       <TableCell>{row.line}</TableCell>
-                      <TableCell>{row.name_ar}</TableCell>
-                      <TableCell dir="ltr">{row.email}</TableCell>
-                      <TableCell>{row.title_ar || "—"}</TableCell>
-                      <TableCell>{row.college || "—"}</TableCell>
-                      <TableCell>{row.department || "—"}</TableCell>
+                      <TableCell><Bidi block text={row.name_ar} /></TableCell>
+                      <TableCell><Ltr>{row.email}</Ltr></TableCell>
+                      <TableCell><Bidi block text={row.title_ar} fallback="—" /></TableCell>
+                      <TableCell><Bidi block text={row.college} fallback="—" /></TableCell>
+                      <TableCell><Bidi block text={row.department} fallback="—" /></TableCell>
                     </TableRow>
                   ))}
                 </TableBody>

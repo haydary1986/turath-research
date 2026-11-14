@@ -20,7 +20,7 @@ export function RequireAuth({ children }: { children: ReactNode }) {
       <Card className="mx-auto max-w-md">
         <CardContent className="space-y-4 py-8 text-center">
           <p>{t("signInRequired")}</p>
-          <Button render={<Link href="/auth/login" />}>{t("signIn")}</Button>
+          <Button nativeButton={false} render={<Link href="/auth/login" />}>{t("signIn")}</Button>
         </CardContent>
       </Card>
     );

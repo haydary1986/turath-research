@@ -17,6 +17,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Search } from "lucide-react";
+import { Bidi, Ltr } from "@/components/i18n/bidi";
 
 interface Publication {
   id: string;
@@ -29,16 +30,7 @@ interface Publication {
   citation_count: number;
 }
 
-const typeLabels: Record<string, string> = {
-  journal_article: "مقالة",
-  conference_paper: "مؤتمر",
-  book_chapter: "فصل كتاب",
-  book: "كتاب",
-  preprint: "مسودة",
-  thesis: "رسالة",
-  patent: "براءة",
-  report: "تقرير",
-};
+const PUBLICATION_TYPES = ["journal_article", "conference_paper", "book_chapter", "book", "preprint", "thesis", "patent", "report"];
 
 export default function PublicationsPage() {
   const t = useTranslations("publication");
@@ -117,22 +109,20 @@ export default function PublicationsPage() {
                         href={`/publications/${p.id}`}
                         className="font-medium hover:underline"
                       >
-                        {p.title_ar || p.title_en || "—"}
+                        <Bidi text={p.title_ar || p.title_en} fallback="—" />
                       </Link>
                     </TableCell>
                     <TableCell>
                       <Badge variant="outline">
-                        {typeLabels[p.publication_type] || p.publication_type}
+                        {PUBLICATION_TYPES.includes(p.publication_type) ? t(`types.${p.publication_type}`) : <Bidi text={p.publication_type} />}
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      {p.publication_date
-                        ? new Date(p.publication_date).getFullYear()
-                        : "—"}
+                      {p.publication_date ? <Ltr>{new Date(p.publication_date).getFullYear()}</Ltr> : "—"}
                     </TableCell>
                     <TableCell>{p.citation_count}</TableCell>
-                    <TableCell dir="ltr" className="text-xs">
-                      {p.doi || "—"}
+                    <TableCell className="text-xs">
+                      <Ltr>{p.doi || "—"}</Ltr>
                     </TableCell>
                   </TableRow>
                 ))}

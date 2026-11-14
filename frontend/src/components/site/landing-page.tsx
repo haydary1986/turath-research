@@ -2,6 +2,8 @@ import { getTranslations } from "next-intl/server";
 import { JsonLd } from "@/components/seo/json-ld";
 import { faqLd } from "@/lib/seo/json-ld";
 import type { LandingData } from "@/lib/site/public-data";
+import { pickLocalized } from "@/lib/i18n/text-lang";
+import { localizeFaq } from "@/lib/site/localize";
 import { FaqList } from "./faq-list";
 import { RichText } from "./rich-text";
 import { DirectorMessage } from "./landing/director-message";
@@ -23,15 +25,21 @@ export async function LandingPage({ locale, data }: { locale: string; data: Land
   const t = await getTranslations({ locale, namespace: "site.home" });
   const tl = await getTranslations({ locale, namespace: "landing" });
   const { content } = data;
+  const about = pickLocalized(content?.about, content?.about_en, locale);
+  const faq = localizeFaq(content?.faq ?? [], locale);
 
   return (
     <>
-      <Hero locale={locale} title={content?.hero_title ?? null} subtitle={content?.hero_subtitle ?? null} />
+      <Hero
+        locale={locale}
+        title={pickLocalized(content?.hero_title, content?.hero_title_en, locale)}
+        subtitle={pickLocalized(content?.hero_subtitle, content?.hero_subtitle_en, locale)}
+      />
       <StatsBar locale={locale} stats={data.stats} />
 
-      {content?.about && (
+      {about && (
         <Section id="about" title={t("about")}>
-          <RichText text={content.about} className="max-w-3xl text-base" />
+          <RichText text={about.text} lang={about.lang} className="max-w-3xl text-base" />
         </Section>
       )}
 
@@ -47,8 +55,8 @@ export async function LandingPage({ locale, data }: { locale: string; data: Land
 
       {!!content?.faq.length && (
         <Section id="faq" title={tl("faq.title")}>
-          <FaqList items={content.faq} />
-          <JsonLd data={faqLd(content.faq)} />
+          <FaqList items={faq} />
+          <JsonLd data={faqLd(faq)} />
         </Section>
       )}
     </>

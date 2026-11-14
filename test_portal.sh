@@ -729,6 +729,10 @@ call PUT /site "$SA" "${SITE_JSON/قسم الشؤون العلمية $RUN/}"; ex
 call PUT /site "$SA" "$SITE_JSON"; expect "scientific affairs edits the public site" 200
 pub /public/site
 [ "$(echo "$BODY" | jq_ "d['data']['hero_title']")" = "قسم الشؤون العلمية $RUN" ] && ok "public site shows the edit" || bad "site edit" "$BODY"
+[ "$(echo "$BODY" | jq_ "d['data']['hero_title_en']")" = "" ] && ok "english hero title is optional" || bad "hero en" "$BODY"
+call PUT /site "$SA" "${SITE_JSON/\"hero_subtitle\":\"x\"/\"hero_title_en\":\"Scientific Affairs $RUN\",\"hero_subtitle\":\"x\"}"; expect "english hero title saved" 200
+pub /public/site
+[ "$(echo "$BODY" | jq_ "d['data']['hero_title_en']")" = "Scientific Affairs $RUN" ] && ok "public site returns the english text" || bad "site en" "$BODY"
 echo "$BODY" | grep -q "$SA_ID" && bad "site leaks editor" "$BODY" || ok "public site names no editor"
 call PUT /site "$SA" "$ORIG_SITE"; expect "original site content restored" 200
 
@@ -756,7 +760,8 @@ call POST "/announcements/$ANN/publish" "$SA" '{"published":true}'; expect "SA p
 call POST "/announcements/$ANN/pin" "$SA" '{"pinned":true}'; expect "SA pins" 200
 pub "/public/announcements/$ANN"; expect "published announcement visible without a token" 200
 KEYS=$(echo "$BODY" | jq_ "','.join(sorted(d['data'].keys()))")
-[ "$KEYS" = "attachment,body,event_date,id,pinned,published_at,reference_no,title,type" ] && ok "public announcement carries no personal or editorial fields" || bad "public keys" "$KEYS"
+[ "$KEYS" = "attachment,body,event_date,id,lang,pinned,published_at,reference_no,title,type" ] && ok "public announcement carries no personal or editorial fields" || bad "public keys" "$KEYS"
+[ "$(echo "$BODY" | jq_ "d['data']['lang']")" = "ar" ] && ok "announcement language defaults to Arabic" || bad "announcement lang" "$BODY"
 echo "$BODY" | grep -q -e "$SA_ID" -e "$SA_EMAIL" -e "uploaded_by" -e "created_by" && bad "public leak" "$BODY" || ok "no author id or email in public JSON"
 [ "$(echo "$BODY" | jq_ "','.join(sorted(d['data']['attachment'].keys()))")" = "id,mime_type,name,size_bytes" ] && ok "public attachment has no uploader" || bad "attachment keys" "$BODY"
 pub "/public/announcements?type=circular"
@@ -766,6 +771,10 @@ echo "$BODY" | grep -q -e "$SA_ID" -e "$SA_EMAIL" && bad "list leak" "$BODY" || 
 CODE=$(curl -s -o "$TMP/pubdl" -w "%{http_code}" "$API/public/files/$ANNFILE"); [ "$CODE" = "200" ] && head -c4 "$TMP/pubdl" | grep -q '%PDF' && ok "published attachment downloads without a token" || bad "public download" "$CODE"
 CODE=$(curl -s -o /dev/null -w "%{http_code}" "$API/public/files/$FILE"); [ "$CODE" = "404" ] && ok "request files never served publicly" || bad "request file public" "$CODE"
 call PUT "/announcements/$ANN" "$SA" "{\"type\":\"circular\",\"title\":\"تعميم معدل $RUN\",\"body\":\"\",\"reference_no\":\"1\"}"; expect "SA edits the announcement" 200
+call PUT "/announcements/$ANN" "$SA" "{\"type\":\"circular\",\"lang\":\"fr\",\"title\":\"Circular $RUN\"}"; expect "unknown announcement language rejected" 422
+echo "$BODY" | grep -q "lang:invalid" && ok "announcement language reported by field" || bad "lang code" "$BODY"
+call PUT "/announcements/$ANN" "$SA" "{\"type\":\"circular\",\"lang\":\"en\",\"title\":\"Circular $RUN\",\"body\":\"\",\"reference_no\":\"1\"}"; expect "SA writes an English announcement" 200
+[ "$(echo "$BODY" | jq_ "d['data']['lang']")" = "en" ] && ok "announcement language stored" || bad "lang stored" "$BODY"
 call POST "/announcements/$ANN/publish" "$SA" '{"published":false}'; expect "SA unpublishes" 200
 pub "/public/announcements/$ANN"; expect "withdrawn announcement hidden again" 404
 CODE=$(curl -s -o /dev/null -w "%{http_code}" "$API/public/files/$ANNFILE"); [ "$CODE" = "404" ] && ok "withdrawn attachment 404 publicly" || bad "withdrawn file" "$CODE"
@@ -899,7 +908,7 @@ call GET "/researchers/$OWN_RID/contact" "$IMPOSTOR"; expect "verified owner rea
 
 echo "== public site v2: statistics, publications, director photo, blocks =="
 pub /public/stats; expect "public statistics readable without a token" 200
-[ "$(echo "$BODY" | jq_ "all(sorted(s.keys())==['key','label','number','value'] for s in d['data'])")" = "True" ] && ok "statistics are aggregates only" || bad "stats shape" "$BODY"
+[ "$(echo "$BODY" | jq_ "all(sorted(s.keys())==['key','label','label_en','number','value'] for s in d['data'])")" = "True" ] && ok "statistics are aggregates only" || bad "stats shape" "$BODY"
 call GET /site/stats "$RES"; expect "researcher cannot read the stats editor" 403
 call GET /site/stats "$SA"; expect "SA reads computed statistics" 200
 [ "$(echo "$BODY" | jq_ "len(d['data']['items'])")" = "5" ] && ok "editor lists all five statistics" || bad "staff stats" "$BODY"

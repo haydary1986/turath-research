@@ -59,7 +59,7 @@ function PredatoryGuidePage() {
                 <li key={s}>{t(s)}</li>
               ))}
             </ol>
-            <Button render={<Link href="/portal/journal-check" />}>
+            <Button nativeButton={false} render={<Link href="/portal/journal-check" />}>
               <SearchCheck className="size-4" aria-hidden />
               {t("checkButton")}
             </Button>
@@ -104,7 +104,7 @@ function PredatoryGuidePage() {
                 <Button
                   variant="outline"
                   size="sm"
-                  render={<a href={l.href} target="_blank" rel="noopener noreferrer" />}
+                  nativeButton={false} render={<a href={l.href} target="_blank" rel="noopener noreferrer" />}
                 >
                   <ExternalLink className="size-4" aria-hidden />
                   {t(`links.${l.key}`)}

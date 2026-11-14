@@ -16,7 +16,9 @@
     "noResults": "لا توجد نتائج",
     "actions": "إجراءات",
     "logout": "تسجيل الخروج",
-    "accountMenu": "قائمة الحساب"
+    "accountMenu": "قائمة الحساب",
+    "toggleSidebar": "إظهار الشريط الجانبي أو إخفاؤه",
+    "close": "إغلاق"
   },
   "nav": {
     "dashboard": "لوحة المتابعة",
@@ -42,7 +44,12 @@
     "recentPublications": "آخر المنشورات",
     "topResearchers": "أفضل الباحثين",
     "recentPlaceholder": "سيتم عرض آخر المنشورات هنا بعد استيراد البيانات",
-    "topPlaceholder": "سيتم عرض أفضل الباحثين هنا بعد استيراد البيانات"
+    "topPlaceholder": "سيتم عرض أفضل الباحثين هنا بعد استيراد البيانات",
+    "metrics": {
+      "hIndex": "h-index: {value}",
+      "citations": "{count} استشهاد",
+      "publications": "{count} بحث"
+    }
   },
   "sidebar": {
     "brand": "جامعة التراث",
@@ -68,7 +75,13 @@
     "active": "نشط",
     "inactive": "غير نشط",
     "profile": "الملف الشخصي",
-    "metrics": "المقاييس"
+    "metrics": "المقاييس",
+    "byYear": "الأبحاث حسب السنة",
+    "rankingDistribution": "توزيع تصنيف المجلات",
+    "topCited": "أكثر الأبحاث استشهادًا",
+    "coAuthors": "المؤلفون المشاركون",
+    "noData": "لا توجد بيانات",
+    "unranked": "غير مصنف"
   },
   "publication": {
     "title": "المنشورات",
@@ -82,7 +95,17 @@
     "ranking": "التصنيف",
     "citations": "الاستشهادات",
     "authors": "المؤلفون",
-    "abstract": "الملخص"
+    "abstract": "الملخص",
+    "types": {
+      "journal_article": "مقالة",
+      "conference_paper": "بحث مؤتمر",
+      "book_chapter": "فصل كتاب",
+      "book": "كتاب",
+      "preprint": "مسودة",
+      "thesis": "رسالة",
+      "patent": "براءة اختراع",
+      "report": "تقرير"
+    }
   },
   "auth": {
     "login": "تسجيل الدخول",
@@ -197,7 +220,7 @@
       "index_db": "قاعدة الفهرسة",
       "quartile": "التصنيف (Quartile)",
       "cite_score": "CiteScore",
-      "impact_factor": "Impact Factor",
+      "impact_factor": "معامل التأثير (Impact Factor)",
       "publication_date": "تاريخ النشر",
       "article_url": "رابط البحث",
       "journal_url": "رابط المجلة",
@@ -498,7 +521,7 @@
         "linkedin_url": "LinkedIn",
         "web_of_science_url": "Web of Science",
         "employee_no": "الرقم الوظيفي",
-        "account_status": "حالة الحساب (linked / needs_review)"
+        "account_status": "حالة الحساب"
       },
       "errors": {
         "name_required": "الاسم مفقود",
@@ -732,11 +755,11 @@
         },
         "scopusNote": "لا يتوفر فحص آلي لفهرسة Scopus ولا للربع (Quartile)، فتحقّق منهما يدويًا. هذا لا يعني أن المجلة غير مفهرسة.",
         "facts": {
-          "type": "النوع: {value}",
-          "hIndex": "مؤشر h: {value}",
-          "citedness": "متوسط الاستشهاد لسنتين (OpenAlex، وليس معامل التأثير): {value}",
-          "works": "عدد الأعمال: {value}",
-          "dois": "عدد DOI: {value}",
+          "type": "النوع: <v>{value}</v>",
+          "hIndex": "h-index: <v>{value}</v>",
+          "citedness": "متوسط الاستشهاد لسنتين (OpenAlex، وليس معامل التأثير): <v>{value}</v>",
+          "works": "عدد الأعمال: <v>{value}</v>",
+          "dois": "عدد DOI: <v>{value}</v>",
           "inDoaj": "مدرجة في DOAJ بحسب OpenAlex",
           "open": "فتح"
         },
@@ -751,7 +774,7 @@
           "url": "تطابق رابط المجلة",
           "homepage": "تطابق موقع المجلة في الفهارس"
         },
-        "authentic": "المجلة الأصلية: {name}",
+        "authentic": "المجلة الأصلية: <v>{name}</v>",
         "listCaveat": "قوائم عامة يديرها متطوعون، وقد يتشابه اسم مجلة سليمة مع اسم مدرج، فراجع الرابط قبل الحكم.",
         "reasons": {
           "manual_predatory": "مصنفة مفترسة في استثناءات الوزارة",
@@ -1088,7 +1111,13 @@
         "publishedAt": "نُشر في {date}",
         "view": "عرض",
         "statusFilter": "الحالة",
-        "typeFilter": "النوع"
+        "typeFilter": "النوع",
+        "lang": "لغة الإعلان",
+        "langs": {
+          "ar": "العربية",
+          "en": "الإنكليزية"
+        },
+        "langHint": "اكتب الإعلان بلغة واحدة. يُعرض كما كُتب في الموقعين العربي والإنكليزي، دون ترجمة."
       },
       "fields": {
         "hero_title": "العنوان الرئيسي",
@@ -1110,7 +1139,8 @@
         "event_date": "موعد النشاط",
         "reference_no": "رقم التعميم",
         "published": "حالة النشر",
-        "pinned": "التثبيت"
+        "pinned": "التثبيت",
+        "lang": "لغة الإعلان"
       },
       "forbidden": "هذه الصفحة متاحة لمدير النظام وموظفي الشؤون العلمية فقط."
     },
@@ -1245,7 +1275,7 @@
       "next": "التالي",
       "pinned": "مثبّت",
       "readMore": "اقرأ المزيد",
-      "circularNo": "تعميم رقم {no}",
+      "circularNo": "تعميم رقم <ref>{no}</ref>",
       "eventDate": "موعد النشاط: {date}",
       "publishedOn": "نُشر في {date}",
       "attachment": "المرفق",
@@ -1261,5 +1291,51 @@
       "rights": "© {year} جامعة التراث — قسم الشؤون العلمية",
       "portal": "بوابة الشؤون العلمية"
     }
+  },
+  "aiInsights": {
+    "title": "تحليلات الذكاء الاصطناعي",
+    "subtitle": "توصيات ونصائح مخصصة يولّدها نموذج DeepSeek",
+    "collaborationTab": "توصيات التعاون",
+    "strategyTab": "استراتيجية النشر",
+    "analyzing": "جاري التحليل...",
+    "analyzeCollaboration": "تحليل فرص التعاون",
+    "analyzeStrategy": "تحليل استراتيجية النشر",
+    "failed": "تعذّر التحليل، حاول مرة أخرى",
+    "match": "توافق {score}٪",
+    "collaborationEmpty": "اضغط الزر لتحليل فرص التعاون البحثي",
+    "summary": "الملخص",
+    "journals": "المجلات المقترحة",
+    "actions": "خطوات عملية",
+    "topics": "مواضيع مقترحة",
+    "strategyEmpty": "اضغط الزر للحصول على نصائح نشر مخصصة"
+  },
+  "trends": {
+    "title": "المواضيع الرائجة",
+    "subtitle": "تحليل بالذكاء الاصطناعي لاتجاهات البحث في الجامعة",
+    "analyzing": "جاري التحليل...",
+    "analyze": "تحليل الاتجاهات",
+    "failed": "تعذّر التحليل، حاول مرة أخرى",
+    "cached": "نتائج محفوظة مسبقًا (صالحة لمدة 7 أيام)",
+    "directions": {
+      "rising": "صاعد",
+      "declining": "متراجع",
+      "stable": "مستقر"
+    },
+    "counts": "{researchers} باحث | {publications} بحث",
+    "empty": "اضغط «تحليل الاتجاهات» لبدء تحليل المواضيع البحثية الرائجة بالذكاء الاصطناعي"
+  },
+  "searchPage": {
+    "placeholder": "ابحث عن باحث أو بحث أو مجلة...",
+    "results": "{count} نتيجة",
+    "types": {
+      "researcher": "باحث",
+      "publication": "بحث",
+      "journal": "مجلة"
+    }
+  },
+  "notFound": {
+    "title": "الصفحة غير موجودة",
+    "body": "لم نعثر على الصفحة المطلوبة. ربما نُقلت أو أن الرابط غير صحيح.",
+    "home": "العودة إلى الرئيسية"
   }
 }

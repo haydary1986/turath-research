@@ -1,5 +1,6 @@
 import { Link } from "@/i18n/routing";
 import { JOURNAL_PATHS, type JournalEntryLink, type ListType } from "@/lib/journals/lists";
+import { Bidi } from "@/components/i18n/bidi";
 
 interface EntryLinksProps {
   id: string;
@@ -21,7 +22,7 @@ export function EntryLinks({ id, title, links, listLabel }: EntryLinksProps) {
               href={JOURNAL_PATHS.entry(link.slug)}
               className="flex h-full flex-col rounded-lg border bg-card px-3 py-2 hover:border-accent/40 focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
             >
-              <span dir="ltr" className="font-medium text-primary">{link.name}</span>
+              <Bidi text={link.name} className="font-medium text-primary" />
               <span className="text-xs text-muted-foreground">{listLabel(link.list_type)}</span>
             </Link>
           </li>

@@ -12,6 +12,7 @@ import {
 import { formatDate } from "@/lib/portal/types";
 import { itemListLd } from "@/lib/seo/json-ld";
 import { pageMetadata } from "@/lib/seo/site";
+import { Bidi, Ltr } from "@/components/i18n/bidi";
 
 type Props = {
   params: Promise<{ locale: string; list: string }>;
@@ -43,7 +44,7 @@ async function indexTitle(locale: string, { type, letter }: IndexQuery): Promise
   const list = t(`lists.${type}`);
   if (!letter) return t("index.title", { list });
   if (letter === LETTER_OTHER) return t("index.titleOther", { list });
-  return t("index.titleLetter", { list, letter: letter.toUpperCase() });
+  return t.markup("index.titleLetter", { list, letter: letter.toUpperCase(), l: (chunks) => chunks });
 }
 
 export async function generateMetadata(props: Props): Promise<Metadata> {
@@ -76,6 +77,13 @@ export default async function ListIndexPage(props: Props) {
   const pages = Math.max(1, Math.ceil(total / INDEX_PAGE_SIZE));
   if (q.page > pages) notFound();
   const title = await indexTitle(locale, q);
+  // The visible title isolates the Latin index letter inside the Arabic sentence.
+  const heading = q.letter && q.letter !== LETTER_OTHER
+    ? t.rich("index.titleLetter", {
+        list: t(`lists.${q.type}`), letter: q.letter.toUpperCase(),
+        l: (chunks) => <span dir="ltr" data-bidi="">{chunks}</span>,
+      })
+    : title;
   const offset = (q.page - 1) * INDEX_PAGE_SIZE;
 
   return (
@@ -85,10 +93,10 @@ export default async function ListIndexPage(props: Props) {
         crumbs={[
           { name: t("crumbs.hub"), path: JOURNAL_PATHS.hub },
           { name: t("crumbs.list"), path: JOURNAL_PATHS.list },
-          { name: title, path: JOURNAL_PATHS.index(q.type, q.letter, q.page) },
+          { name: title, path: JOURNAL_PATHS.index(q.type, q.letter, q.page), label: heading },
         ]}
       />
-      <h1 className="mt-4 text-2xl font-bold text-primary md:text-3xl">{title}</h1>
+      <h1 className="mt-4 text-2xl font-bold text-primary md:text-3xl">{heading}</h1>
       <p className="mt-2 text-muted-foreground">{t(`listHelp.${q.type}`)}</p>
       <p className="mt-1 text-sm text-muted-foreground tabular-nums">{t("listPage.count", { count: total })}</p>
 
@@ -111,16 +119,15 @@ export default async function ListIndexPage(props: Props) {
             <li key={entry.slug} className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 px-4 py-3">
               <Link
                 href={JOURNAL_PATHS.entry(entry.slug)}
-                dir="ltr"
                 className="min-w-0 font-medium text-primary hover:text-accent hover:underline"
               >
-                {entry.name}
+                <Bidi text={entry.name} />
               </Link>
-              <span className="text-xs text-muted-foreground" dir="ltr">
+              <Ltr className="text-xs text-muted-foreground">
                 {entry.hosts.join(" · ")}
                 {entry.hosts.length > 0 && " · "}
                 {formatDate(entry.fetched_at, locale)}
-              </span>
+              </Ltr>
             </li>
           ))}
         </ol>

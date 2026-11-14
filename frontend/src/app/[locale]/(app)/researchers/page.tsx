@@ -18,6 +18,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Plus, Search } from "lucide-react";
+import { Bidi, Ltr } from "@/components/i18n/bidi";
 
 interface Researcher {
   id: string;
@@ -70,7 +71,7 @@ export default function ResearchersPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">{t("title")}</h1>
-        <Button render={<Link href="/researchers/new" />}>
+        <Button nativeButton={false} render={<Link href="/researchers/new" />}>
           <Plus className="size-4" />
           <span>{t("addNew")}</span>
         </Button>
@@ -120,19 +121,15 @@ export default function ResearchersPage() {
                         href={`/researchers/${r.id}`}
                         className="font-medium hover:underline"
                       >
-                        {r.name_ar}
-                        {r.name_en && (
-                          <span className="ms-2 text-xs text-muted-foreground">
-                            {r.name_en}
-                          </span>
-                        )}
+                        <Bidi text={r.name_ar} />
+                        {r.name_en && <Bidi text={r.name_en} className="ms-2 text-xs text-muted-foreground" />}
                       </Link>
                       {r.needs_identity_review && (
                         <Badge variant="destructive" className="ms-2">{t("identityReview")}</Badge>
                       )}
                     </TableCell>
-                    <TableCell dir="ltr">{r.email}</TableCell>
-                    <TableCell>{r.title_ar || "—"}</TableCell>
+                    <TableCell><Ltr>{r.email}</Ltr></TableCell>
+                    <TableCell><Bidi block text={r.title_ar} fallback="—" /></TableCell>
                     <TableCell>{r.h_index}</TableCell>
                     <TableCell>{r.total_citations}</TableCell>
                     <TableCell>{r.total_publications}</TableCell>

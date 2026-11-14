@@ -129,10 +129,11 @@ func (h *PublicHandler) computeStats(ctx context.Context) (map[string]int64, err
 // publicStat is one statistic as visitors see it. Number is the computed value;
 // when staff set a manual value, Value carries it and Number is null.
 type publicStat struct {
-	Key    string `json:"key"`
-	Label  string `json:"label"`
-	Value  string `json:"value"`
-	Number *int64 `json:"number"`
+	Key     string `json:"key"`
+	Label   string `json:"label"`
+	LabelEn string `json:"label_en"`
+	Value   string `json:"value"`
+	Number  *int64 `json:"number"`
 }
 
 // staffStat adds the editor's view: the stored setting and the computed number.
@@ -174,7 +175,7 @@ func (h *PublicHandler) PublicStats(w http.ResponseWriter, r *http.Request) {
 		if s.Hidden {
 			continue
 		}
-		stat := publicStat{Key: s.Key, Label: s.Label, Value: s.Value}
+		stat := publicStat{Key: s.Key, Label: s.Label, LabelEn: s.LabelEn, Value: s.Value}
 		if s.Value == "" {
 			n := numbers[s.Key]
 			stat.Number = &n

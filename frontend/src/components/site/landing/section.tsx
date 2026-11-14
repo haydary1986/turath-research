@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils";
 
 interface SectionProps {
   id: string;
-  title: string;
+  title: ReactNode;
   children: ReactNode;
   action?: ReactNode;
   intro?: string;

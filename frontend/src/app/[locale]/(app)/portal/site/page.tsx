@@ -30,7 +30,7 @@ function SiteAdmin() {
           <h1 className="text-2xl font-bold">{t("title")}</h1>
           <p className="text-sm text-muted-foreground">{t("intro")}</p>
         </div>
-        <Button variant="outline" render={<Link href="/" target="_blank" />}>
+        <Button variant="outline" nativeButton={false} render={<Link href="/" target="_blank" />}>
           <ExternalLink aria-hidden />
           {t("viewSite")}
         </Button>

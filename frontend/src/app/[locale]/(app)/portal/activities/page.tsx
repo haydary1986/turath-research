@@ -33,6 +33,7 @@ import { ACTIVITY_STATUS_FAMILY, FAMILY_TINT } from "@/lib/portal/status";
 import { canManageSite, type StaffAnnouncement } from "@/lib/site/types";
 import { useRouter } from "@/i18n/routing";
 import { useSearchParams } from "next/navigation";
+import { Bidi, Ltr } from "@/components/i18n/bidi";
 
 const STATUSES = ["pending", "approved", "returned", "rejected"] as const;
 const STEPS = ["register", "review", "report"] as const;
@@ -332,28 +333,31 @@ function ActivityRow({ activity: a, viewerIsOwner, canEdit, canDecide, canAnnoun
         )}
       </TableCell>
       <TableCell className="max-w-xs">
-        <span className="block truncate font-medium" title={a.title_ar}>{a.title_ar}</span>
+        <Bidi block text={a.title_ar} title={a.title_ar} className="truncate font-medium" />
         <span className="block truncate text-xs text-muted-foreground">
-          {a.creator_name}{a.presenter ? ` — ${a.presenter}` : ""}
-          {a.category === "infrastructure" ? ` — ${a.item_count ?? ""}` : a.category_detail ? ` — ${a.category_detail}` : ""}
+          <Bidi text={a.creator_name} />
+          {a.presenter && <> — <Bidi text={a.presenter} /></>}
+          {a.category === "infrastructure"
+            ? <> — <Ltr>{a.item_count ?? ""}</Ltr></>
+            : a.category_detail && <> — <Bidi text={a.category_detail} /></>}
         </span>
       </TableCell>
-      <TableCell>{a.college_name ?? "—"}</TableCell>
+      <TableCell><Bidi block text={a.college_name} fallback="—" /></TableCell>
       <TableCell className="whitespace-nowrap">
-        <span dir="ltr" className="inline-flex items-center gap-1">
+        <span className="inline-flex items-center gap-1">
           <CalendarDays className="size-3.5 text-muted-foreground" />
-          {formatDate(a.activity_date, locale)}
+          <Ltr>{formatDate(a.activity_date, locale)}</Ltr>
         </span>
       </TableCell>
       <TableCell className="tabular-nums">{a.attendees_count}</TableCell>
-      <TableCell><span dir="ltr">{a.approval_no ?? "—"}</span></TableCell>
+      <TableCell><Ltr>{a.approval_no ?? "—"}</Ltr></TableCell>
       <TableCell className="max-w-64 whitespace-normal">
         <Badge variant="secondary" className={`h-auto whitespace-normal ${STATUS_TINT[a.status] ?? ""}`}>
           {ta(`statuses.${activityStatusKey(a.status, viewerIsOwner)}`)}
         </Badge>
         {note && (
           <p className="mt-1 text-xs whitespace-pre-line break-words text-muted-foreground">
-            <span className="font-medium">{ta("decisionNote")}:</span> {note}
+            <span className="font-medium">{ta("decisionNote")}:</span> <Bidi text={note} />
           </p>
         )}
       </TableCell>

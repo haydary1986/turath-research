@@ -52,20 +52,25 @@ var serviceLinkRoots = []string{"/portal", "/journals", "/news"}
 // StatSetting is how one live statistic is shown. A non-empty Value replaces the
 // computed number; an empty Label uses the default label of the key.
 type StatSetting struct {
-	Key    string `json:"key"`
-	Label  string `json:"label"`
-	Value  string `json:"value"`
-	Hidden bool   `json:"hidden"`
+	Key     string `json:"key"`
+	Label   string `json:"label"`
+	LabelEn string `json:"label_en"`
+	Value   string `json:"value"`
+	Hidden  bool   `json:"hidden"`
 }
 
 // Director is the director's message block; it is hidden while Name and Message are empty.
 // PhotoID is managed by the photo upload endpoint, never by the document editor.
 type Director struct {
-	Title    string `json:"title"`
-	Name     string `json:"name"`
-	Position string `json:"position"`
-	Message  string `json:"message"`
-	PhotoID  string `json:"photo_id"`
+	Title      string `json:"title"`
+	TitleEn    string `json:"title_en"`
+	Name       string `json:"name"`
+	NameEn     string `json:"name_en"`
+	Position   string `json:"position"`
+	PositionEn string `json:"position_en"`
+	Message    string `json:"message"`
+	MessageEn  string `json:"message_en"`
+	PhotoID    string `json:"photo_id"`
 }
 
 // Social is one social-media link of the footer.
@@ -76,8 +81,10 @@ type Social struct {
 
 // FAQItem is one question of the FAQ block.
 type FAQItem struct {
-	Question string `json:"question"`
-	Answer   string `json:"answer"`
+	Question   string `json:"question"`
+	QuestionEn string `json:"question_en"`
+	Answer     string `json:"answer"`
+	AnswerEn   string `json:"answer_en"`
 }
 
 // IsServiceIcon reports whether key names a known service icon.
@@ -114,7 +121,9 @@ func normalizeStats(in []StatSetting) []StatSetting {
 			continue
 		}
 		seen[key] = true
-		out = append(out, StatSetting{Key: key, Label: cleanLine(s.Label), Value: cleanLine(s.Value), Hidden: s.Hidden})
+		out = append(out, StatSetting{
+			Key: key, Label: cleanLine(s.Label), LabelEn: cleanLine(s.LabelEn), Value: cleanLine(s.Value), Hidden: s.Hidden,
+		})
 	}
 	for _, key := range StatKeys {
 		if !seen[key] {
@@ -130,8 +139,10 @@ func normalizeDirector(d Director) Director {
 		photo = ""
 	}
 	return Director{
-		Title: cleanLine(d.Title), Name: cleanLine(d.Name), Position: cleanLine(d.Position),
-		Message: cleanText(d.Message), PhotoID: photo,
+		Title: cleanLine(d.Title), TitleEn: cleanLine(d.TitleEn),
+		Name: cleanLine(d.Name), NameEn: cleanLine(d.NameEn),
+		Position: cleanLine(d.Position), PositionEn: cleanLine(d.PositionEn),
+		Message: cleanText(d.Message), MessageEn: cleanText(d.MessageEn), PhotoID: photo,
 	}
 }
 
@@ -146,7 +157,10 @@ func normalizeSocials(in []Social) []Social {
 func normalizeFAQ(in []FAQItem) []FAQItem {
 	out := make([]FAQItem, 0, len(in))
 	for _, f := range in {
-		out = append(out, FAQItem{Question: cleanLine(f.Question), Answer: cleanText(f.Answer)})
+		out = append(out, FAQItem{
+			Question: cleanLine(f.Question), QuestionEn: cleanLine(f.QuestionEn),
+			Answer: cleanText(f.Answer), AnswerEn: cleanText(f.AnswerEn),
+		})
 	}
 	return out
 }
@@ -155,13 +169,19 @@ func normalizeFAQ(in []FAQItem) []FAQItem {
 func validateBlocks(p *problems, c Content) {
 	for _, s := range c.Stats {
 		p.text("stat_label", s.Label, false, MaxStatLabel)
+		p.text("stat_label_en", s.LabelEn, false, MaxStatLabel)
 		p.text("stat_value", s.Value, false, MaxStatValue)
 	}
 
-	p.text("director_title", c.Director.Title, false, MaxDirectorTitle)
-	p.text("director_name", c.Director.Name, false, MaxDirectorName)
-	p.text("director_position", c.Director.Position, false, MaxDirectorPos)
-	p.text("director_message", c.Director.Message, false, MaxDirectorMessage)
+	d := c.Director
+	p.text("director_title", d.Title, false, MaxDirectorTitle)
+	p.text("director_title_en", d.TitleEn, false, MaxDirectorTitle)
+	p.text("director_name", d.Name, false, MaxDirectorName)
+	p.text("director_name_en", d.NameEn, false, MaxDirectorName)
+	p.text("director_position", d.Position, false, MaxDirectorPos)
+	p.text("director_position_en", d.PositionEn, false, MaxDirectorPos)
+	p.text("director_message", d.Message, false, MaxDirectorMessage)
+	p.text("director_message_en", d.MessageEn, false, MaxDirectorMessage)
 
 	validateLinks(p, "colleges", "college", c.Colleges, MaxColleges)
 
@@ -180,6 +200,8 @@ func validateBlocks(p *problems, c Content) {
 	}
 	for _, f := range c.FAQ {
 		p.text("faq_question", f.Question, true, MaxFAQQuestion)
+		p.text("faq_question_en", f.QuestionEn, false, MaxFAQQuestion)
 		p.text("faq_answer", f.Answer, true, MaxFAQAnswer)
+		p.text("faq_answer_en", f.AnswerEn, false, MaxFAQAnswer)
 	}
 }

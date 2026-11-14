@@ -7,6 +7,7 @@ import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PUBLIC_API, formatFileSize, type PublicAnnouncement } from "@/lib/site/types";
+import { Bidi, Ltr } from "@/components/i18n/bidi";
 import { AnnouncementMeta } from "./announcement-meta";
 import { RichText } from "./rich-text";
 import { usePublicResource } from "./use-public-resource";
@@ -59,9 +60,9 @@ export function NewsDetail({ id }: { id: string }) {
       {back}
       <header className="space-y-3">
         <AnnouncementMeta item={data} />
-        <h1 className="text-2xl leading-snug font-bold text-primary md:text-3xl">{data.title}</h1>
+        <Bidi as="h1" block text={data.title} lang={data.lang} className="text-2xl leading-snug font-bold text-primary md:text-3xl" />
       </header>
-      {data.body && <RichText text={data.body} className="text-base" />}
+      {data.body && <RichText text={data.body} lang={data.lang} className="text-base" />}
       {attachment && (
         <section aria-label={t("news.attachment")} className="space-y-3 rounded-xl border bg-card p-4">
           {isImage && (
@@ -76,10 +77,10 @@ export function NewsDetail({ id }: { id: string }) {
           <div className="flex flex-wrap items-center justify-between gap-3">
             <p className="flex min-w-0 items-center gap-2 text-sm">
               <FileText className="size-5 shrink-0 text-accent" aria-hidden />
-              <span className="truncate font-medium" dir="auto">{attachment.name}</span>
-              <span className="shrink-0 text-muted-foreground" dir="ltr">{formatFileSize(attachment.size_bytes, locale)}</span>
+              <Bidi text={attachment.name} className="truncate font-medium" />
+              <Ltr className="shrink-0 text-muted-foreground">{formatFileSize(attachment.size_bytes, locale)}</Ltr>
             </p>
-            <Button render={<a href={PUBLIC_API.file(attachment.id)} download={attachment.name} />}>
+            <Button nativeButton={false} render={<a href={PUBLIC_API.file(attachment.id)} download={attachment.name} />}>
               <Download className="size-4" aria-hidden />
               {t("news.download")}
             </Button>

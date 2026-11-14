@@ -28,6 +28,7 @@ type announcementAttachment struct {
 type publicAnnouncement struct {
 	ID          string                  `json:"id"`
 	Type        string                  `json:"type"`
+	Lang        string                  `json:"lang"`
 	Title       string                  `json:"title"`
 	Body        string                  `json:"body"`
 	EventDate   *string                 `json:"event_date"`
@@ -47,7 +48,7 @@ type staffAnnouncement struct {
 }
 
 const announcementSelect = `
-	SELECT a.id, a.kind, a.title, a.body, to_char(a.event_date, 'YYYY-MM-DD'), a.reference_no,
+	SELECT a.id, a.kind, a.lang, a.title, a.body, to_char(a.event_date, 'YYYY-MM-DD'), a.reference_no,
 	       f.id, f.original_name, f.mime_type, f.size_bytes,
 	       a.is_pinned, a.published_at, a.is_published, a.activity_id, a.created_at, a.updated_at
 	FROM announcements a
@@ -62,7 +63,7 @@ func scanAnnouncement(row rowScanner) (staffAnnouncement, error) {
 	var a staffAnnouncement
 	var fileID, fileName, fileMime *string
 	var fileSize *int64
-	err := row.Scan(&a.ID, &a.Type, &a.Title, &a.Body, &a.EventDate, &a.ReferenceNo,
+	err := row.Scan(&a.ID, &a.Type, &a.Lang, &a.Title, &a.Body, &a.EventDate, &a.ReferenceNo,
 		&fileID, &fileName, &fileMime, &fileSize,
 		&a.Pinned, &a.PublishedAt, &a.Published, &a.ActivityID, &a.CreatedAt, &a.UpdatedAt)
 	if err == nil && fileID != nil && fileName != nil && fileMime != nil && fileSize != nil {

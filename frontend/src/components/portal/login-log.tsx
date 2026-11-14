@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { NativeSelect } from "@/components/portal/form-controls";
 import { formatBaghdadTime, loginLogQuery, type LoginEvent, type LoginLogFilters } from "@/lib/portal/audit";
+import { Bidi, Ltr } from "@/components/i18n/bidi";
 
 const PAGE_SIZE = 25;
 const EMPTY: LoginLogFilters = { q: "", method: "", result: "", from: "", to: "" };
@@ -93,22 +94,22 @@ export function LoginLog() {
           <TableBody>
             {items.map((e) => (
               <TableRow key={e.id}>
-                <TableCell className="whitespace-nowrap" dir="ltr">{formatBaghdadTime(e.created_at, locale)}</TableCell>
+                <TableCell className="whitespace-nowrap"><Ltr>{formatBaghdadTime(e.created_at, locale)}</Ltr></TableCell>
                 <TableCell>
-                  <div className="font-medium">{e.user_name ?? "—"}</div>
-                  <div className="text-xs text-muted-foreground" dir="ltr">{e.email || "—"}</div>
+                  <Bidi block text={e.user_name} className="font-medium" fallback="—" />
+                  <Ltr className="block text-xs text-muted-foreground">{e.email || "—"}</Ltr>
                 </TableCell>
                 <TableCell>{tu(`methods.${e.method}`)}</TableCell>
                 <TableCell>
                   <Badge variant={e.result === "success" ? "secondary" : "destructive"}>{tu(`results.${e.result}`)}</Badge>
                   {e.reason && (
                     <span className="block text-xs text-muted-foreground">
-                      {tu.has(`reasons.${e.reason}`) ? tu(`reasons.${e.reason}`) : e.reason}
+                      {tu.has(`reasons.${e.reason}`) ? tu(`reasons.${e.reason}`) : <Bidi text={e.reason} />}
                     </span>
                   )}
                 </TableCell>
-                <TableCell dir="ltr">{e.ip || "—"}</TableCell>
-                <TableCell className="max-w-56 truncate text-xs text-muted-foreground" title={e.user_agent} dir="ltr">
+                <TableCell><Ltr>{e.ip || "—"}</Ltr></TableCell>
+                <TableCell className="max-w-56 truncate text-xs text-muted-foreground" title={e.user_agent} dir="ltr" data-bidi="">
                   {e.user_agent || "—"}
                 </TableCell>
               </TableRow>

@@ -79,6 +79,13 @@
     "quickLinks": {
       "title": "Useful links",
       "newTab": "(opens in a new tab)"
+    },
+    "department": {
+      "title": "About the Scientific Affairs Department",
+      "vision": "Our vision",
+      "mission": "Our mission",
+      "goals": "Our goals",
+      "tasks": "Our tasks"
     }
   },
   "journals": {
@@ -241,7 +248,13 @@
       "social_url": "Social account link",
       "faq": "FAQ",
       "faq_question": "Question",
-      "faq_answer": "Answer"
+      "faq_answer": "Answer",
+      "dept_vision": "Vision",
+      "dept_mission": "Mission",
+      "dept_goal": "Goal",
+      "dept_goals": "Goals",
+      "dept_task": "Task",
+      "dept_tasks": "Tasks"
     },
     "bilingual": {
       "intro": "Every text on the page has two fields: Arabic (primary) and English (optional). The English site shows the Arabic text for any field whose English text is left empty.",
@@ -251,6 +264,18 @@
     },
     "links": {
       "hint": "Shown in the homepage's “Useful links” section and in the site footer, e.g. the Nadwati platform."
+    },
+    "department": {
+      "title": "Vision, mission, goals and tasks",
+      "hint": "Shown on the homepage after “About”. Any part left empty is hidden.",
+      "vision": "Vision",
+      "mission": "Mission",
+      "goals": "Goals",
+      "goal": "Goal",
+      "addGoal": "Add goal",
+      "tasks": "Tasks",
+      "task": "Task",
+      "addTask": "Add task"
     }
   }
 }

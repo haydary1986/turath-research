@@ -999,6 +999,24 @@ call DELETE /site/director-photo "$SA"; expect "SA removes the director photo" 2
 CODE=$(curl -s -o /dev/null -w "%{http_code}" "$API/public/site/director-photo/$PHOTO"); [ "$CODE" = "404" ] && ok "removed photo no longer served" || bad "removed photo" "$CODE"
 call PUT /site "$SA" "$BASE_SITE"; expect "site content restored after v2 checks" 200
 
+echo "== department profile on the homepage =="
+pub /public/site; DEPT_SITE=$(echo "$BODY" | jq_ "json.dumps(d['data'], ensure_ascii=False)")
+[ "$(echo "$DEPT_SITE" | jq_ "len(d['department']['tasks']) >= 10 and len(d['department']['goals']) >= 5 and d['department']['vision'] != ''")" = "True" ] && ok "department vision, goals and tasks seeded" || bad "dept seed" "${DEPT_SITE:0:300}"
+BAD_DEPT=$(echo "$DEPT_SITE" | python3 -c "import sys,json; d=json.load(sys.stdin); d['department']['goals'].append({'text':'','text_en':''}); print(json.dumps(d))")
+call PUT /site "$SA" "$BAD_DEPT"; expect "an empty goal is refused" 422
+echo "$BODY" | grep -q "dept_goal:required" && ok "empty goal named" || bad "dept goal msg" "$BODY"
+EDIT_DEPT=$(echo "$DEPT_SITE" | python3 -c "import sys,json; d=json.load(sys.stdin); d['department']['tasks'].append({'text':'مهمة اختبار $RUN','text_en':''}); print(json.dumps(d))")
+call PUT /site "$SA" "$EDIT_DEPT"; expect "SA adds a task" 200
+# The homepage caches the site document for up to 60 s, so wait for the edit to show.
+DEPT_SHOWN=0
+for _ in $(seq 1 24); do
+  curl -s -o "$TMP/dept.html" "${FRONT:-http://localhost:3001}/ar"
+  grep -q "مهمة اختبار $RUN" "$TMP/dept.html" && DEPT_SHOWN=1 && break
+  sleep 5
+done
+[ "$DEPT_SHOWN" = "1" ] && grep -q 'id="department' "$TMP/dept.html" && grep -q "موقع ندوتي" "$TMP/dept.html" && ok "homepage shows the department profile with the edited task" || bad "dept home" "edit not shown within 2 min"
+call PUT /site "$SA" "$DEPT_SITE"; expect "department profile restored" 200
+
 echo "== publications list filters =="
 call GET "/publications?limit=5" "$RES"; expect "publications list readable" 200
 [ "$(echo "$BODY" | jq_ "all('authors' in p and 'journal_name' in p for p in d['data'])")" = "True" ] && ok "rows carry authors and venue" || bad "row shape" "${BODY:0:300}"

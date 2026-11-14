@@ -6,6 +6,7 @@ import { pickLocalized } from "@/lib/i18n/text-lang";
 import { localizeFaq } from "@/lib/site/localize";
 import { FaqList } from "./faq-list";
 import { RichText } from "./rich-text";
+import { DepartmentProfile } from "./landing/department-profile";
 import { DirectorMessage } from "./landing/director-message";
 import { Hero } from "./landing/hero";
 import { HowToApply } from "./landing/how-to-apply";
@@ -43,6 +44,8 @@ export async function LandingPage({ locale, data }: { locale: string; data: Land
           <RichText text={about.text} lang={about.lang} className="max-w-3xl text-base" />
         </Section>
       )}
+
+      {content?.department && <DepartmentProfile locale={locale} department={content.department} />}
 
       <ServicesGrid locale={locale} title={t("services")} services={content?.services ?? []} />
       <QuickLinks locale={locale} links={content?.links ?? []} />

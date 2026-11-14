@@ -77,6 +77,22 @@ export interface SiteLink {
   url: string;
 }
 
+/** One goal or task of the department profile. */
+export interface SiteDeptItem {
+  text: string;
+  text_en: string;
+}
+
+/** The department's vision, mission, goals and tasks. */
+export interface SiteDepartment {
+  vision: string;
+  vision_en: string;
+  mission: string;
+  mission_en: string;
+  goals: SiteDeptItem[];
+  tasks: SiteDeptItem[];
+}
+
 export interface SiteContent {
   hero_title: string;
   hero_title_en: string;
@@ -93,6 +109,7 @@ export interface SiteContent {
   socials: SiteSocial[];
   faq: SiteFAQItem[];
   hide_publications: boolean;
+  department: SiteDepartment;
   updated_at?: string;
 }
 
@@ -196,6 +213,9 @@ export const SITE_LIMITS = {
   faqQuestion: 300,
   faqAnswer: 3000,
   serviceLink: 200,
+  deptStatement: 1500,
+  deptItems: 20,
+  deptItem: 400,
 } as const;
 
 export const PUBLIC_API = {

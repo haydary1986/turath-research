@@ -14,6 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DirectorEditor } from "./director-editor";
 import { BilingualField } from "./bilingual-field";
 import { Field } from "./editor-parts";
+import { DepartmentEditor } from "./department-editor";
 import { FaqEditor } from "./faq-editor";
 import { LinksEditor } from "./links-editor";
 import { ServicesEditor } from "./services-editor";
@@ -99,6 +100,7 @@ export function SiteContentForm() {
                 onChange={(v) => update({ about: v.ar ?? draft.about, about_en: v.en ?? draft.about_en })} />
             </CardContent>
           </Card>
+          <DepartmentEditor department={draft.department} onChange={(department) => update({ department })} />
           <ServicesEditor services={draft.services} onChange={(services) => update({ services })} />
         </TabsContent>
 

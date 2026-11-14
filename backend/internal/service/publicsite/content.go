@@ -78,6 +78,7 @@ type Content struct {
 	Socials          []Social      `json:"socials"`
 	FAQ              []FAQItem     `json:"faq"`
 	HidePublications bool          `json:"hide_publications"`
+	Department       Department    `json:"department"`
 }
 
 // NormalizeContent returns a cleaned copy of c; the input is not modified.
@@ -113,6 +114,7 @@ func NormalizeContent(c Content) Content {
 		Socials:          normalizeSocials(c.Socials),
 		FAQ:              normalizeFAQ(c.FAQ),
 		HidePublications: c.HidePublications,
+		Department:       normalizeDepartment(c.Department),
 	}
 }
 
@@ -153,6 +155,7 @@ func ValidateContent(c Content) []string {
 	validateContact(&p, c.Contact)
 	validateLinks(&p, "links", "link", c.Links, MaxLinks)
 	validateBlocks(&p, c)
+	validateDepartment(&p, c.Department)
 	return p.list
 }
 

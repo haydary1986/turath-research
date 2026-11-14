@@ -38,7 +38,32 @@ const STAGES: Record<RequestKind, Stage[]> = {
     { key: "decision_appreciation_letter", doneOn: ["verified", "not_eligible"] },
     { key: "letter", doneOn: ["issued"] },
   ],
+  // Decided by scientific affairs alone: no dean or VP stage.
+  title_change: [
+    { key: "submission", doneOn: ["pending"] },
+    { key: "sa", doneOn: ["approved", "rejected"] },
+    { key: "decision_title_change", doneOn: ["approved", "rejected"] },
+  ],
 };
+
+/** Stage index per status for the short title-change chain. */
+const TITLE_CHANGE_STAGE: Partial<Record<RequestStatus, number>> = {
+  draft: 0,
+  returned: 0,
+  pending: 1,
+  approved: 2,
+  rejected: 2,
+};
+
+/** Index of the last stage, where a rejection is shown. */
+function decisionIndex(kind: RequestKind): number {
+  return kind === "title_change" ? 2 : 4;
+}
+
+function currentStage(kind: RequestKind, status: RequestStatus): number {
+  if (kind === "title_change") return TITLE_CHANGE_STAGE[status] ?? 0;
+  return CURRENT_STAGE[status] ?? 0;
+}
 
 /** Index of the stage the request currently sits at, per status. */
 const CURRENT_STAGE: Record<RequestStatus, number> = {
@@ -59,8 +84,8 @@ const CURRENT_STAGE: Record<RequestStatus, number> = {
 const TERMINAL_DANGER: RequestStatus[] = ["rejected", "not_eligible"];
 const TERMINAL_DONE: RequestStatus[] = ["approved", "completed", "issued"];
 
-function nodeState(index: number, status: RequestStatus): NodeState {
-  const current = CURRENT_STAGE[status] ?? 0;
+function nodeState(index: number, status: RequestStatus, kind: RequestKind): NodeState {
+  const current = currentStage(kind, status);
   if (TERMINAL_DANGER.includes(status)) {
     if (index === current) return "danger";
     return index < current ? "done" : "future";
@@ -112,10 +137,10 @@ export function RequestStepper({ kind, status, events }: RequestStepperProps) {
   return (
     <ol className="flex items-start overflow-x-auto py-2" aria-label={t("title")}>
       {stages.map((stage, index) => {
-        const state = nodeState(index, status);
+        const state = nodeState(index, status, kind);
         const date = state === "done" || state === "danger" ? stageDate(stage) : null;
         const label =
-          state === "danger" && index === 4
+          state === "danger" && index === decisionIndex(kind)
             ? t(status === "rejected" ? "rejectedLabel" : "notEligibleLabel")
             : t(stage.key);
         return (

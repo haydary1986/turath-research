@@ -21,7 +21,9 @@ const DESTRUCTIVE: RequestStatus[] = ["rejected", "not_eligible"];
 
 /** The outcomes scientific affairs may recommend, per request kind (mirrors the backend). */
 function finalDecisions(kind: string): RequestStatus[] {
-  return kind === "research_plan" ? ["approved", "rejected"] : ["verified", "not_eligible"];
+  return kind === "research_plan" || kind === "title_change"
+    ? ["approved", "rejected"]
+    : ["verified", "not_eligible"];
 }
 
 /**

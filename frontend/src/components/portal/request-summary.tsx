@@ -1,7 +1,7 @@
 "use client";
 
 import { useLocale, useTranslations } from "next-intl";
-import { fieldsFor } from "@/lib/portal/fields";
+import { coResearchers, fieldsFor, hasJournalData } from "@/lib/portal/fields";
 import { formatDate, type PortalRequest } from "@/lib/portal/types";
 import { Bidi, Ltr } from "@/components/i18n/bidi";
 
@@ -23,16 +23,17 @@ export function RequestSummary({ request }: { request: PortalRequest }) {
   const t = useTranslations("portal");
   const locale = useLocale();
 
+  const isTitleChange = request.kind === "title_change";
   const rows: Row[] = [
     { label: t("fields.requestNo"), value: request.request_no ?? "—", ltr: true },
     { label: t("fields.applicant"), value: request.applicant_name },
     { label: t("fields.college"), value: request.college_name ?? "—" },
     { label: t("fields.department"), value: request.department_name ?? "—" },
-    { label: t("fields.title_ar"), value: request.title_ar ?? "—" },
-    { label: t("fields.title_en"), value: request.title_en ?? "—" },
-    ...(request.kind === "research_plan"
-      ? []
-      : [{ label: t("fields.doi"), value: request.doi ?? "—", ltr: true }]),
+    { label: t(isTitleChange ? "fields.new_title_ar" : "fields.title_ar"), value: request.title_ar ?? "—" },
+    { label: t(isTitleChange ? "fields.new_title_en" : "fields.title_en"), value: request.title_en ?? "—" },
+    ...(hasJournalData(request.kind)
+      ? [{ label: t("fields.doi"), value: request.doi ?? "—", ltr: true }]
+      : []),
     { label: t("fields.submittedAt"), value: formatDate(request.submitted_at, locale), ltr: true },
   ];
 
@@ -48,6 +49,15 @@ export function RequestSummary({ request }: { request: PortalRequest }) {
       ltr: field.ltr || field.type === "date" || field.type === "url",
       chrome: translated,
     });
+  }
+
+  if (request.kind === "research_plan") {
+    const partners = coResearchers(request.details);
+    // Plans saved before the structured fields kept the partners in one free-text field.
+    const legacy = request.details.participants?.trim();
+    if (partners.length > 0 || legacy) {
+      rows.push({ label: t("fields.co_researchers"), value: partners.length > 0 ? partners.join("\n") : legacy });
+    }
   }
 
   return (

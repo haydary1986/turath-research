@@ -57,7 +57,7 @@ EOF
 
 DOI="10.1016/j.test.$RUN"
 DETAILS='{"journal_name":"Energy and Buildings","publisher":"Elsevier","index_db":"scopus","quartile":"Q1","publication_date":"2024-03-15","issn":"0378-7788","article_url":"https://example.org/a"}'
-PLAN_DETAILS='{"work_type":"joint","expected_completion":"2027-06-30"}'
+PLAN_DETAILS='{"work_type":"joint","co_researcher_1":"د. علي حسن","expected_completion":"2027-06-30"}'
 
 echo "== research plan: full chain =="
 call POST /portal/requests "$RES" "{\"kind\":\"research_plan\",\"title_ar\":\"بحث\",\"title_en\":\"Research\",\"details\":$PLAN_DETAILS}"; expect "plan draft saved" 201
@@ -86,6 +86,40 @@ call POST "/portal/requests/$PLAN/transition" "$RES" '{"to":"approved"}'; expect
 call POST "/portal/requests/$PLAN/transition" "$VP" '{"to":"approved"}'; expect "VP confirms approval" 200
 call GET "/portal/requests/$PLAN" "$RES"
 [ "$(echo "$BODY" | jq_ "len(d['data']['events'])")" = "4" ] && ok "audit trail: submit→dean→SA→VP" || bad "events" "$BODY"
+
+echo "== research plan: co-researchers =="
+co_plan() { call POST /portal/requests "$RES" "{\"kind\":\"research_plan\",\"title_ar\":\"مشترك\",\"title_en\":\"Joint\",\"college_id\":\"$COLLEGE\",\"details\":$1}"
+  CP=$(echo "$BODY" | jq_ "d['data']['id']"); upload "/portal/requests/$CP/files?role=research_form" "$RES" "$TMP/doc.pdf" >/dev/null
+  call POST "/portal/requests/$CP/submit" "$RES"; }
+co_plan '{"work_type":"joint","expected_completion":"2027-06-30"}'; expect "joint plan needs a co-researcher" 422
+echo "$BODY" | grep -q "co_researchers:required" && ok "missing co-researchers named" || bad "co required msg" "$BODY"
+co_plan '{"work_type":"individual","co_researcher_1":"أ","expected_completion":"2027-06-30"}'; expect "individual plan cannot list partners" 422
+co_plan '{"work_type":"joint","co_researcher_1":"أ","co_researcher_2":"ب","co_researcher_3":"ج","co_researcher_4":"د","expected_completion":"2027-06-30"}'; expect "a fourth co-researcher is refused" 422
+echo "$BODY" | grep -q "co_researchers:too_many" && ok "over three partners named" || bad "too many msg" "$BODY"
+co_plan '{"work_type":"joint","co_researcher_1":"أ","co_researcher_2":"ب","co_researcher_3":"ج","expected_completion":"2027-06-30"}'; expect "joint plan with three partners submitted" 200
+
+echo "== research title change: SA decides alone and the plan is renamed =="
+call POST /portal/requests "$OTHER" "{\"kind\":\"title_change\",\"title_ar\":\"x\",\"related_request_id\":\"$PLAN\",\"details\":{\"old_title\":\"x\",\"reason\":\"y\"}}"; expect "cannot target someone else's plan" 400
+call POST /portal/requests "$RES" "{\"kind\":\"title_change\",\"title_ar\":\"عنوان جديد\",\"title_en\":\"New title\",\"doi\":\"10.1/x\",\"college_id\":\"$COLLEGE\",\"related_request_id\":\"$PLAN\",\"details\":{\"old_title\":\"بحث\"}}"; expect "title change draft saved" 201
+TC=$(echo "$BODY" | jq_ "d['data']['id']")
+[ "$(echo "$BODY" | jq_ "d['data']['doi']")" = "None" ] && ok "title change stores no DOI" || bad "tc doi" "$BODY"
+call POST "/portal/requests/$TC/submit" "$RES"; expect "title change needs a reason" 422
+echo "$BODY" | grep -q "reason:required" && ok "missing reason named" || bad "reason msg" "$BODY"
+call PUT "/portal/requests/$TC" "$RES" "{\"title_ar\":\"عنوان جديد\",\"title_en\":\"New title\",\"college_id\":\"$COLLEGE\",\"related_request_id\":\"$PLAN\",\"details\":{\"old_title\":\"بحث\",\"reason\":\"توصية لجنة السمنار\"}}"; expect "reason added" 200
+call POST "/portal/requests/$TC/submit" "$RES"; expect "title change submitted" 200
+[ "$(echo "$BODY" | jq_ "d['data']['status']")" = "pending" ] && ok "title change goes straight to scientific affairs" || bad "tc status" "$BODY"
+echo "$BODY" | jq_ "d['data']['request_no']" | grep -q "^TC-" && ok "title change numbered TC-" || bad "tc number" "$BODY"
+call POST "/portal/requests/$TC/transition" "$DEAN" '{"to":"approved"}'; expect "dean cannot decide a title change" 403
+call POST "/portal/requests/$TC/transition" "$VP" '{"to":"approved"}'; expect "VP is not in the title-change chain" 403
+call POST "/portal/requests/$TC/transition" "$SA" '{"to":"pending_vp","decision":"approved"}'; expect "no VP stage for a title change" 409
+call POST "/portal/requests/$TC/transition" "$SA" '{"to":"approved"}'; expect "SA approves the title change" 200
+call GET "/portal/requests/$PLAN" "$RES"
+[ "$(echo "$BODY" | jq_ "d['data']['request']['title_ar']")" = "عنوان جديد" ] && [ "$(echo "$BODY" | jq_ "d['data']['request']['title_en']")" = "New title" ] && ok "approved plan renamed" || bad "rename" "$BODY"
+echo "$BODY" | jq_ "[e for e in d['data']['events'] if e['to_status']=='title_changed'][0]['note']" | grep -q "العنوان السابق: بحث / Research" && ok "plan history keeps the previous title" || bad "rename history" "$BODY"
+call POST /portal/requests "$RES" "{\"kind\":\"title_change\",\"title_ar\":\"عنوان آخر\",\"college_id\":\"$COLLEGE\",\"details\":{\"old_title\":\"بحث قبل البوابة\",\"reason\":\"تصحيح\"}}"; TC2=$(echo "$BODY" | jq_ "d['data']['id']")
+call POST "/portal/requests/$TC2/submit" "$RES"; expect "title change without a linked plan submitted" 200
+call POST "/portal/requests/$TC2/transition" "$SA" '{"to":"rejected"}'; expect "rejecting a title change needs a note" 422
+call POST "/portal/requests/$TC2/transition" "$SA" '{"to":"rejected","note":"العنوان مطابق"}'; expect "SA rejects a title change" 200
 
 echo "== journal verification: chain + VP send-back + publication link =="
 call POST /portal/requests "$RES" "{\"kind\":\"journal_verification\",\"title_en\":\"AI paper\",\"doi\":\"https://doi.org/$DOI\",\"college_id\":\"$COLLEGE\",\"details\":$DETAILS}"; expect "journal draft saved" 201
@@ -991,14 +1025,13 @@ echo "$BODY" | grep -q "قائمة الوزارة" && bad "watchlist note leaked
 FRONT="${FRONT:-http://localhost:3001}"
 CODE=$(curl -s -o "$TMP/robots" -w "%{http_code}" "$FRONT/robots.txt"); [ "$CODE" = "200" ] && grep -q "Disallow: /\*/portal" "$TMP/robots" && grep -q "Sitemap: .*/sitemap.xml" "$TMP/robots" && ok "robots.txt served with portal disallowed and sitemaps" || bad "robots" "$CODE"
 CODE=$(curl -s -o "$TMP/sitemap" -w "%{http_code}" "$FRONT/sitemap.xml"); [ "$CODE" = "200" ] && grep -q "/ar/journals/predatory</loc>" "$TMP/sitemap" && ok "sitemap.xml lists the journal guide" || bad "sitemap" "$CODE"
-CODE=$(curl -s -o "$TMP/jsitemap" -w "%{http_code}" "$FRONT/journals-sitemap/sitemap/predatory_journal.xml"); [ "$CODE" = "200" ] && grep -q "$JSLUG" "$TMP/jsitemap" && ok "journal sitemap lists the entry page" || bad "journal sitemap" "$CODE"
-CODE=$(curl -s -o "$TMP/entry.html" -w "%{http_code}" "$FRONT/ar/journals/predatory/$JSLUG"); [ "$CODE" = "200" ] && grep -q "<h1[^>]*>$JNAME</h1>" "$TMP/entry.html" && ok "entry page server-renders the journal name" || bad "entry SSR" "$CODE"
-grep -q 'application/ld+json' "$TMP/entry.html" && grep -q '"BreadcrumbList"' "$TMP/entry.html" && ok "entry page has JSON-LD breadcrumbs" || bad "entry json-ld" "missing"
-grep -q 'rel="canonical"' "$TMP/entry.html" && grep -q 'hrefLang="en"' "$TMP/entry.html" && ok "entry page has canonical and hreflang" || bad "entry alternates" "missing"
-grep -q 'noindex' "$TMP/entry.html" && bad "entry noindex" "found" || ok "entry page is indexable"
-CODE=$(curl -s -o /dev/null -w "%{http_code}" "$FRONT/ar/journals/predatory/no-such-entry-0000000000"); [ "$CODE" = "404" ] && ok "unknown entry slug is a 404 page" || bad "entry 404" "$CODE"
-CODE=$(curl -s -o "$TMP/guide.html" -w "%{http_code}" "$FRONT/ar/journals/predatory"); [ "$CODE" = "200" ] && grep -q '"FAQPage"' "$TMP/guide.html" && ok "guide page has FAQPage structured data" || bad "guide" "$CODE"
+CODE=$(curl -s -o /dev/null -w "%{http_code} %{redirect_url}" "$FRONT/journals-sitemap/sitemap/predatory_journal.xml"); [ "${CODE%% *}" = "308" ] && ok "retired journal sitemap redirects permanently" || bad "journal sitemap redirect" "$CODE"
+CODE=$(curl -s -o /dev/null -w "%{http_code} %{redirect_url}" "$FRONT/ar/journals/predatory/$JSLUG"); [ "${CODE%% *}" = "308" ] && echo "$CODE" | grep -q "/ar/journals/predatory$" && ok "retired entry page redirects to the links page" || bad "entry redirect" "$CODE"
+CODE=$(curl -s -o /dev/null -w "%{http_code} %{redirect_url}" "$FRONT/en/journals/predatory/list/journals?letter=a"); [ "${CODE%% *}" = "308" ] && echo "$CODE" | grep -q "/en/journals/predatory" && ok "retired list index redirects to the links page" || bad "list redirect" "$CODE"
+CODE=$(curl -s -o "$TMP/guide.html" -w "%{http_code}" "$FRONT/ar/journals/predatory"); [ "$CODE" = "200" ] && grep -q 'href="https://beallslist.net/"' "$TMP/guide.html" && grep -q 'retractionwatch.com/the-retraction-watch-hijacked-journal-checker' "$TMP/guide.html" && grep -q 'href="https://jor.rdd.edu.iq/"' "$TMP/guide.html" && ok "predatory page links the source lists" || bad "guide links" "$CODE"
+grep -q 'type="search"\|name="q"' "$TMP/guide.html" && bad "predatory page search" "still has a search box" || ok "predatory page has no list search"
 CODE=$(curl -s -o "$TMP/home.html" -w "%{http_code}" "$FRONT/ar"); [ "$CODE" = "200" ] && grep -q 'id="stats-title"' "$TMP/home.html" && grep -q 'href="/ar/journals/predatory"' "$TMP/home.html" && ok "homepage renders statistics and links the journal guide" || bad "home" "$CODE"
+grep -q 'id="links' "$TMP/home.html" && grep -q 'href="https://nadwati.rdd.edu.iq/"' "$TMP/home.html" && ok "homepage shows the Nadwati link among useful links" || bad "home links" "nadwati missing"
 sqlv "DELETE FROM journal_reference_list WHERE name='$JNAME'" >/dev/null
 CODE=$(curl -s -o /dev/null -w "%{http_code}" "$API/public/journals/entries/$JSLUG"); [ "$CODE" = "404" ] && ok "entry removed from the list stops resolving" || bad "removed entry" "$CODE"
 

@@ -1,5 +1,5 @@
 import { getTranslations } from "next-intl/server";
-import { BookOpenText, ListChecks, SearchCheck, ShieldAlert, type LucideIcon } from "lucide-react";
+import { BookOpenText, SearchCheck, ShieldAlert, type LucideIcon } from "lucide-react";
 import { Link } from "@/i18n/routing";
 import { articlesFor, GUIDE_KEY, TOPIC_SLUGS } from "@/lib/journals/articles";
 import { JOURNAL_PATHS } from "@/lib/journals/lists";
@@ -20,7 +20,6 @@ export async function JournalLinks({ locale, current, heading }: { locale: strin
     ...TOPIC_SLUGS.map((slug) => ({
       href: JOURNAL_PATHS.topic(slug), title: articles[slug].navLabel, body: articles[slug].description, icon: BookOpenText,
     })),
-    { href: JOURNAL_PATHS.list, title: t("crumbs.list"), body: t("listPage.description"), icon: ListChecks },
     { href: JOURNAL_PATHS.check, title: t("crumbs.check"), body: t("checkPage.description"), icon: SearchCheck },
   ].filter((card) => card.href !== current);
 

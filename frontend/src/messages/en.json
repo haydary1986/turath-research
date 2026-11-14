@@ -160,12 +160,14 @@
     "kinds": {
       "research_plan": "Research plan registration",
       "journal_verification": "Journal verification",
-      "appreciation_letter": "Appreciation letter"
+      "appreciation_letter": "Appreciation letter",
+      "title_change": "Research title change"
     },
     "kindDesc": {
       "research_plan": "Register a study in the department and college research plan",
       "journal_verification": "Verify journal indexing, ranking and committee sign-off",
-      "appreciation_letter": "Request an appreciation letter for a published paper"
+      "appreciation_letter": "Request an appreciation letter for a published paper",
+      "title_change": "Ask to change the title of a registered research, with the reason; scientific affairs approves it"
     },
     "statuses": {
       "draft": "Draft",
@@ -283,7 +285,16 @@
       "coordinator": "Coordinator",
       "college_id": "College",
       "from": "From",
-      "to": "To"
+      "to": "To",
+      "co_researchers": "Co-researchers",
+      "co_researcher_1": "First co-researcher",
+      "co_researcher_2": "Second co-researcher",
+      "co_researcher_3": "Third co-researcher",
+      "new_title_ar": "New title (Arabic)",
+      "new_title_en": "New title (English)",
+      "old_title": "Previous title",
+      "reason": "Reason for the change",
+      "title_change_source": "Research to rename"
     },
     "options": {
       "individual": "Individual",
@@ -307,7 +318,7 @@
       "file_too_large": "File exceeds the size limit",
       "unsupported_file_type": "Unsupported file type (PDF, PNG or JPG only)",
       "too_many_files": "Attachment limit reached",
-      "related_request_invalid": "The selected verification is invalid or not completed",
+      "related_request_invalid": "The linked request is invalid or not yet complete",
       "no_active_template": "No active letter template, activate one first",
       "unknown_placeholder": "The text contains an unknown placeholder",
       "too_long": "Text is too long",
@@ -336,7 +347,7 @@
       "invalid_phone": "Must be an Iraqi number in the form 07XXXXXXXXX",
       "invalid_email": "Invalid email address",
       "bulk_sync_not_active": "No sync is running",
-      "too_many": "Too many items",
+      "too_many": "At most three co-researchers",
       "activity_not_approved": "Only approved activities can be published.",
       "activity_category_forbidden": "You are not responsible for entering this category here. Infrastructure and agreements are entered by their responsible person or Scientific Affairs.",
       "fs003_forbidden": "The FS 003 form is available to Scientific Affairs, the Vice President for Scientific Affairs and holders of data-entry responsibilities.",
@@ -344,7 +355,8 @@
       "account_not_found": "This account no longer exists. Please sign in again.",
       "auth_unavailable": "Your permissions could not be checked right now. Try again shortly.",
       "domain_not_allowed": "The email must be on the university domain @uoturath.edu.iq",
-      "email_taken": "A user with this email already exists; find them in the list and change their role"
+      "email_taken": "A user with this email already exists; find them in the list and change their role",
+      "not_allowed": "Not allowed for individual research"
     },
     "ui": {
       "newRequest": "Submit a new request",
@@ -421,7 +433,16 @@
       "backToRequest": "Back to request",
       "viewAll": "View all",
       "inboxEmpty": "Nothing awaiting your review — all clear ✅",
-      "deleteConfirm": "Are you sure you want to delete this? This cannot be undone."
+      "deleteConfirm": "Are you sure you want to delete this? This cannot be undone.",
+      "coResearchersHint": "Enter the names of the researchers working with you, up to {max}.",
+      "coResearcherN": "Co-researcher {n}",
+      "removeCoResearcher": "Remove co-researcher {n}",
+      "addCoResearcher": "Add a co-researcher",
+      "unregisteredResearch": "Research not registered in the portal (type the previous title)",
+      "noApprovedPlans": "You have no approved research plans in the portal; type the previous title.",
+      "titleChangeSourceHint": "Choosing your research fills in the previous title; once approved, its title is updated in the portal.",
+      "newTitleHint": "Enter the new title in Arabic, English or both.",
+      "titleChanged": "Title changed"
     },
     "letter": {
       "number": "No.",
@@ -854,7 +875,8 @@
       "completed": "Completed",
       "letter": "Letter issued",
       "rejectedLabel": "Rejected",
-      "notEligibleLabel": "Not eligible"
+      "notEligibleLabel": "Not eligible",
+      "decision_title_change": "Scientific affairs decision"
     },
     "print": {
       "pledgeTitle": "Researcher pledge",
@@ -978,61 +1000,6 @@
       "downloadFilled": "Download filled form (PDF)",
       "planStepsIntro": "Steps: fill in the details and save the draft, then download and print the form, have the department scientific committee sign it, upload it under attachments and submit.",
       "planSignHint": "Submission requires the form signed by the department scientific committee. To save it as PDF, choose \"Save as PDF\" in the print dialog."
-    },
-    "predatory": {
-      "title": "Predatory journals guide",
-      "subtitle": "Learn the warning signs and search known lists before you submit your research.",
-      "whatTitle": "What is a predatory journal?",
-      "what": "A journal or publisher that charges authors fees without real peer review, editing or reliable archiving, often relying on misleading claims about indexing and impact.",
-      "whyMatters": "Papers in these journals do not count toward promotion or incentives, harm the reputation of the author and the university, and are hard to withdraw once published.",
-      "signsTitle": "Warning signs",
-      "sign1": "Unsolicited emails inviting you to publish or join the editorial board.",
-      "sign2": "Promises of very fast acceptance or publication within days.",
-      "sign3": "Claims of Scopus or Web of Science indexing that do not appear in their official lists.",
-      "sign4": "Misleading or invented metrics instead of a recognised impact factor.",
-      "sign5": "A very broad scope with no common discipline.",
-      "sign6": "Publication fees not stated upfront, or demanded right after acceptance.",
-      "sign7": "A site imitating a known journal's name or design (hijacked journal).",
-      "stepsTitle": "Before you submit",
-      "step1": "Check the journal by ISSN or name in Journal check.",
-      "step2": "Confirm indexing yourself on the official Scopus or Web of Science site, not the journal's site.",
-      "step3": "Make sure the website is the official one, not a hijacked copy.",
-      "step4": "When in doubt, consult Scientific Affairs before submitting.",
-      "checkButton": "Check a journal now",
-      "listsTitle": "Search the lists",
-      "listsIntro": "Lists refreshed daily from the Stop Predatory Journals project, based on Beall's list.",
-      "lists": {
-        "predatory_journal": "Predatory journals",
-        "predatory_publisher": "Predatory publishers",
-        "hijacked": "Hijacked journals"
-      },
-      "listHelp": {
-        "predatory_journal": "Standalone journals listed as potentially predatory.",
-        "predatory_publisher": "Listed publishers; any journal they publish calls for caution.",
-        "hijacked": "Fake sites impersonating a real journal; shows the fake site and the authentic journal."
-      },
-      "searchPlaceholder": "Search by name or website",
-      "fakeSite": "Fake site",
-      "authentic": "Authentic journal",
-      "noMatch": "No match in this list",
-      "emptyList": "The list has not been loaded yet",
-      "loadFailed": "Could not load the list, try again",
-      "count": "{total} entries",
-      "updatedOn": "updated {date}",
-      "previous": "Previous",
-      "next": "Next",
-      "sourcesTitle": "Further reading",
-      "links": {
-        "home": "Beall's list",
-        "journals": "Beall: standalone journals",
-        "hijacked": "Beall: hijacked journals",
-        "recognize": "Beall: how to recognise predatory journals",
-        "metrics": "Beall: misleading metrics",
-        "pjHome": "Predatory Journals",
-        "pjJournals": "Predatory Journals: journals",
-        "pjPublishers": "Predatory Journals: publishers"
-      },
-      "disclaimer": "These lists are volunteer-run and unofficial; being listed or not is a warning, not a ruling. Ministry of Higher Education lists and instructions and the Scientific Affairs decision prevail."
     },
     "site": {
       "title": "Public site",

@@ -1,5 +1,4 @@
 import type { MetadataRoute } from "next";
-import { LIST_TYPES } from "@/lib/journals/lists";
 import { SITE_URL } from "@/lib/seo/site";
 
 // Read SITE_URL at request time, not when the image is built.
@@ -19,10 +18,7 @@ export default function robots(): MetadataRoute.Robots {
         ],
       },
     ],
-    sitemap: [
-      `${SITE_URL}/sitemap.xml`,
-      ...LIST_TYPES.map((type) => `${SITE_URL}/journals-sitemap/sitemap/${type}.xml`),
-    ],
+    sitemap: `${SITE_URL}/sitemap.xml`,
     host: SITE_URL,
   };
 }

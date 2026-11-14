@@ -114,6 +114,7 @@ func TestValidateDetails(t *testing.T) {
 	t.Run("plan valid", func(t *testing.T) {
 		errs := ValidateDetails(KindResearchPlan, map[string]any{
 			"work_type":           "joint",
+			"co_researcher_1":     "باحث مشارك",
 			"expected_completion": "2027-06-30",
 		})
 		if len(errs) != 0 {

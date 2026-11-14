@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import {
-  ArrowLeft, CheckCircle2, ClipboardList, Clock3, FileCheck2, FileText, Inbox, Mail,
+  ArrowLeft, CheckCircle2, ClipboardList, Clock3, FileCheck2, FilePen, FileText, Inbox, Mail,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { Link } from "@/i18n/routing";
@@ -27,12 +27,14 @@ const KIND_ICON: Record<RequestKind, LucideIcon> = {
   research_plan: FileText,
   journal_verification: FileCheck2,
   appreciation_letter: Mail,
+  title_change: FilePen,
 };
 
 const KIND_TINT: Record<RequestKind, string> = {
   research_plan: "bg-primary/10 text-primary",
   journal_verification: "bg-accent/10 text-accent",
   appreciation_letter: "bg-chart-4/10 text-chart-4",
+  title_change: "bg-chart-2/10 text-chart-2",
 };
 
 const OPEN_STATUSES = ["pending_dean", "pending", "pending_vp", "awaiting_signatures"];
@@ -140,7 +142,7 @@ function Dashboard() {
       )}
 
       {/* Service cards */}
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {REQUEST_KINDS.map((kind) => {
           const Icon = KIND_ICON[kind];
           return (

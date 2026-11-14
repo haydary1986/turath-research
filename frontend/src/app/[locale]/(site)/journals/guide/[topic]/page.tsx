@@ -59,7 +59,7 @@ export default async function TopicPage({ params }: Props) {
           <SearchCheck className="size-4" aria-hidden />
           {t("crumbs.check")}
         </Button>
-        <Button variant="outline" nativeButton={false} render={<Link href={JOURNAL_PATHS.list} />}>{t("crumbs.list")}</Button>
+        <Button variant="outline" nativeButton={false} render={<Link href={JOURNAL_PATHS.guide} />}>{t("crumbs.guide")}</Button>
       </div>
       <Alert variant="warning" className="mt-6">{t("checkPage.advisory")}</Alert>
       <JournalLinks locale={locale} current={path} heading={t("guide.topicsTitle")} />

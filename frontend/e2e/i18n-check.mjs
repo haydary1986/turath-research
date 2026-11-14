@@ -47,11 +47,6 @@ const PUBLIC_PATHS = [
   "/journals",
   "/journals/check",
   "/journals/predatory",
-  "/journals/predatory/list",
-  "/journals/predatory/list/journals",
-  "/journals/predatory/list/publishers",
-  "/journals/predatory/list/hijacked",
-  "/journals/predatory/list/journals?letter=a",
   "/journals/guide/warning-signs",
   "/journals/guide/hijacked-journals",
   "/journals/guide/verify-indexing",
@@ -66,6 +61,7 @@ const PORTAL_PATHS = [
   "/portal/new/research_plan",
   "/portal/new/journal_verification",
   "/portal/new/appreciation_letter",
+  "/portal/new/title_change",
   "/portal/activities",
   "/portal/audit",
   "/portal/import",
@@ -96,7 +92,7 @@ const AR_ALLOWLIST = [
   "PNG", "JPG", "JPEG", "xlsx", "KB", "MB", "Q1", "Q2", "Q3", "Q4",
   "Facebook", "Instagram", "YouTube", "Telegram", "TikTok", "WhatsApp",
   // Names of external sources and terms glossed in parentheses after their Arabic form.
-  "Predatory Journals", "Beall's list", "Quartile", "Impact Factor", "07XXXXXXXXX",
+  "Predatory Journals", "Beall's list", "Retraction Watch Hijacked Journal Checker", "Retraction Watch", "Quartile", "Impact Factor", "07XXXXXXXXX",
   "Hijacked Journal", "Coverage", "Sources", "Source list", "Master Journal List", "Journal Citation Reports",
   "Elsevier", "Clarivate", "SCIE", "SSCI", "AHCI", "ESCI", "Yahoo", "DeepSeek", "IP",
 ];
@@ -138,9 +134,6 @@ async function dynamicPaths(token) {
   const portalPaths = [];
   const announcements = await apiGet("/api/v1/public/announcements?limit=1", token);
   if (announcements?.[0]) publicPaths.push(`/news/${announcements[0].id}`);
-  const entries = await apiGet("/api/v1/public/journals/entries?type=hijacked&limit=1", token);
-  const entry = Array.isArray(entries) ? entries[0] : entries?.items?.[0];
-  if (entry?.slug) publicPaths.push(`/journals/predatory/${entry.slug}`);
 
   const requests = (await apiGet("/api/v1/portal/requests?limit=50", token)) ?? [];
   const withKind = (kind) => requests.find((r) => r.kind === kind);

@@ -9,18 +9,22 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { fieldsFor, quartileApplies, withoutStaleQuartile, type FieldDef } from "@/lib/portal/fields";
+import {
+  fieldsFor, hasJournalData, quartileApplies, withWorkType, withoutStaleQuartile, type FieldDef,
+} from "@/lib/portal/fields";
 import { requestTitle, type JournalCheck, type Org, type PortalRequest, type RequestKind } from "@/lib/portal/types";
 import { JournalEvidencePanel } from "./journal-evidence-panel";
 import { useJournalCheck } from "./use-journal-check";
 import { toLatinDigits } from "@/lib/portal/journal-query";
-
-const ISSN_FIELDS = new Set(["issn", "issn_online"]);
 import { NativeSelect, Textarea } from "./form-controls";
+import { CoResearchersField } from "./co-researchers-field";
+import { TitleChangeSource, planOldTitle } from "./title-change-source";
 import { usePortalErrors } from "./use-portal-errors";
 import { Alert } from "@/components/ui/alert";
 import { DataOption } from "@/components/i18n/data-option";
 import { bidiProps } from "@/components/i18n/bidi";
+
+const ISSN_FIELDS = new Set(["issn", "issn_online"]);
 
 interface RequestFormProps {
   kind: RequestKind;
@@ -76,7 +80,9 @@ export function RequestForm({ kind, existing }: RequestFormProps) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
-  const hasJournal = kind !== "research_plan";
+  const hasJournal = hasJournalData(kind);
+  const isPlan = kind === "research_plan";
+  const isTitleChange = kind === "title_change";
   const check = useJournalCheck(
     hasJournal
       ? {
@@ -147,10 +153,26 @@ export function RequestForm({ kind, existing }: RequestFormProps) {
   }, [kind]);
 
   function setDetail(key: string, value: string) {
-    setForm((prev) => ({
-      ...prev,
-      details: withoutStaleQuartile({ ...prev.details, [key]: ISSN_FIELDS.has(key) ? toLatinDigits(value) : value }),
-    }));
+    setForm((prev) => {
+      if (key === "work_type") return { ...prev, details: withWorkType(prev.details, value) };
+      const next = ISSN_FIELDS.has(key) ? toLatinDigits(value) : value;
+      return { ...prev, details: withoutStaleQuartile({ ...prev.details, [key]: next }) };
+    });
+  }
+
+  /** Links the request to an approved plan and takes its current title as the old one. */
+  function selectPlan(plan: PortalRequest | null) {
+    setForm((prev) =>
+      plan
+        ? {
+            ...prev,
+            related_request_id: plan.id,
+            college_id: prev.college_id || (plan.college_id ?? ""),
+            department_id: prev.department_id || (plan.department_id ?? ""),
+            details: { ...prev.details, old_title: planOldTitle(plan) },
+          }
+        : { ...prev, related_request_id: "" }
+    );
   }
 
   function selectVerification(id: string) {
@@ -220,6 +242,8 @@ export function RequestForm({ kind, existing }: RequestFormProps) {
         </Card>
       )}
 
+      {isTitleChange && <TitleChangeSource value={form.related_request_id} onSelect={selectPlan} />}
+
       {hasJournal && (
         <JournalEvidencePanel result={check.result} loading={check.loading} failed={check.failed} onRetry={check.retry}>
           {didAutoFill && <p className="text-xs text-muted-foreground">{t("journals.check.suggest.autoFilled")}</p>}
@@ -250,7 +274,10 @@ export function RequestForm({ kind, existing }: RequestFormProps) {
         </CardHeader>
         <CardContent className="grid gap-4 md:grid-cols-2">
           <div className="space-y-2 md:col-span-2">
-            <Label htmlFor="title_ar">{t("fields.title_ar")}{kind === "research_plan" && " *"}</Label>
+            <Label htmlFor="title_ar">
+              {t(isTitleChange ? "fields.new_title_ar" : "fields.title_ar")}
+              {isPlan && " *"}
+            </Label>
             <Input
               id="title_ar"
               dir="rtl"
@@ -259,7 +286,10 @@ export function RequestForm({ kind, existing }: RequestFormProps) {
             />
           </div>
           <div className="space-y-2 md:col-span-2">
-            <Label htmlFor="title_en">{t("fields.title_en")} *</Label>
+            <Label htmlFor="title_en">
+              {t(isTitleChange ? "fields.new_title_en" : "fields.title_en")}
+              {!isTitleChange && " *"}
+            </Label>
             <Input
               id="title_en"
               dir="ltr"
@@ -267,7 +297,10 @@ export function RequestForm({ kind, existing }: RequestFormProps) {
               onChange={(e) => setForm({ ...form, title_en: e.target.value })}
             />
           </div>
-          {kind !== "research_plan" && (
+          {isTitleChange && (
+            <p className="text-xs text-muted-foreground md:col-span-2">{t("ui.newTitleHint")}</p>
+          )}
+          {hasJournal && (
             <>
               <div className="space-y-2">
                 <Label htmlFor="doi">{t("fields.doi")}</Label>
@@ -319,6 +352,10 @@ export function RequestForm({ kind, existing }: RequestFormProps) {
               onChange={(value) => setDetail(field.key, value)}
             />
           ))}
+
+          {isPlan && form.details.work_type === "joint" && (
+            <CoResearchersField details={form.details} onChange={setDetail} />
+          )}
         </CardContent>
       </Card>
 

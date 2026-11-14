@@ -1,12 +1,14 @@
 export type RequestKind =
   | "research_plan"
   | "journal_verification"
-  | "appreciation_letter";
+  | "appreciation_letter"
+  | "title_change";
 
 export const REQUEST_KINDS: RequestKind[] = [
   "research_plan",
   "journal_verification",
   "appreciation_letter",
+  "title_change",
 ];
 
 export type RequestStatus =
@@ -143,12 +145,14 @@ export const APPLICANT_ATTACHMENT_ROLES: Record<RequestKind, string[]> = {
   research_plan: ["research_form", "other"],
   journal_verification: ["journal_form", "committee_approval", "published_paper", "other"],
   appreciation_letter: ["journal_form", "committee_approval", "published_paper", "other"],
+  title_change: ["other"],
 };
 
 export const STAFF_ATTACHMENT_ROLES: Record<RequestKind, string[]> = {
   research_plan: ["signed_form", "other"],
   journal_verification: ["signed_form", "other"],
   appreciation_letter: ["other"],
+  title_change: ["other"],
 };
 
 /** Parses the API's "validation:field:code,field:code" error into field/code pairs, or null for other errors. */

@@ -42,8 +42,7 @@
       "title": "Before you submit, check the journal",
       "body": "A free public guide to predatory journals, predatory publishers and hijacked journals, with a check that matches a journal's name, ISSN or website against the lists and open sources.",
       "guideCta": "Predatory journals guide",
-      "checkCta": "Check a journal now",
-      "listCta": "Browse the lists"
+      "checkCta": "Check a journal now"
     },
     "director": {
       "defaultTitle": "Director's message",
@@ -78,6 +77,10 @@
     "nav": {
       "journalsGuide": "Predatory journals",
       "journalCheck": "Journal check"
+    },
+    "quickLinks": {
+      "title": "Useful links",
+      "newTab": "(opens in a new tab)"
     }
   },
   "journals": {
@@ -87,7 +90,6 @@
       "home": "Home",
       "hub": "Journals & publishing",
       "guide": "Predatory journals guide",
-      "list": "Predatory journals lists",
       "check": "Journal check"
     },
     "hub": {
@@ -106,80 +108,6 @@
       "sourcesTitle": "Further reading",
       "onThisPage": "On this page"
     },
-    "lists": {
-      "predatory_journal": "Predatory journals",
-      "predatory_publisher": "Predatory publishers",
-      "hijacked": "Hijacked journals"
-    },
-    "listHelp": {
-      "predatory_journal": "Standalone journals listed in the source list as potentially predatory.",
-      "predatory_publisher": "Publishers listed as potentially predatory; any journal they publish calls for caution.",
-      "hijacked": "Fake sites impersonating a real journal; each page shows the fake site and, when known, the authentic journal."
-    },
-    "listPage": {
-      "title": "Predatory Journals List and Hijacked Journals (Beall's list)",
-      "description": "Browse the predatory journals, predatory publishers and hijacked journals lists A–Z or by search, with the last refresh date and source of every entry.",
-      "intro": "The lists are refreshed daily from the Stop Predatory Journals project, which builds on Beall's list. Browse each list A–Z or search it directly.",
-      "count": "{count, plural, =0 {No entries} one {# entry} other {# entries}}",
-      "lastRefresh": "Last refreshed: {date}",
-      "browse": "Browse A–Z",
-      "searchTitle": "Search the lists"
-    },
-    "index": {
-      "title": "{list}: A–Z index",
-      "titleLetter": "{list} — letter <l>{letter}</l>",
-      "titleOther": "{list} — names starting with a digit or symbol",
-      "description": "{list} in the source list, sorted A–Z, with a page for every entry and the last refresh date.",
-      "lettersLabel": "Letters",
-      "all": "All",
-      "other": "#",
-      "pageOf": "Page {page} of {pages}",
-      "previous": "Previous",
-      "next": "Next",
-      "empty": "No entries here.",
-      "pagination": "Pagination"
-    },
-    "entry": {
-      "metaTitle": "{name} — listed in {list}",
-      "metaDescription": "\"{name}\" is listed in the Stop Predatory Journals {list} list (as of {date}). Check the journal before you publish.",
-      "statement": {
-        "predatory_journal": "\"<v>{name}</v>\" is listed in the Stop Predatory Journals list as a potential predatory journal.",
-        "predatory_publisher": "\"<v>{name}</v>\" is listed in the Stop Predatory Journals list as a potential predatory publisher.",
-        "hijacked": "\"<v>{name}</v>\" is listed in the Stop Predatory Journals hijacked journals list: one or more websites impersonate this journal."
-      },
-      "factsTitle": "Listing details",
-      "listedName": "Name as listed",
-      "listType": "List",
-      "host": "Listed domain",
-      "fakeHost": "Listed fake site",
-      "authenticJournal": "Authentic journal",
-      "authenticSite": "Authentic journal's site",
-      "source": "Source",
-      "lastRefresh": "List last refreshed",
-      "noHost": "Not given",
-      "meaningTitle": "What does this listing mean?",
-      "meaning": {
-        "predatory_journal": "The list's maintainers noted practices at this journal that are considered signs of predatory publishing, such as weak peer review or false indexing claims. A listing is a warning that calls for checking, and a journal's practices can change over time.",
-        "predatory_publisher": "The list's maintainers noted practices at this publisher that are considered signs of predatory publishing. Its journals call for caution; check each journal on its own.",
-        "hijacked": "A website uses the name of a real journal without being its official site. Papers sent to the fake site are not published in the real journal. Confirm the official site before you submit."
-      },
-      "whatToDoTitle": "What should I do?",
-      "whatToDo": "Run the journal check, verify indexing on the official Scopus and Web of Science sites, and talk to Scientific Affairs if you will rely on the paper for promotion or another official procedure.",
-      "disclaimer": "This page shows what a volunteer-run, unofficial public list contains; it is not Al-Turath University's judgement of the journal or publisher. The lists of the Ministry of Higher Education and Scientific Research and the decision of Scientific Affairs prevail.",
-      "correction": "Request a correction",
-      "correctionSubject": "Correction request for entry: {name}",
-      "correctionBody": "Page: {url}\n\nPlease describe the correction and the evidence for it:",
-      "correctionHint": "Think these details are inaccurate? Send a correction request to Scientific Affairs.",
-      "checkCta": "Check this journal now",
-      "sameHost": "Other entries on the same domain",
-      "neighbours": "Nearby entries (A–Z)",
-      "backToIndex": "Back to the {list} index"
-    },
-    "notFound": {
-      "title": "Entry not found",
-      "body": "This entry is no longer in the current lists, or the link is wrong.",
-      "back": "Back to the lists"
-    },
     "checkPage": {
       "title": "Journal Check: Is This Journal Reputable or Predatory?",
       "description": "A free pre-submission journal check that matches a name, ISSN or website against predatory and hijacked journal lists and OpenAlex, Crossref and DOAJ.",
@@ -190,6 +118,33 @@
       "how3": "\"Found in sources\" only means the journal is known to the open sources; it is not a quality certificate.",
       "how4": "The Scopus status always shows \"unknown\" because no Scopus API is available; check Scopus manually.",
       "advisory": "The result is advisory. The Ministry's lists and the Scientific Affairs decision prevail."
+    },
+    "refLinks": {
+      "title": "Predatory and hijacked journals",
+      "intro": "Before you submit, make sure the journal is not on the lists below. The links go straight to the original sources.",
+      "groups": {
+        "predatory": {
+          "title": "Predatory journals",
+          "source": "Per Beall's list and Predatory Journals"
+        },
+        "hijacked": {
+          "title": "Hijacked journals",
+          "source": "Per the Retraction Watch Hijacked Journal Checker"
+        },
+        "ministry": {
+          "title": "Ministry journal portal",
+          "source": "Per the Ministry of Higher Education and Scientific Research / Research and Development Directorate"
+        }
+      },
+      "links": {
+        "beall": "Beall's list",
+        "predatoryJournals": "Predatory Journals",
+        "retractionWatch": "Retraction Watch Hijacked Journal Checker",
+        "ministryPortal": "Journal portal - Research and Development Directorate"
+      },
+      "checkHint": "You can also check a journal by name or ISSN with the journal check tool.",
+      "checkButton": "Check a journal",
+      "disclaimer": "These links are for guidance; scientific affairs makes the final decision on a journal under ministry rules."
     }
   },
   "siteEditor": {
@@ -307,6 +262,9 @@
       "arabic": "{label} (Arabic)",
       "english": "{label} (English)",
       "optional": "optional"
+    },
+    "links": {
+      "hint": "Shown in the homepage's “Useful links” section and in the site footer, e.g. the Nadwati platform."
     }
   }
 }

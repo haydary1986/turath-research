@@ -1,5 +1,5 @@
 import { getTranslations } from "next-intl/server";
-import { ListChecks, SearchCheck, ShieldAlert } from "lucide-react";
+import { SearchCheck, ShieldAlert } from "lucide-react";
 import { Link } from "@/i18n/routing";
 import { Button } from "@/components/ui/button";
 import { JOURNAL_PATHS } from "@/lib/journals/lists";
@@ -24,10 +24,6 @@ export async function JournalsPromo({ locale }: { locale: string }) {
             <Button variant="outline" nativeButton={false} render={<Link href={JOURNAL_PATHS.guide} />}>
               <ShieldAlert className="size-4" aria-hidden />
               {t("guideCta")}
-            </Button>
-            <Button variant="ghost" nativeButton={false} render={<Link href={JOURNAL_PATHS.list} />}>
-              <ListChecks className="size-4" aria-hidden />
-              {t("listCta")}
             </Button>
           </div>
         </div>

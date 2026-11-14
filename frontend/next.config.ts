@@ -22,6 +22,17 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+  async redirects() {
+    // The journal-by-journal list pages were retired in favour of links to the source lists.
+    return [
+      {
+        source: "/:locale(ar|en)/journals/predatory/:rest+",
+        destination: "/:locale/journals/predatory",
+        permanent: true,
+      },
+      { source: "/journals-sitemap/:path*", destination: "/sitemap.xml", permanent: true },
+    ];
+  },
   async rewrites() {
     return [
       {

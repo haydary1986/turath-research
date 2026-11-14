@@ -45,12 +45,13 @@ const (
 )
 
 // Kinds lists every supported request kind.
-var Kinds = []string{KindResearchPlan, KindJournalVerification, KindAppreciationLetter}
+var Kinds = []string{KindResearchPlan, KindJournalVerification, KindAppreciationLetter, KindTitleChange}
 
 var kindPrefix = map[string]string{
 	KindResearchPlan:        "RP",
 	KindJournalVerification: "JV",
 	KindAppreciationLetter:  "AR",
+	KindTitleChange:         "TC",
 }
 
 // transitions[kind][from] lists the statuses reachable from `from`.
@@ -81,6 +82,12 @@ var transitions = map[string]map[string][]string{
 		StatusPending:     {StatusPendingVP, StatusReturned},
 		StatusPendingVP:   {StatusVerified, StatusNotEligible, StatusPending},
 		StatusVerified:    {StatusIssued},
+	},
+	// A title change is decided by scientific affairs alone.
+	KindTitleChange: {
+		StatusDraft:    {StatusPending},
+		StatusReturned: {StatusPending},
+		StatusPending:  {StatusApproved, StatusRejected, StatusReturned},
 	},
 }
 
@@ -134,7 +141,7 @@ func QueueStatuses(role string) []string {
 
 // FinalDecisions lists the outcomes scientific affairs may recommend (and the VP confirm).
 func FinalDecisions(kind string) []string {
-	if kind == KindResearchPlan {
+	if kind == KindResearchPlan || kind == KindTitleChange {
 		return []string{StatusApproved, StatusRejected}
 	}
 	return []string{StatusVerified, StatusNotEligible}
@@ -205,6 +212,7 @@ var attachmentRoles = map[string][]string{
 	KindResearchPlan:        {RoleResearchForm, RoleSignedForm, RoleOther},
 	KindJournalVerification: {RoleJournalForm, RoleCommitteeApproval, RolePublishedPaper, RoleSignedForm, RoleOther},
 	KindAppreciationLetter:  {RoleJournalForm, RoleCommitteeApproval, RolePublishedPaper, RoleOther},
+	KindTitleChange:         {RoleOther},
 }
 
 // AllowedAttachmentRole reports whether a request kind accepts files of this role.
@@ -262,6 +270,8 @@ func ValidateDetails(kind string, details map[string]any) []string {
 		return validatePlan(details)
 	case KindJournalVerification, KindAppreciationLetter:
 		return validateJournal(details)
+	case KindTitleChange:
+		return validateTitleChange(details)
 	default:
 		return []string{"kind:invalid"}
 	}
@@ -273,6 +283,7 @@ func validatePlan(d map[string]any) []string {
 		errs = append(errs, "work_type:invalid")
 	}
 	errs = append(errs, requireDate(d, "expected_completion")...)
+	errs = append(errs, validateCoResearchers(d)...)
 	return errs
 }
 

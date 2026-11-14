@@ -8,11 +8,24 @@ export interface FieldDef {
   ltr?: boolean;
 }
 
+/** A joint research plan names at most this many partners (mirrors the backend). */
+export const MAX_CO_RESEARCHERS = 3;
+
+/** Detail keys holding the co-researchers of a joint plan: co_researcher_1 … co_researcher_3. */
+export const CO_RESEARCHER_KEYS: string[] = Array.from(
+  { length: MAX_CO_RESEARCHERS },
+  (_, i) => `co_researcher_${i + 1}`
+);
+
 export const PLAN_FIELDS: FieldDef[] = [
   { key: "work_type", type: "select", options: ["individual", "joint"], required: true },
   { key: "expected_completion", type: "date", required: true },
-  { key: "participants", type: "textarea" },
   { key: "notes", type: "textarea" },
+];
+
+export const TITLE_CHANGE_FIELDS: FieldDef[] = [
+  { key: "old_title", type: "textarea", required: true },
+  { key: "reason", type: "textarea", required: true },
 ];
 
 export const JOURNAL_FIELDS: FieldDef[] = [
@@ -52,7 +65,29 @@ export const JOURNAL_FIELDS: FieldDef[] = [
 ];
 
 export function fieldsFor(kind: RequestKind): FieldDef[] {
-  return kind === "research_plan" ? PLAN_FIELDS : JOURNAL_FIELDS;
+  if (kind === "research_plan") return PLAN_FIELDS;
+  if (kind === "title_change") return TITLE_CHANGE_FIELDS;
+  return JOURNAL_FIELDS;
+}
+
+/** Whether the request concerns a journal publication (and so gets the journal check and a DOI). */
+export function hasJournalData(kind: RequestKind): boolean {
+  return kind === "journal_verification" || kind === "appreciation_letter";
+}
+
+/** Non-blank co-researcher names of a plan, in order. */
+export function coResearchers(details: Record<string, string>): string[] {
+  return CO_RESEARCHER_KEYS.map((key) => details[key]?.trim() ?? "").filter(Boolean);
+}
+
+/**
+ * Applies a work-type change: an individual plan drops every co-researcher, so the saved
+ * draft never carries names the backend would reject.
+ */
+export function withWorkType(details: Record<string, string>, workType: string): Record<string, string> {
+  const next = { ...details, work_type: workType };
+  if (workType === "joint") return next;
+  return Object.fromEntries(Object.entries(next).filter(([key]) => !CO_RESEARCHER_KEYS.includes(key)));
 }
 
 /** Only these indexing databases rank journals in quartiles (mirrors the backend). */

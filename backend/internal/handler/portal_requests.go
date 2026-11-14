@@ -66,8 +66,8 @@ func normalizeInput(kind string, in requestInput, user *middleware.UserClaims) (
 		return n, "doi is too long"
 	}
 	n.titleAr, n.titleEn, n.doi = blankToNil(in.TitleAr), blankToNil(in.TitleEn), blankToNil(doi)
-	if kind == portal.KindResearchPlan {
-		n.doi = nil // a plan registers unpublished research, so it has no DOI
+	if kind == portal.KindResearchPlan || kind == portal.KindTitleChange {
+		n.doi = nil // neither a plan nor a title change concerns a published paper
 	}
 
 	college, ok1 := idOrNil(firstNonEmpty(in.CollegeID, user.CollegeID))
@@ -76,8 +76,8 @@ func normalizeInput(kind string, in requestInput, user *middleware.UserClaims) (
 	if !ok1 || !ok2 || !ok3 {
 		return n, "invalid identifier"
 	}
-	if related != nil && kind != portal.KindAppreciationLetter {
-		return n, "related_request_id is only valid for appreciation letters"
+	if related != nil && kind != portal.KindAppreciationLetter && kind != portal.KindTitleChange {
+		return n, "related_request_id is only valid for appreciation letters and title changes"
 	}
 	n.collegeID, n.departmentID, n.relatedID = college, dept, related
 
@@ -98,14 +98,25 @@ func firstNonEmpty(values ...string) string {
 	return ""
 }
 
-// relatedVerificationOK reports whether the applicant owns a completed journal verification with this id.
-func (h *PortalHandler) relatedVerificationOK(ctx context.Context, applicantID, relatedID string) (bool, error) {
+// relatedSource names the request an applicant may link to, per kind: a letter reuses a
+// completed journal verification; a title change targets an approved research plan.
+var relatedSource = map[string]struct{ kind, status string }{
+	portal.KindAppreciationLetter: {portal.KindJournalVerification, portal.StatusCompleted},
+	portal.KindTitleChange:        {portal.KindResearchPlan, portal.StatusApproved},
+}
+
+// relatedRequestOK reports whether the applicant owns a request this kind may link to.
+func (h *PortalHandler) relatedRequestOK(ctx context.Context, kind, applicantID, relatedID string) (bool, error) {
+	source, linkable := relatedSource[kind]
+	if !linkable {
+		return false, nil
+	}
 	var ok bool
 	err := h.db.QueryRow(ctx, `
 		SELECT EXISTS (
 			SELECT 1 FROM portal_requests
-			WHERE id = $1 AND kind = 'journal_verification' AND status = 'completed' AND applicant_id = $2
-		)`, relatedID, applicantID).Scan(&ok)
+			WHERE id = $1 AND kind = $3 AND status = $4 AND applicant_id = $2
+		)`, relatedID, applicantID, source.kind, source.status).Scan(&ok)
 	return ok, err
 }
 
@@ -133,7 +144,7 @@ func (h *PortalHandler) Create(w http.ResponseWriter, r *http.Request) {
 	defer cancel()
 
 	if n.relatedID != nil {
-		ok, err := h.relatedVerificationOK(ctx, user.UserID, *n.relatedID)
+		ok, err := h.relatedRequestOK(ctx, in.Kind, user.UserID, *n.relatedID)
 		if err != nil {
 			serverError(w, "Failed to check related request", err)
 			return
@@ -191,7 +202,7 @@ func (h *PortalHandler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if n.relatedID != nil {
-		ok, err := h.relatedVerificationOK(ctx, user.UserID, *n.relatedID)
+		ok, err := h.relatedRequestOK(ctx, rec.Kind, user.UserID, *n.relatedID)
 		if err != nil {
 			serverError(w, "Failed to check related request", err)
 			return
@@ -290,7 +301,7 @@ func (h *PortalHandler) Submit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	h.notifyUser(ctx, user.UserID, "تم إرسال الطلب بنجاح", "Request submitted", "رقم الطلب: "+requestLabel(updated), "success", requestLink(rec.ID))
-	h.wakeStage(ctx, updated, portal.StatusPendingDean)
+	h.wakeStage(ctx, updated, portal.FirstStage(rec.Kind))
 	model.RespondJSON(w, http.StatusOK, updated)
 }
 
@@ -316,14 +327,14 @@ func (h *PortalHandler) markSubmitted(ctx context.Context, rec requestRecord, ac
 	}
 	if _, err := tx.Exec(ctx, `
 		UPDATE portal_requests
-		SET status = 'pending_dean', request_no = $2, submitted_at = NOW(), decision_note = NULL,
+		SET status = $4::varchar, request_no = $2, submitted_at = NOW(), decision_note = NULL,
 		    researcher_id = $3, updated_at = NOW()
 		WHERE id = $1 AND status IN ('draft', 'returned')
-	`, rec.ID, *requestNo, nilIfEmpty(researcherID)); err != nil {
+	`, rec.ID, *requestNo, nilIfEmpty(researcherID), portal.FirstStage(rec.Kind)); err != nil {
 		return err
 	}
 	from := rec.Status
-	if err := recordEvent(ctx, tx, rec.ID, actorID, &from, portal.StatusPendingDean, ""); err != nil {
+	if err := recordEvent(ctx, tx, rec.ID, actorID, &from, portal.FirstStage(rec.Kind), ""); err != nil {
 		return err
 	}
 	return tx.Commit(ctx)
@@ -353,7 +364,7 @@ func (h *PortalHandler) submissionProblems(ctx context.Context, rec requestRecor
 
 	hasVerified := false
 	if rec.RelatedRequestID != nil {
-		ok, err := h.relatedVerificationOK(ctx, rec.ApplicantID, *rec.RelatedRequestID)
+		ok, err := h.relatedRequestOK(ctx, rec.Kind, rec.ApplicantID, *rec.RelatedRequestID)
 		if err != nil {
 			return nil, err
 		}
@@ -551,6 +562,11 @@ func (h *PortalHandler) applyTransition(ctx context.Context, rec requestRecord, 
 	}
 	if to == portal.StatusCompleted {
 		if err := materializePublication(ctx, tx, rec); err != nil {
+			return err
+		}
+	}
+	if to == portal.StatusApproved && rec.Kind == portal.KindTitleChange {
+		if err := applyTitleChange(ctx, tx, rec, actorID); err != nil {
 			return err
 		}
 	}

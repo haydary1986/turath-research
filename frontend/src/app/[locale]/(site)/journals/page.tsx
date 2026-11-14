@@ -26,7 +26,6 @@ export default async function JournalsHubPage({ params }: Props) {
   const items = [
     { name: articles[GUIDE_KEY].title, path: JOURNAL_PATHS.guide },
     ...TOPIC_SLUGS.map((slug) => ({ name: articles[slug].title, path: JOURNAL_PATHS.topic(slug) })),
-    { name: t("crumbs.list"), path: JOURNAL_PATHS.list },
     { name: t("crumbs.check"), path: JOURNAL_PATHS.check },
   ];
 

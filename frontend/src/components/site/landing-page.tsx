@@ -12,6 +12,7 @@ import { HowToApply } from "./landing/how-to-apply";
 import { JournalsPromo } from "./landing/journals-promo";
 import { LatestAnnouncements } from "./landing/latest-announcements";
 import { LatestPublications } from "./landing/latest-publications";
+import { QuickLinks } from "./landing/quick-links";
 import { Section } from "./landing/section";
 import { ServicesGrid } from "./landing/services-grid";
 import { StatsBar } from "./landing/stats-bar";
@@ -44,6 +45,7 @@ export async function LandingPage({ locale, data }: { locale: string; data: Land
       )}
 
       <ServicesGrid locale={locale} title={t("services")} services={content?.services ?? []} />
+      <QuickLinks locale={locale} links={content?.links ?? []} />
       <HowToApply locale={locale} />
 
       {content && !content.hide_publications && <LatestPublications locale={locale} items={data.publications} />}

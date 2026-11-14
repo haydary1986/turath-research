@@ -110,6 +110,7 @@ export interface SiteContent {
   faq: SiteFAQItem[];
   hide_publications: boolean;
   department: SiteDepartment;
+  tools: SiteLink[];
   updated_at?: string;
 }
 
@@ -216,6 +217,7 @@ export const SITE_LIMITS = {
   deptStatement: 1500,
   deptItems: 20,
   deptItem: 400,
+  tools: 12,
 } as const;
 
 export const PUBLIC_API = {

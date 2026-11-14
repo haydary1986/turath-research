@@ -35,3 +35,18 @@ func TestDepartmentBlock(t *testing.T) {
 		}
 	}
 }
+
+func TestToolsBlock(t *testing.T) {
+	c := NormalizeContent(Content{HeroTitle: "x"})
+	if c.Tools == nil {
+		t.Fatal("tools must serialise as []")
+	}
+	c.Tools = []Link{{Label: "Scopus", URL: "javascript:alert(1)"}}
+	if p := ValidateContent(NormalizeContent(c)); !slices.Contains(p, "tool_url:https_required") {
+		t.Fatalf("unsafe tool link accepted: %v", p)
+	}
+	c.Tools = slices.Repeat([]Link{{Label: "x", URL: "https://a.iq"}}, MaxTools+1)
+	if p := ValidateContent(NormalizeContent(c)); !slices.Contains(p, "tools:too_many") {
+		t.Fatalf("too many tools accepted: %v", p)
+	}
+}

@@ -150,6 +150,9 @@ export function SiteContentForm() {
             labelLabel={te("colleges.name")} urlLabel={te("colleges.url")} max={SITE_LIMITS.colleges}
             links={draft.colleges} onChange={(colleges) => update({ colleges })} />
           <SocialsEditor socials={draft.socials} onChange={(socials) => update({ socials })} />
+          <LinksEditor idPrefix="tool" title={te("tools.title")} hint={te("tools.hint")} addLabel={te("tools.add")}
+            labelLabel={tc("linkLabel")} urlLabel={tc("linkUrl")} max={SITE_LIMITS.tools}
+            links={draft.tools} onChange={(tools) => update({ tools })} />
           <LinksEditor idPrefix="link" title={tc("links")} hint={te("links.hint")} addLabel={tc("addLink")} labelLabel={tc("linkLabel")}
             urlLabel={tc("linkUrl")} max={SITE_LIMITS.links} links={draft.links} onChange={(links) => update({ links })} />
         </TabsContent>

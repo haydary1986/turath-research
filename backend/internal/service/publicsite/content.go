@@ -79,6 +79,8 @@ type Content struct {
 	FAQ              []FAQItem     `json:"faq"`
 	HidePublications bool          `json:"hide_publications"`
 	Department       Department    `json:"department"`
+	// Tools are external research tools (journal indexing, quartiles, profiles) in the footer.
+	Tools []Link `json:"tools"`
 }
 
 // NormalizeContent returns a cleaned copy of c; the input is not modified.
@@ -115,6 +117,7 @@ func NormalizeContent(c Content) Content {
 		FAQ:              normalizeFAQ(c.FAQ),
 		HidePublications: c.HidePublications,
 		Department:       normalizeDepartment(c.Department),
+		Tools:            normalizeLinks(c.Tools),
 	}
 }
 
@@ -156,6 +159,7 @@ func ValidateContent(c Content) []string {
 	validateLinks(&p, "links", "link", c.Links, MaxLinks)
 	validateBlocks(&p, c)
 	validateDepartment(&p, c.Department)
+	validateLinks(&p, "tools", "tool", c.Tools, MaxTools)
 	return p.list
 }
 

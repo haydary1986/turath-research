@@ -1016,6 +1016,10 @@ for _ in $(seq 1 24); do
 done
 [ "$DEPT_SHOWN" = "1" ] && grep -q 'id="department' "$TMP/dept.html" && grep -q "موقع ندوتي" "$TMP/dept.html" && ok "homepage shows the department profile with the edited task" || bad "dept home" "edit not shown within 2 min"
 call PUT /site "$SA" "$DEPT_SITE"; expect "department profile restored" 200
+[ "$(echo "$DEPT_SITE" | jq_ "any('scopus.com/sources' in t['url'] for t in d['tools']) and any('scimagojr' in t['url'] for t in d['tools'])")" = "True" ] && ok "research tools seeded with Scopus and SCImago" || bad "tools seed" "${DEPT_SITE:0:200}"
+BAD_TOOL=$(echo "$DEPT_SITE" | python3 -c "import sys,json; d=json.load(sys.stdin); d['tools'].append({'label':'x','label_en':'','url':'http://insecure.example'}); print(json.dumps(d))")
+call PUT /site "$SA" "$BAD_TOOL"; expect "a non-https tool link is refused" 422
+grep -q 'id="footer-tools"' "$TMP/dept.html" && grep -q 'href="https://www.scopus.com/sources"' "$TMP/dept.html" && grep -q 'id="footer-colleges"' "$TMP/dept.html" && ok "footer shows research tools and colleges" || bad "footer" "tools or colleges missing"
 
 echo "== publications list filters =="
 call GET "/publications?limit=5" "$RES"; expect "publications list readable" 200

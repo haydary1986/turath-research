@@ -7,6 +7,8 @@ const (
 	MaxDeptStatement = 1500
 	MaxDeptItems     = 20
 	MaxDeptItem      = 400
+	// MaxTools bounds the footer's external research tools.
+	MaxTools = 12
 )
 
 // DeptItem is one entry of the goals or tasks list.

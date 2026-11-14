@@ -54,7 +54,6 @@
       "contactTitle": "Contact us",
       "collegesTitle": "University colleges",
       "linksTitle": "Useful links",
-      "journalsTitle": "Journals & publishing",
       "followUs": "Follow us",
       "email": "Email",
       "phone": "Phone",
@@ -71,7 +70,10 @@
         "tiktok": "TikTok",
         "whatsapp": "WhatsApp",
         "website": "Website"
-      }
+      },
+      "portalTitle": "Portal",
+      "toolsTitle": "Research tools",
+      "tagline": "The Scientific Affairs Department of Al-Turath University: following up the research, publishing and scientific activities of the university's academics."
     },
     "nav": {
       "journalsGuide": "Predatory journals"
@@ -254,7 +256,11 @@
       "dept_goal": "Goal",
       "dept_goals": "Goals",
       "dept_task": "Task",
-      "dept_tasks": "Tasks"
+      "dept_tasks": "Tasks",
+      "tool": "Tool",
+      "tool_label": "Tool name",
+      "tool_url": "Tool link",
+      "tools": "Research tools"
     },
     "bilingual": {
       "intro": "Every text on the page has two fields: Arabic (primary) and English (optional). The English site shows the Arabic text for any field whose English text is left empty.",
@@ -276,6 +282,11 @@
       "tasks": "Tasks",
       "task": "Task",
       "addTask": "Add task"
+    },
+    "tools": {
+      "title": "Research tools (site footer)",
+      "hint": "External links that help researchers, such as finding Scopus journals and a journal's quartile (Q).",
+      "add": "Add tool"
     }
   }
 }

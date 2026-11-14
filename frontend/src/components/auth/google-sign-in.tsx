@@ -41,11 +41,13 @@ interface AuthConfig {
   allowed_domain: string;
 }
 
-function loadGoogleScript(): Promise<void> {
+// Google localizes the iframe title from the script's hl parameter, not the button locale option.
+function loadGoogleScript(locale: string): Promise<void> {
   if (window.google) return Promise.resolve();
+  const src = `${GSI_SRC}?hl=${encodeURIComponent(locale)}`;
   return new Promise((resolve, reject) => {
     const existing = document.querySelector<HTMLScriptElement>(
-      `script[src="${GSI_SRC}"]`,
+      `script[src^="${GSI_SRC}"]`,
     );
     const script = existing ?? document.createElement("script");
     script.addEventListener("load", () => resolve(), { once: true });
@@ -55,7 +57,7 @@ function loadGoogleScript(): Promise<void> {
       { once: true },
     );
     if (!existing) {
-      script.src = GSI_SRC;
+      script.src = src;
       script.async = true;
       document.head.appendChild(script);
     }
@@ -113,7 +115,7 @@ export function GoogleSignIn({
       }
     }
 
-    loadGoogleScript()
+    loadGoogleScript(locale)
       .then(() => {
         if (!active || !window.google || !buttonRef.current || !config) return;
         window.google.accounts.id.initialize({

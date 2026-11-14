@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
-import { FileUp, Plus, Search, SearchCheck, ShieldAlert, ShieldCheck, ShieldX, Trash2 } from "lucide-react";
+import { FileUp, Plus, Search, ShieldAlert, ShieldCheck, ShieldX, Trash2 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { Link } from "@/i18n/routing";
 import { api } from "@/lib/api";
@@ -155,10 +155,6 @@ function JournalsPage() {
           <p className="text-sm text-muted-foreground">{tj("manual.description")}</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button variant="outline" nativeButton={false} render={<Link href="/portal/journal-check" />}>
-            <SearchCheck className="size-4" />
-            <span>{tj("check.title")}</span>
-          </Button>
           <input
             ref={inputRef}
             type="file"
@@ -319,7 +315,7 @@ function JournalsPage() {
   );
 }
 
-/** The list is staff-only on the API, so others are sent to the check, not to a failing screen. */
+/** The list is staff-only on the API, so others are sent to the predatory-journals page, not to a failing screen. */
 function StaffOnly() {
   const tj = useTranslations("portal.journals");
   const role = useAuth((state) => state.user?.role);
@@ -328,7 +324,7 @@ function StaffOnly() {
     <Card className="mx-auto max-w-md">
       <CardContent className="space-y-4 py-8 text-center">
         <p>{tj("staffOnly")}</p>
-        <Button nativeButton={false} render={<Link href="/portal/journal-check" />}>{tj("check.title")}</Button>
+        <Button nativeButton={false} render={<Link href="/portal/predatory-journals" />}>{tj("predatoryLink")}</Button>
       </CardContent>
     </Card>
   );

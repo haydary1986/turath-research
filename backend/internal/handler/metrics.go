@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -15,10 +16,31 @@ import (
 
 type MetricsHandler struct {
 	db *pgxpool.Pool
+	// institutionWorks counts the university's works in OpenAlex; nil disables it.
+	institutionWorks InstitutionWorksCounter
+	worksTotal       cached[int64]
 }
 
-func NewMetricsHandler(db *pgxpool.Pool) *MetricsHandler {
-	return &MetricsHandler{db: db}
+func NewMetricsHandler(db *pgxpool.Pool, institutionWorks InstitutionWorksCounter) *MetricsHandler {
+	return &MetricsHandler{db: db, institutionWorks: institutionWorks}
+}
+
+// institutionTotal is the university's works count in OpenAlex (cached), or -1 when unavailable.
+func (h *MetricsHandler) institutionTotal(ctx context.Context) int64 {
+	if h.institutionWorks == nil {
+		return -1
+	}
+	n, _, err := h.worksTotal.get(ctx, func(ctx context.Context) (int64, error) {
+		ctx, cancel := context.WithTimeout(ctx, institutionWorksTimeout)
+		defer cancel()
+		n, err := h.institutionWorks(ctx)
+		return int64(n), err
+	})
+	if err != nil {
+		slog.Warn("dashboard: institution works count unavailable, using portal records", "error", err)
+		return -1
+	}
+	return n
 }
 
 // ── Institution-wide dashboard KPIs ──────────────
@@ -27,6 +49,7 @@ type institutionKPIs struct {
 	TotalResearchers     int     `json:"total_researchers"`
 	ActiveResearchers    int     `json:"active_researchers"`
 	TotalPublications    int     `json:"total_publications"`
+	PortalPublications   int     `json:"portal_publications"`
 	TotalCitations       int     `json:"total_citations"`
 	AvgHIndex            float64 `json:"avg_h_index"`
 	Q1Publications       int     `json:"q1_publications"`
@@ -48,7 +71,10 @@ func (h *MetricsHandler) InstitutionKPIs(w http.ResponseWriter, r *http.Request)
 	h.db.QueryRow(ctx, `SELECT COUNT(*) FROM researchers WHERE status = 'active'`).Scan(&kpis.ActiveResearchers)
 
 	// Publication totals
-	h.db.QueryRow(ctx, `SELECT COUNT(*) FROM publications`).Scan(&kpis.TotalPublications)
+	// The portal holds only research linked to its researchers; the university's total
+	// output comes from OpenAlex, as on the public statistics bar.
+	h.db.QueryRow(ctx, `SELECT COUNT(*) FROM publications`).Scan(&kpis.PortalPublications)
+	kpis.TotalPublications = int(publishedCount(int64(kpis.PortalPublications), h.institutionTotal(ctx)))
 	h.db.QueryRow(ctx, `SELECT COALESCE(SUM(citation_count), 0) FROM publications`).Scan(&kpis.TotalCitations)
 
 	// Average h-index

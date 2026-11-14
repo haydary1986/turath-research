@@ -999,52 +999,31 @@ call DELETE /site/director-photo "$SA"; expect "SA removes the director photo" 2
 CODE=$(curl -s -o /dev/null -w "%{http_code}" "$API/public/site/director-photo/$PHOTO"); [ "$CODE" = "404" ] && ok "removed photo no longer served" || bad "removed photo" "$CODE"
 call PUT /site "$SA" "$BASE_SITE"; expect "site content restored after v2 checks" 200
 
-echo "== public journal pages =="
-JNAME="E2E Predatory Test Journal $RUN"
-sqlv "INSERT INTO journal_reference_list (name_key, name, url, url_host, list_type, source, fetched_at)
-      VALUES ('e2e predatory test journal $RUN', '$JNAME', 'https://e2e-$RUN.example', 'e2e-$RUN.example', 'predatory_journal', 'stop-predatory-journals', NOW())" >/dev/null
-JSLUG=$(sqlv "SELECT slug FROM journal_reference_list WHERE name='$JNAME' LIMIT 1")
-[ -n "$JSLUG" ] && ok "reference entry has a slug" || bad "slug" "empty"
-pub /public/journals/status; expect "list status readable without a token" 200
-pub "/public/journals/entries?type=users"; expect "unknown list type rejected" 400
-pub "/public/journals/entries?type=predatory_journal&q=E2E%20Predatory%20Test%20Journal%20$RUN"; expect "list search without a token" 200
-[ "$(echo "$BODY" | jq_ "d['data'][0]['slug']")" = "$JSLUG" ] && ok "search returns the entry with its slug" || bad "entry search" "$BODY"
-pub "/public/journals/entries?type=predatory_journal&letter=e&q=$RUN"
-echo "$BODY" | grep -q "$JSLUG" && ok "A–Z index lists the entry under its letter" || bad "letter index" "${BODY:0:200}"
-pub "/public/journals/letters?type=predatory_journal"; expect "letter counts readable" 200
-pub "/public/journals/entries/$JSLUG"; expect "entry page data readable" 200
-[ "$(echo "$BODY" | jq_ "d['data']['entry']['name']")" = "$JNAME" ] && ok "entry carries its listed name" || bad "entry name" "$BODY"
-pub "/public/journals/entries/no-such-entry-0000000000"; expect "unknown slug 404" 404
-pub "/public/journals/sitemap?type=predatory_journal&limit=5000"
-echo "$BODY" | grep -q "$JSLUG" && ok "sitemap feed includes the entry" || bad "sitemap feed" "${BODY:0:200}"
+echo "== predatory journals page (explanation and links only) =="
 # ISSN 2049-3630 is on the staff watchlist (see the screening section above).
 call GET "/screening/check?issn=20493630" "$RES"
-[ "$(echo "$BODY" | jq_ "d['data']['classification']")" = "predatory" ] && ok "portal check keeps the watchlist details" || bad "portal check" "$BODY"
-pub "/public/journals/check?issn=20493630"; expect "anonymous journal check" 200
-[ "$(echo "$BODY" | jq_ "d['data']['verdict']")" = "danger" ] && ok "watchlist still drives the public verdict" || bad "public verdict" "$BODY"
-[ "$(echo "$BODY" | jq_ "[d['data'].get(k) for k in ('classification','name','note','matched_by')]")" = "[None, None, None, None]" ] && ok "public check hides the watchlist entry" || bad "watchlist leak" "$BODY"
-echo "$BODY" | grep -q "قائمة الوزارة" && bad "watchlist note leaked" "$BODY" || ok "watchlist note not in the public answer"
+[ "$(echo "$BODY" | jq_ "d['data']['classification']")" = "predatory" ] && ok "request forms keep the automatic journal check" || bad "portal check" "$BODY"
+for path in "/public/journals/check?issn=20493630" "/public/journals/entries?type=hijacked" "/public/journals/status"; do
+  pub "$path"; [ "$CODE" = "404" ] && ok "retired public endpoint ${path%%\?*} is gone" || bad "retired endpoint $path" "$CODE"
+done
+call GET /metrics/institution "$SA"
+[ "$(echo "$BODY" | jq_ "d['data']['total_publications'] >= max(1000, d['data']['portal_publications'])")" = "True" ] && ok "dashboard publications use the university's OpenAlex total" || bad "dashboard total" "$BODY"
 
 FRONT="${FRONT:-http://localhost:3001}"
 CODE=$(curl -s -o "$TMP/robots" -w "%{http_code}" "$FRONT/robots.txt"); [ "$CODE" = "200" ] && grep -q "Disallow: /\*/portal" "$TMP/robots" && grep -q "Sitemap: .*/sitemap.xml" "$TMP/robots" && ok "robots.txt served with portal disallowed and sitemaps" || bad "robots" "$CODE"
-CODE=$(curl -s -o "$TMP/sitemap" -w "%{http_code}" "$FRONT/sitemap.xml"); [ "$CODE" = "200" ] && grep -q "/ar/journals/predatory</loc>" "$TMP/sitemap" && ok "sitemap.xml lists the journal guide" || bad "sitemap" "$CODE"
-CODE=$(curl -s -o /dev/null -w "%{http_code} %{redirect_url}" "$FRONT/journals-sitemap/sitemap/predatory_journal.xml"); [ "${CODE%% *}" = "308" ] && ok "retired journal sitemap redirects permanently" || bad "journal sitemap redirect" "$CODE"
-CODE=$(curl -s -o /dev/null -w "%{http_code} %{redirect_url}" "$FRONT/ar/journals/predatory/$JSLUG"); [ "${CODE%% *}" = "308" ] && echo "$CODE" | grep -q "/ar/journals/predatory$" && ok "retired entry page redirects to the links page" || bad "entry redirect" "$CODE"
-CODE=$(curl -s -o /dev/null -w "%{http_code} %{redirect_url}" "$FRONT/en/journals/predatory/list/journals?letter=a"); [ "${CODE%% *}" = "308" ] && echo "$CODE" | grep -q "/en/journals/predatory" && ok "retired list index redirects to the links page" || bad "list redirect" "$CODE"
-CODE=$(curl -s -o "$TMP/guide.html" -w "%{http_code}" "$FRONT/ar/journals/predatory"); [ "$CODE" = "200" ] && grep -q 'href="https://beallslist.net/"' "$TMP/guide.html" && grep -q 'retractionwatch.com/the-retraction-watch-hijacked-journal-checker' "$TMP/guide.html" && grep -q 'href="https://jor.rdd.edu.iq/"' "$TMP/guide.html" && ok "predatory page links the source lists" || bad "guide links" "$CODE"
-grep -q 'type="search"\|name="q"' "$TMP/guide.html" && bad "predatory page search" "still has a search box" || ok "predatory page has no list search"
-CODE=$(curl -s -o "$TMP/home.html" -w "%{http_code}" "$FRONT/ar"); [ "$CODE" = "200" ] && grep -q 'id="stats-title"' "$TMP/home.html" && grep -q 'href="/ar/journals/predatory"' "$TMP/home.html" && ok "homepage renders statistics and links the journal guide" || bad "home" "$CODE"
-grep -q 'id="links' "$TMP/home.html" && grep -q 'href="https://nadwati.rdd.edu.iq/"' "$TMP/home.html" && ok "homepage shows the Nadwati link among useful links" || bad "home links" "nadwati missing"
-sqlv "DELETE FROM journal_reference_list WHERE name='$JNAME'" >/dev/null
-CODE=$(curl -s -o /dev/null -w "%{http_code}" "$API/public/journals/entries/$JSLUG"); [ "$CODE" = "404" ] && ok "entry removed from the list stops resolving" || bad "removed entry" "$CODE"
-
-# Last: it spends this IP's anonymous check allowance.
-LIMITED=0
-for _ in $(seq 1 25); do
-  C=$(curl -s -o /dev/null -w "%{http_code}" "$API/public/journals/check?name=$(printf 'x%.0s' $(seq 1 600))")
-  [ "$C" = "429" ] && LIMITED=1 && break
+CODE=$(curl -s -o "$TMP/sitemap" -w "%{http_code}" "$FRONT/sitemap.xml"); [ "$CODE" = "200" ] && grep -q "/ar/journals/predatory</loc>" "$TMP/sitemap" && ok "sitemap.xml lists the predatory journals page" || bad "sitemap" "$CODE"
+grep -q "journals/check\|journals/guide" "$TMP/sitemap" && bad "sitemap" "still lists retired pages" || ok "sitemap drops the retired journal pages"
+for path in /ar/journals /ar/journals/check /en/journals/guide/warning-signs /ar/journals/predatory/list /ar/journals/predatory/some-entry; do
+  CODE=$(curl -s -o /dev/null -w "%{http_code} %{redirect_url}" "$FRONT$path")
+  [ "${CODE%% *}" = "308" ] && echo "$CODE" | grep -q "/journals/predatory$" && ok "$path redirects to the predatory page" || bad "redirect $path" "$CODE"
 done
-[ "$LIMITED" = "1" ] && ok "anonymous journal check is rate limited per IP" || bad "check rate limit" "never 429"
+CODE=$(curl -s -o /dev/null -w "%{http_code} %{redirect_url}" "$FRONT/ar/portal/journal-check"); [ "${CODE%% *}" = "308" ] && echo "$CODE" | grep -q "/ar/portal/predatory-journals$" && ok "portal journal check redirects to the predatory page" || bad "portal check redirect" "$CODE"
+CODE=$(curl -s -o "$TMP/guide.html" -w "%{http_code}" "$FRONT/ar/journals/predatory"); [ "$CODE" = "200" ] && grep -q 'id="explain-what"' "$TMP/guide.html" && grep -q 'id="explain-signs"' "$TMP/guide.html" && ok "predatory page explains predatory and hijacked journals" || bad "explanation" "$CODE"
+grep -q 'href="https://beallslist.net/"' "$TMP/guide.html" && grep -q 'retractionwatch.com/the-retraction-watch-hijacked-journal-checker' "$TMP/guide.html" && grep -q 'href="https://jor.rdd.edu.iq/"' "$TMP/guide.html" && ok "predatory page links the source lists" || bad "guide links" "missing"
+grep -q 'href="/ar/journals/check"' "$TMP/guide.html" && bad "guide" "links the retired check" || ok "predatory page no longer offers a journal check"
+CODE=$(curl -s -o "$TMP/home.html" -w "%{http_code}" "$FRONT/ar"); [ "$CODE" = "200" ] && grep -q 'id="stats-title"' "$TMP/home.html" && grep -q 'href="/ar/journals/predatory"' "$TMP/home.html" && ok "homepage renders statistics and links the predatory page" || bad "home" "$CODE"
+grep -q 'href="/ar/journals/check"\|href="/ar/portal/new/journal_verification"' "$TMP/home.html" && bad "home" "still shows journal check or verification" || ok "homepage keeps only the predatory journals card"
+grep -q 'id="links' "$TMP/home.html" && grep -q 'href="https://nadwati.rdd.edu.iq/"' "$TMP/home.html" && ok "homepage shows the Nadwati link among useful links" || bad "home links" "nadwati missing"
 
 echo
 echo "Passed: $PASS  Failed: $FAIL"

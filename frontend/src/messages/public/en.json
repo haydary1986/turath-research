@@ -39,10 +39,9 @@
       "opensInNewTab": "(opens in a new tab)"
     },
     "journalsPromo": {
-      "title": "Before you submit, check the journal",
-      "body": "A free public guide to predatory journals, predatory publishers and hijacked journals, with a check that matches a journal's name, ISSN or website against the lists and open sources.",
-      "guideCta": "Predatory journals guide",
-      "checkCta": "Check a journal now"
+      "title": "Before you submit, avoid predatory journals",
+      "body": "A short explanation of predatory and hijacked journals and their warning signs, with links to the trusted lists for checking a journal.",
+      "guideCta": "Predatory journals"
     },
     "director": {
       "defaultTitle": "Director's message",
@@ -75,8 +74,7 @@
       }
     },
     "nav": {
-      "journalsGuide": "Predatory journals",
-      "journalCheck": "Journal check"
+      "journalsGuide": "Predatory journals"
     },
     "quickLinks": {
       "title": "Useful links",
@@ -88,40 +86,11 @@
     "crumbs": {
       "label": "Breadcrumb",
       "home": "Home",
-      "hub": "Journals & publishing",
-      "guide": "Predatory journals guide",
-      "check": "Journal check"
-    },
-    "hub": {
-      "title": "Journals & Publishing: Guides and Tools for Researchers",
-      "description": "Practical guides on predatory and hijacked journals and on verifying Scopus and Web of Science indexing, with a predatory journals list and a free journal check.",
-      "intro": "Choose the right place to publish. Short guides and free tools, open to everyone without signing in.",
-      "topicsTitle": "Guide topics",
-      "toolsTitle": "Tools",
-      "readMore": "Read the guide"
-    },
-    "guide": {
-      "faqTitle": "Predatory journals FAQ",
-      "topicsTitle": "Go deeper",
-      "toolsTitle": "Search and check",
-      "lastUpdated": "Content last reviewed: {date}",
-      "sourcesTitle": "Further reading",
-      "onThisPage": "On this page"
-    },
-    "checkPage": {
-      "title": "Journal Check: Is This Journal Reputable or Predatory?",
-      "description": "A free pre-submission journal check that matches a name, ISSN or website against predatory and hijacked journal lists and OpenAlex, Crossref and DOAJ.",
-      "intro": "Enter a journal name, ISSN or website. The check compares it with the predatory journal, predatory publisher and hijacked journal lists and with open sources, then shows the result and its reasons.",
-      "howTitle": "How to read the result",
-      "how1": "\"Danger\" means a match with a predatory or hijacked list or the department's list; do not submit before consulting Scientific Affairs.",
-      "how2": "\"Caution\" means signs that call for a manual check.",
-      "how3": "\"Found in sources\" only means the journal is known to the open sources; it is not a quality certificate.",
-      "how4": "The Scopus status always shows \"unknown\" because no Scopus API is available; check Scopus manually.",
-      "advisory": "The result is advisory. The Ministry's lists and the Scientific Affairs decision prevail."
+      "guide": "Predatory journals"
     },
     "refLinks": {
-      "title": "Predatory and hijacked journals",
-      "intro": "Before you submit, make sure the journal is not on the lists below. The links go straight to the original sources.",
+      "title": "Predatory journals",
+      "intro": "A short explanation of predatory and hijacked journals and their warning signs, with links to the trusted lists to check a journal before you submit.",
       "groups": {
         "predatory": {
           "title": "Predatory journals",
@@ -142,9 +111,26 @@
         "retractionWatch": "Retraction Watch Hijacked Journal Checker",
         "ministryPortal": "Journal portal - Research and Development Directorate"
       },
-      "checkHint": "You can also check a journal by name or ISSN with the journal check tool.",
-      "checkButton": "Check a journal",
-      "disclaimer": "These links are for guidance; scientific affairs makes the final decision on a journal under ministry rules."
+      "disclaimer": "These links are for guidance; scientific affairs makes the final decision on a journal under ministry rules.",
+      "linksTitle": "The lists"
+    },
+    "explain": {
+      "whatTitle": "What are predatory journals?",
+      "what": "Journals that charge researchers publication fees and promise fast review and international indexing, but provide no real peer review and no reliable indexing. Research published in them may not count towards promotion or appreciation letters, and is hard to withdraw and publish elsewhere.",
+      "hijackedTitle": "What are hijacked journals?",
+      "hijacked": "A genuine, reputable journal whose name and ISSN fraudsters copy onto a fake website to collect papers and fees. A paper sent to the fake site is not published in the real journal and is not indexed with it.",
+      "signsTitle": "Warning signs",
+      "sign1": "Acceptance within a few days without real reviewer comments.",
+      "sign2": "Unsolicited emails inviting you to publish or join the editorial board.",
+      "sign3": "Fees requested before review or right after acceptance, with pressure to pay quickly.",
+      "sign4": "Claimed impact factors or indexing that do not appear on the official Scopus or Web of Science sites.",
+      "sign5": "A weak website, or a name very close to a well-known journal's.",
+      "sign6": "A very broad scope that mixes unrelated fields.",
+      "stepsTitle": "Before you submit",
+      "step1": "Look the journal and publisher up in the lists linked below.",
+      "step2": "Check the journal's indexing on the official Scopus or Web of Science site, not on the journal's own site.",
+      "step3": "Compare the journal's web address with the one recorded in the databases to make sure it is not hijacked.",
+      "step4": "If in doubt, ask the scientific affairs department before you submit, not after."
     }
   },
   "siteEditor": {

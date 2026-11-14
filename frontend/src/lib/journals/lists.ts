@@ -1,7 +1,4 @@
-/** Site paths (locale-less) of the public journal pages. */
+/** Site path (locale-less) of the public predatory-journals page. */
 export const JOURNAL_PATHS = {
-  hub: "/journals",
   guide: "/journals/predatory",
-  check: "/journals/check",
-  topic: (slug: string): string => `/journals/guide/${slug}`,
 } as const;

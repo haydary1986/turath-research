@@ -31,6 +31,12 @@ const nextConfig: NextConfig = {
         permanent: true,
       },
       { source: "/journals-sitemap/:path*", destination: "/sitemap.xml", permanent: true },
+      // The journal check, the journals hub and the guide articles were folded into the
+      // single predatory-journals page (explanation and links).
+      { source: "/:locale(ar|en)/journals", destination: "/:locale/journals/predatory", permanent: true },
+      { source: "/:locale(ar|en)/journals/check", destination: "/:locale/journals/predatory", permanent: true },
+      { source: "/:locale(ar|en)/journals/guide/:slug*", destination: "/:locale/journals/predatory", permanent: true },
+      { source: "/:locale(ar|en)/portal/journal-check", destination: "/:locale/portal/predatory-journals", permanent: true },
     ];
   },
   async rewrites() {

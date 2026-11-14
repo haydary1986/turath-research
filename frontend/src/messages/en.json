@@ -49,7 +49,8 @@
       "hIndex": "h-index: {value}",
       "citations": "{count, plural, one {# citation} other {# citations}}",
       "publications": "{count, plural, one {# publication} other {# publications}}"
-    }
+    },
+    "publicationsSource": "Per OpenAlex — in the portal: {portal}"
   },
   "sidebar": {
     "brand": "Al-Turath University",
@@ -145,7 +146,7 @@
       "reviewQueue": "Awaiting my review",
       "profile": "My research profile",
       "journalCheck": "Check a journal",
-      "predatory": "Predatory journals guide",
+      "predatory": "Predatory journals",
       "site": "Public site",
       "myResponsibilities": "My responsibilities",
       "audit": "Sign-ins & accounts",
@@ -843,7 +844,8 @@
         "title": "Ministry exceptions",
         "description": "A secondary list for ministry or university decisions only, such as an accredited or suspended journal. It takes precedence over the automatic check; predatory journals need not be entered here."
       },
-      "staffOnly": "Managing journal exceptions is limited to Scientific Affairs. You can check any journal on the check page."
+      "staffOnly": "Managing journal exceptions is limited to Scientific Affairs. You can check any journal on the check page.",
+      "predatoryLink": "Predatory journals"
     },
     "reports": {
       "title": "Reports",

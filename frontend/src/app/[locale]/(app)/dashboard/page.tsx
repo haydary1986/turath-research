@@ -11,6 +11,8 @@ interface KPIs {
   total_researchers: number;
   active_researchers: number;
   total_publications: number;
+  /** Research linked to the portal's researchers; total_publications may be the larger OpenAlex count. */
+  portal_publications?: number;
   total_citations: number;
   avg_h_index: number;
   q1_publications: number;
@@ -63,6 +65,10 @@ export default function DashboardPage() {
     {
       key: "totalPublications",
       value: kpis?.total_publications ?? "—",
+      subLabel:
+        kpis && kpis.portal_publications !== undefined && kpis.total_publications > kpis.portal_publications
+          ? t("publicationsSource", { portal: kpis.portal_publications })
+          : undefined,
       icon: FileText,
       color: "text-accent",
       bg: "bg-accent/10",

@@ -22,9 +22,6 @@ import (
 	syncsvc "github.com/haydary1986/turath-research/backend/internal/service/sync"
 )
 
-// publicCheckRequestsPerMin bounds anonymous journal checks per IP, cached or not.
-const publicCheckRequestsPerMin = 20
-
 func NewRouter(cfg *config.Config, db *pgxpool.Pool, rdb *redis.Client, journals *journalcheck.Service) *chi.Mux {
 	orchestrator := syncsvc.NewOrchestrator(db, cfg.CrossRef.Mailto, cfg.OpenAlex.APIKey)
 	return newRouter(cfg, db, rdb, journals, orchestrator, newBulkSync(cfg, db, orchestrator))
@@ -58,7 +55,8 @@ func newRouter(cfg *config.Config, db *pgxpool.Pool, rdb *redis.Client, journals
 	orgH := handler.NewOrganizationHandler(db)
 	syncH := handler.NewSyncHandler(db, orchestrator)
 	researchProfileH := handler.NewResearchProfileHandler(db, orchestrator)
-	metricsH := handler.NewMetricsHandler(db)
+	worksCounter := institutionWorksCounter(cfg)
+	metricsH := handler.NewMetricsHandler(db, worksCounter)
 	aiH := handler.NewAIHandler(db, cfg.DeepSeek.APIKey, cfg.DeepSeek.BaseURL)
 	searchH := handler.NewSearchHandler(db)
 	notifH := handler.NewNotificationHandler(db)
@@ -74,7 +72,7 @@ func newRouter(cfg *config.Config, db *pgxpool.Pool, rdb *redis.Client, journals
 	// Role and organization come from the database (cached ~60 s per user), not the JWT.
 	identities := identity.NewCache(identityLoader(db), identity.DefaultTTL, time.Now)
 	adminUsersH := handler.NewAdminUserHandler(db, identities.Invalidate, cfg.Google.AllowedDomain)
-	publicH := handler.NewPublicHandler(db, journals, institutionWorksCounter(cfg))
+	publicH := handler.NewPublicHandler(db, worksCounter)
 	adminImportH := handler.NewAdminImportHandler(db)
 	bulkSyncH := handler.NewBulkSyncHandler(bulkSync)
 	responsibilityH := handler.NewResponsibilityHandler(db, identities.Invalidate)
@@ -101,18 +99,9 @@ func newRouter(cfg *config.Config, db *pgxpool.Pool, rdb *redis.Client, journals
 		r.Get("/public/announcements/{id}", portalH.GetPublicAnnouncement)
 		r.Get("/public/files/{id}", portalH.DownloadPublicFile)
 		r.Get("/public/site/director-photo/{id}", portalH.DownloadDirectorPhoto)
-		// Aggregates only (cached ~10 min) and the public journal pages.
+		// Aggregates only (cached ~10 min).
 		r.Get("/public/stats", publicH.PublicStats)
 		r.Get("/public/publications/latest", publicH.LatestPublications)
-		r.Get("/public/journals/status", publicH.PublicJournalStatus)
-		r.Get("/public/journals/entries", publicH.PublicJournalEntries)
-		r.Get("/public/journals/entries/{slug}", publicH.PublicJournalEntry)
-		r.Get("/public/journals/letters", publicH.PublicJournalLetters)
-		r.Get("/public/journals/sitemap", publicH.PublicJournalSitemap)
-		// Anonymous checks reach external indexes: a tight per-IP request limit on top
-		// of the handler's per-IP and overall allowance for uncached lookups.
-		r.With(middleware.RateLimit(publicCheckRequestsPerMin, time.Minute)).
-			Get("/public/journals/check", publicH.PublicJournalCheck)
 
 		// Protected
 		r.Group(func(r chi.Router) {

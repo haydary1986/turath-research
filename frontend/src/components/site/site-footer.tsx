@@ -3,7 +3,6 @@ import { getTranslations } from "next-intl/server";
 import { Clock, ExternalLink, Mail, MapPin, Phone, type LucideIcon } from "lucide-react";
 import { Link } from "@/i18n/routing";
 import { UniversityLogo } from "@/components/brand/university-logo";
-import { articlesFor, TOPIC_SLUGS } from "@/lib/journals/articles";
 import { JOURNAL_PATHS } from "@/lib/journals/lists";
 import type { SiteContent, SiteLink } from "@/lib/site/types";
 import { Localized } from "@/components/i18n/localized";
@@ -68,7 +67,6 @@ export async function SiteFooter({ locale, content }: { locale: string; content:
   const t = await getTranslations({ locale, namespace: "site" });
   const tf = await getTranslations({ locale, namespace: "landing.footer" });
   const tn = await getTranslations({ locale, namespace: "landing.nav" });
-  const articles = articlesFor(locale);
   const year = new Date().getFullYear();
   const contact = content ? contactRows(content.contact, (key) => tf(key), locale) : [];
 
@@ -116,10 +114,6 @@ export async function SiteFooter({ locale, content }: { locale: string; content:
         <Column id="footer-journals" title={tf("journalsTitle")}>
           <ul className="space-y-2 text-sm">
             <li><Link href={JOURNAL_PATHS.guide} className={linkClass}>{tn("journalsGuide")}</Link></li>
-            <li><Link href={JOURNAL_PATHS.check} className={linkClass}>{tn("journalCheck")}</Link></li>
-            {TOPIC_SLUGS.map((slug) => (
-              <li key={slug}><Link href={JOURNAL_PATHS.topic(slug)} className={linkClass}>{articles[slug].navLabel}</Link></li>
-            ))}
           </ul>
         </Column>
 

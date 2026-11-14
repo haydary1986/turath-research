@@ -3,7 +3,6 @@ package handler
 import (
 	"context"
 	"log/slog"
-	"net"
 	"net/http"
 	"sync"
 	"time"
@@ -11,34 +10,22 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/haydary1986/turath-research/backend/internal/model"
-	"github.com/haydary1986/turath-research/backend/internal/service/journalcheck"
 	"github.com/haydary1986/turath-research/backend/internal/service/publicsite"
 )
 
 // PublicHandler serves the anonymous, aggregate-only parts of the public site: the
-// live statistics, the latest publications and the public journal pages.
+// live statistics and the latest publications.
 type PublicHandler struct {
-	db       *pgxpool.Pool
-	journals *journalcheck.Service
+	db *pgxpool.Pool
 	// institutionWorks counts the university's works in OpenAlex; nil disables it.
 	institutionWorks InstitutionWorksCounter
 
 	stats        cached[map[string]int64]
 	publications cached[[]publicPublication]
-
-	// Uncached journal lookups cost three upstream calls each: a visitor gets a few,
-	// and all anonymous visitors together share a ceiling.
-	checkPerIP  *journalcheck.UserThrottle
-	checkGlobal *journalcheck.UserThrottle
 }
 
 const (
-	publicCacheTTL = 10 * time.Minute
-
-	publicChecksPerIP       = 10
-	publicChecksGlobal      = 300
-	publicChecksInterval    = 10 * time.Minute
-	publicChecksGlobalKey   = "*"
+	publicCacheTTL          = 10 * time.Minute
 	publicStatsCacheControl = "public, max-age=60"
 )
 
@@ -49,12 +36,8 @@ type InstitutionWorksCounter func(ctx context.Context) (int, error)
 const institutionWorksTimeout = 8 * time.Second
 
 // NewPublicHandler builds a PublicHandler.
-func NewPublicHandler(db *pgxpool.Pool, journals *journalcheck.Service, institutionWorks InstitutionWorksCounter) *PublicHandler {
-	return &PublicHandler{
-		db: db, journals: journals, institutionWorks: institutionWorks,
-		checkPerIP:  journalcheck.NewUserThrottle(publicChecksPerIP, publicChecksInterval),
-		checkGlobal: journalcheck.NewUserThrottle(publicChecksGlobal, publicChecksInterval),
-	}
+func NewPublicHandler(db *pgxpool.Pool, institutionWorks InstitutionWorksCounter) *PublicHandler {
+	return &PublicHandler{db: db, institutionWorks: institutionWorks}
 }
 
 // cached holds one value computed at most once per publicCacheTTL.
@@ -78,14 +61,6 @@ func (c *cached[T]) get(ctx context.Context, load func(context.Context) (T, erro
 	}
 	c.value, c.at = value, time.Now()
 	return value, c.at, nil
-}
-
-// clientIP is the caller's address as set by the RealIP middleware.
-func clientIP(r *http.Request) string {
-	if host, _, err := net.SplitHostPort(r.RemoteAddr); err == nil {
-		return host
-	}
-	return r.RemoteAddr
 }
 
 // ── Live statistics ─────────────────────────────

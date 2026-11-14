@@ -1,15 +1,14 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { SearchCheck, ShieldAlert } from "lucide-react";
-import { Link } from "@/i18n/routing";
+import { ShieldAlert } from "lucide-react";
 import { Alert } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
+import { PredatoryExplainer } from "@/components/journals/predatory-explainer";
 import { ReferenceLinks } from "@/components/journals/reference-links";
 import { RequireAuth } from "@/components/portal/require-auth";
 
-/** Links to the predatory, hijacked and ministry journal lists, plus the journal check. */
-function PredatoryLinksPage() {
+/** Predatory journals: a short explanation and links to the trusted lists. */
+function PredatoryJournalsPage() {
   const t = useTranslations("journals.refLinks");
 
   return (
@@ -23,16 +22,9 @@ function PredatoryLinksPage() {
           <p className="text-sm text-muted-foreground">{t("intro")}</p>
         </div>
       </div>
-
+      <PredatoryExplainer />
+      <h2 className="text-xl font-bold">{t("linksTitle")}</h2>
       <ReferenceLinks />
-
-      <div className="flex flex-wrap items-center gap-3 rounded-xl border bg-muted/40 p-4">
-        <p className="flex-1 text-sm text-muted-foreground">{t("checkHint")}</p>
-        <Button nativeButton={false} render={<Link href="/portal/journal-check" />}>
-          <SearchCheck className="size-4" aria-hidden />
-          {t("checkButton")}
-        </Button>
-      </div>
       <Alert variant="warning">{t("disclaimer")}</Alert>
     </div>
   );
@@ -41,7 +33,7 @@ function PredatoryLinksPage() {
 export default function Page() {
   return (
     <RequireAuth>
-      <PredatoryLinksPage />
+      <PredatoryJournalsPage />
     </RequireAuth>
   );
 }

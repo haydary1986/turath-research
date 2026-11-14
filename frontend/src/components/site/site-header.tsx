@@ -11,7 +11,6 @@ const NAV = [
   { href: "/", label: "site.nav.home" },
   { href: "/news", label: "site.nav.news" },
   { href: "/journals/predatory", label: "landing.nav.journalsGuide" },
-  { href: "/journals/check", label: "landing.nav.journalCheck" },
 ] as const;
 
 function isActive(pathname: string, href: string): boolean {

@@ -196,26 +196,13 @@ func TestAuditAndResponsibilityRoutesAreAdminOnly(t *testing.T) {
 	}
 }
 
-// Public journal reads validate their list type before touching the database.
-func TestPublicJournalListsNeedAValidType(t *testing.T) {
+// The public journal-list and journal-check endpoints were retired with their pages:
+// the public site now links to the source lists instead.
+func TestPublicJournalEndpointsAreRetired(t *testing.T) {
 	router := testRouter()
-	for _, path := range []string{"/public/journals/entries?type=x", "/public/journals/letters", "/public/journals/sitemap?type=users"} {
-		if got := status(t, router, "GET", path, ""); got != http.StatusBadRequest {
-			t.Errorf("GET %s = %d, want 400", path, got)
+	for _, path := range []string{"/public/journals/entries?type=hijacked", "/public/journals/check?name=x", "/public/journals/status"} {
+		if got := status(t, router, "GET", path, ""); got != http.StatusNotFound && got != http.StatusMethodNotAllowed {
+			t.Errorf("GET %s = %d, want 404", path, got)
 		}
-	}
-}
-
-// The anonymous journal check has its own per-IP request limit.
-func TestPublicJournalCheckIsRateLimited(t *testing.T) {
-	router := testRouter()
-	long := "/public/journals/check?name=" + strings.Repeat("x", 600)
-	for i := range publicCheckRequestsPerMin {
-		if got := status(t, router, "GET", long, ""); got != http.StatusUnprocessableEntity {
-			t.Fatalf("request %d = %d, want 422", i+1, got)
-		}
-	}
-	if got := status(t, router, "GET", long, ""); got != http.StatusTooManyRequests {
-		t.Fatalf("request over the limit = %d, want 429", got)
 	}
 }

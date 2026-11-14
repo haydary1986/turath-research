@@ -14,7 +14,6 @@ import {
   UserCog,
   FileUp,
   CalendarDays,
-  SearchCheck,
   ShieldX,
   ShieldAlert,
   FileSpreadsheet,
@@ -178,7 +177,6 @@ export function AppSidebar() {
       key: "tools",
       title: pt("groupTools"),
       items: [
-        { href: "/portal/journal-check", label: pt("journalCheck"), icon: SearchCheck },
         { href: "/portal/predatory-journals", label: pt("predatory"), icon: ShieldX },
         ...(staff ? [{ href: "/portal/journals", label: pt("journals"), icon: ShieldAlert }] : []),
       ],

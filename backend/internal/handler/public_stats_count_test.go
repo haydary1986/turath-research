@@ -36,3 +36,18 @@ func TestCountInstitutionWorksFallsBack(t *testing.T) {
 		t.Fatalf("working counter: got %d", got)
 	}
 }
+
+func TestDashboardTotalUsesInstitutionCount(t *testing.T) {
+	calls := 0
+	h := NewMetricsHandler(nil, func(context.Context) (int, error) { calls++; return 1754, nil })
+	if got := h.institutionTotal(context.Background()); got != 1754 {
+		t.Fatalf("got %d", got)
+	}
+	h.institutionTotal(context.Background())
+	if calls != 1 {
+		t.Fatalf("OpenAlex asked %d times, want 1 (cached)", calls)
+	}
+	if got := NewMetricsHandler(nil, nil).institutionTotal(context.Background()); got != -1 {
+		t.Fatalf("no counter: got %d", got)
+	}
+}

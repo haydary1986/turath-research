@@ -190,16 +190,12 @@ func (h *PortalHandler) notifyUser(ctx context.Context, userID, titleAr, titleEn
 	if h.mail.Enabled() {
 		var email string
 		if err := h.db.QueryRow(ctx, `SELECT email FROM users WHERE id = $1`, userID).Scan(&email); err == nil {
-			h.mail.SendAsync(email, titleAr, emailBody(body, h.emailLink(link)))
+			h.mail.SendNoticeAsync(email, mailer.Notice{
+				Subject: titleAr, Heading: titleAr, Text: body,
+				ActionURL: h.emailLink(link), ActionLabel: "عرض الطلب في البوابة",
+			})
 		}
 	}
-}
-
-func emailBody(body, link string) string {
-	if link == "" {
-		return body
-	}
-	return body + "\n\n" + link
 }
 
 // notifyRole alerts every user holding `role` (college deans only within collegeID),
@@ -245,7 +241,10 @@ func (h *PortalHandler) notifyRoleExcept(ctx context.Context, role string, colle
 	for rows.Next() {
 		var email string
 		if rows.Scan(&email) == nil {
-			h.mail.SendAsync(email, titleAr, emailBody(body, h.emailLink(link)))
+			h.mail.SendNoticeAsync(email, mailer.Notice{
+				Subject: titleAr, Heading: titleAr, Text: body,
+				ActionURL: h.emailLink(link), ActionLabel: "مراجعة الطلب",
+			})
 		}
 	}
 }

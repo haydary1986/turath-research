@@ -156,7 +156,7 @@ func Load() (*Config, error) {
 			Username: getEnv("SMTP_USER", ""),
 			Password: getEnv("SMTP_PASS", ""),
 			From:     getEnv("SMTP_FROM", ""),
-			FromName: getEnv("SMTP_FROM_NAME", "بوابة الشؤون العلمية — جامعة التراث"),
+			FromName: getEnv("SMTP_FROM_NAME", "شعبة الشؤون العلمية — جامعة التراث"),
 		},
 		Auth: AuthConfig{
 			AllowPasswordRegister: getEnv("ALLOW_PASSWORD_REGISTER", "false") == "true",

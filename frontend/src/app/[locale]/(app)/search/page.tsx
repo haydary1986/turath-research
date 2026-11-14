@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/routing";
 import { api } from "@/lib/api";
@@ -64,12 +64,12 @@ export default function SearchPage() {
     }
   }
 
-  // Debounce
-  let timer: ReturnType<typeof setTimeout>;
+  // Debounce: one request once the user pauses typing.
+  const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   function onInput(val: string) {
     setQuery(val);
-    clearTimeout(timer);
-    timer = setTimeout(() => handleSearch(val), 300);
+    clearTimeout(timer.current);
+    timer.current = setTimeout(() => handleSearch(val), 300);
   }
 
   return (

@@ -4,8 +4,7 @@ import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/routing";
 import { api } from "@/lib/api";
-import { useAuth } from "@/lib/auth";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -36,36 +35,28 @@ interface Researcher {
 export default function ResearchersPage() {
   const t = useTranslations("researcher");
   const ct = useTranslations("common");
-  const { token } = useAuth();
-  const [researchers, setResearchers] = useState<Researcher[]>([]);
-  const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
-  const [loading, setLoading] = useState(true);
+  const params = new URLSearchParams({ page: String(page), limit: "20", ...(search ? { q: search } : {}) });
+  const query = params.toString();
+  const [result, setResult] = useState<{ query: string; items: Researcher[]; total: number }>({
+    query: "", items: [], total: 0,
+  });
 
   useEffect(() => {
-    fetchResearchers();
-  }, [page, search]);
+    let active = true;
+    api
+      .get<Researcher[]>(`/api/v1/researchers?${query}`)
+      .then((res) => active && setResult({ query, items: res.data || [], total: res.meta?.total || 0 }))
+      .catch(() => active && setResult({ query, items: [], total: 0 }));
+    return () => {
+      active = false;
+    };
+  }, [query]);
 
-  async function fetchResearchers() {
-    setLoading(true);
-    try {
-      const params = new URLSearchParams({
-        page: String(page),
-        limit: "20",
-        ...(search ? { q: search } : {}),
-      });
-      const res = await api.get<Researcher[]>(
-        `/api/v1/researchers?${params}`
-      );
-      setResearchers(res.data || []);
-      setTotal(res.meta?.total || 0);
-    } catch {
-      setResearchers([]);
-    } finally {
-      setLoading(false);
-    }
-  }
+  const loading = result.query !== query;
+  const researchers = result.items;
+  const total = result.total;
 
   return (
     <div className="space-y-6">

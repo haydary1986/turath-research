@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useCallback, useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { CalendarDays, FileSpreadsheet, Plus, Search } from "lucide-react";
 import { api } from "@/lib/api";
@@ -74,31 +74,41 @@ function ActivitiesPage() {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
-  const load = useCallback(() => {
-    const params = new URLSearchParams({ page: String(page), limit: String(PAGE_SIZE) });
-    if (filters.q.trim()) params.set("q", filters.q.trim());
-    if (filters.category) params.set("category", filters.category);
-    if (filters.mine) params.set("mine", "true");
-    if (filters.status) params.set("status", filters.status);
-    if (filters.year) params.set("year", filters.year);
-    api
-      .get<Activity[]>(`/api/v1/activities?${params}`)
-      .then((res) => {
-        setItems(res.data ?? []);
-        setTotal(res.meta?.total ?? 0);
-        setLoadFailed(false);
-      })
-      .catch(() => {
-        setItems([]);
-        setLoadFailed(true);
-      })
-      .finally(() => setLoading(false));
-  }, [page, filters]);
+  const params = new URLSearchParams({ page: String(page), limit: String(PAGE_SIZE) });
+  if (filters.q.trim()) params.set("q", filters.q.trim());
+  if (filters.category) params.set("category", filters.category);
+  if (filters.mine) params.set("mine", "true");
+  if (filters.status) params.set("status", filters.status);
+  if (filters.year) params.set("year", filters.year);
+  const query = params.toString();
+  // Bumped after a save or a review so the list reloads with the same filters.
+  const [reloadKey, setReloadKey] = useState(0);
+  const load = () => setReloadKey((n) => n + 1);
 
   useEffect(() => {
-    const timer = setTimeout(load, 250);
-    return () => clearTimeout(timer);
-  }, [load]);
+    let active = true;
+    // Debounced so typing in the search box sends one request; stale answers are ignored.
+    const timer = setTimeout(() => {
+      api
+        .get<Activity[]>(`/api/v1/activities?${query}`)
+        .then((res) => {
+          if (!active) return;
+          setItems(res.data ?? []);
+          setTotal(res.meta?.total ?? 0);
+          setLoadFailed(false);
+        })
+        .catch(() => {
+          if (!active) return;
+          setItems([]);
+          setLoadFailed(true);
+        })
+        .finally(() => active && setLoading(false));
+    }, 250);
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
+  }, [query, reloadKey]);
 
   useEffect(() => {
     Promise.all([api.get<Org[]>("/api/v1/colleges"), api.get<Org[]>("/api/v1/departments")])

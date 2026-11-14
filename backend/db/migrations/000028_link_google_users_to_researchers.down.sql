@@ -1,0 +1,1 @@
+-- Links made from verified emails are kept; nothing to undo safely.

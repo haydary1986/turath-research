@@ -389,7 +389,9 @@
       "auth_unavailable": "Your permissions could not be checked right now. Try again shortly.",
       "domain_not_allowed": "The email must be on the university domain @uoturath.edu.iq",
       "email_taken": "A user with this email already exists; find them in the list and change their role",
-      "not_allowed": "Not allowed for individual research"
+      "not_allowed": "Not allowed for individual research",
+      "mail_disabled": "Notification email is not configured",
+      "mail_send_failed": "The message could not be sent; check the mail server settings."
     },
     "ui": {
       "newRequest": "Submit a new request",
@@ -1217,6 +1219,17 @@
       "never": "Never",
       "empty": "No results",
       "loadFailed": "Could not load. Try again later."
+    },
+    "mail": {
+      "title": "Notification email",
+      "enabled": "On",
+      "disabled": "Off",
+      "sender": "Sent from",
+      "disabledHint": "No mail server is configured yet, so notifications appear inside the portal only.",
+      "testTo": "Send a test message to",
+      "sendTest": "Send test message",
+      "sending": "Sending…",
+      "sent": "A test message was sent to {to}. Check the inbox (and the spam folder)."
     }
   },
   "notifications": {

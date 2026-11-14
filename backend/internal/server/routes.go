@@ -22,6 +22,9 @@ import (
 	syncsvc "github.com/haydary1986/turath-research/backend/internal/service/sync"
 )
 
+// adminMailTestsPerMin keeps the test-email button from being used as a mail cannon.
+const adminMailTestsPerMin = 5
+
 func NewRouter(cfg *config.Config, db *pgxpool.Pool, rdb *redis.Client, journals *journalcheck.Service) *chi.Mux {
 	orchestrator := syncsvc.NewOrchestrator(db, cfg.CrossRef.Mailto, cfg.OpenAlex.APIKey)
 	return newRouter(cfg, db, rdb, journals, orchestrator, newBulkSync(cfg, db, orchestrator))
@@ -67,8 +70,10 @@ func newRouter(cfg *config.Config, db *pgxpool.Pool, rdb *redis.Client, journals
 	mail := mailer.New(mailer.Config{
 		Host: cfg.SMTP.Host, Port: cfg.SMTP.Port, Username: cfg.SMTP.Username,
 		Password: cfg.SMTP.Password, From: cfg.SMTP.From, FromName: cfg.SMTP.FromName,
+		SiteURL: cfg.Server.FrontendURL,
 	})
 	portalH := handler.NewPortalHandler(db, cfg.Server.UploadDir, mail, cfg.Server.FrontendURL, journals)
+	adminMailH := handler.NewAdminMailHandler(mail, cfg.Server.FrontendURL)
 	// Role and organization come from the database (cached ~60 s per user), not the JWT.
 	identities := identity.NewCache(identityLoader(db), identity.DefaultTTL, time.Now)
 	adminUsersH := handler.NewAdminUserHandler(db, identities.Invalidate, cfg.Google.AllowedDomain)
@@ -281,6 +286,8 @@ func newRouter(cfg *config.Config, db *pgxpool.Pool, rdb *redis.Client, journals
 				r.Use(adminOnly)
 				r.Get("/admin/users", adminUsersH.List)
 				r.Post("/admin/users", adminUsersH.Create)
+				r.Get("/admin/mail", adminMailH.Status)
+				r.With(middleware.RateLimit(adminMailTestsPerMin, time.Minute)).Post("/admin/mail/test", adminMailH.SendTest)
 				r.Put("/admin/users/{id}", adminUsersH.Update)
 				r.Get("/admin/users/{id}/responsibilities", responsibilityH.List)
 				r.Put("/admin/users/{id}/responsibilities", responsibilityH.Replace)

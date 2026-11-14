@@ -54,5 +54,5 @@ func TestDisabledMailerIsSafe(t *testing.T) {
 	if m.Enabled() {
 		t.Fatal("nil mailer must report disabled")
 	}
-	m.SendAsync("a@b.c", "s", "b") // must not panic
+	m.SendNoticeAsync("a@b.c", Notice{Subject: "s"}) // must not panic
 }

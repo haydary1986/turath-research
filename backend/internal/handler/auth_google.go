@@ -115,6 +115,7 @@ func (h *AuthHandler) findOrCreateGoogleUser(ctx context.Context, id googleauth.
 		return userInfo{}, err
 	}
 
+	created := !found
 	if !found {
 		name := id.Name
 		if name == "" {
@@ -147,6 +148,13 @@ func (h *AuthHandler) findOrCreateGoogleUser(ctx context.Context, id googleauth.
 	}
 	if _, err := h.db.Exec(ctx, `UPDATE users SET last_login_at = NOW() WHERE id = $1`, user.ID); err != nil {
 		slog.Error("google sign-in: failed to record last login", "user_id", user.ID, "error", err)
+	}
+	// The verified university email ties the account to its imported record (college,
+	// department, official name), so the dean sees the academic's requests from day one.
+	if h.linkImportedResearcher(ctx, user.ID, created) {
+		if linked, _, ok, err := h.lookupGoogleUser(ctx, id); err == nil && ok {
+			user = linked
+		}
 	}
 	return user, nil
 }

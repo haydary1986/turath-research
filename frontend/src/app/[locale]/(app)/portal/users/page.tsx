@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/table";
 import { NativeSelect } from "@/components/portal/form-controls";
 import { AddUserForm } from "@/components/portal/add-user-form";
+import { MailSettingsCard } from "@/components/portal/mail-settings-card";
 import { ResponsibilitiesDialog } from "@/components/portal/responsibilities-dialog";
 import { RequireAuth } from "@/components/portal/require-auth";
 import { usePortalErrors } from "@/components/portal/use-portal-errors";
@@ -105,6 +106,7 @@ function Users() {
         <h1 className="text-2xl font-bold">{t("users.title")}</h1>
       </div>
       {error && <Alert variant="danger">{error}</Alert>}
+      <MailSettingsCard />
       <AddUserForm
         roles={ROLES}
         colleges={colleges}

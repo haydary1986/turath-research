@@ -67,8 +67,15 @@ function Templates() {
   }, []);
 
   useEffect(() => {
-    load().catch(() => undefined);
-  }, [load]);
+    let active = true;
+    api
+      .get<LetterTemplate[]>("/api/v1/portal/templates")
+      .then((res) => active && setTemplates(res.data ?? []))
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, []);
 
   function update<K extends keyof Draft>(key: K, value: Draft[K]) {
     setDraft((prev) => ({ ...prev, [key]: value }));

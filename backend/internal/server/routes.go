@@ -11,6 +11,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
 
+	"github.com/haydary1986/turath-research/backend/internal/apiclient"
 	"github.com/haydary1986/turath-research/backend/internal/config"
 	"github.com/haydary1986/turath-research/backend/internal/handler"
 	"github.com/haydary1986/turath-research/backend/internal/middleware"
@@ -73,7 +74,7 @@ func newRouter(cfg *config.Config, db *pgxpool.Pool, rdb *redis.Client, journals
 	// Role and organization come from the database (cached ~60 s per user), not the JWT.
 	identities := identity.NewCache(identityLoader(db), identity.DefaultTTL, time.Now)
 	adminUsersH := handler.NewAdminUserHandler(db, identities.Invalidate, cfg.Google.AllowedDomain)
-	publicH := handler.NewPublicHandler(db, journals)
+	publicH := handler.NewPublicHandler(db, journals, institutionWorksCounter(cfg))
 	adminImportH := handler.NewAdminImportHandler(db)
 	bulkSyncH := handler.NewBulkSyncHandler(bulkSync)
 	responsibilityH := handler.NewResponsibilityHandler(db, identities.Invalidate)
@@ -343,4 +344,15 @@ func identityLookup(cache *identity.Cache) middleware.IdentityLookup {
 		return nil
 	}
 	return cache.Get
+}
+
+// institutionWorksCounter counts the university's works in OpenAlex for the public
+// "published research" figure; nil (portal records only) when no ROR is configured.
+func institutionWorksCounter(cfg *config.Config) handler.InstitutionWorksCounter {
+	if cfg.OpenAlex.InstitutionROR == "" {
+		return nil
+	}
+	client := apiclient.NewOpenAlexClient(cfg.CrossRef.Mailto, cfg.OpenAlex.APIKey)
+	ror := cfg.OpenAlex.InstitutionROR
+	return func(ctx context.Context) (int, error) { return client.CountWorksByInstitution(ctx, ror) }
 }

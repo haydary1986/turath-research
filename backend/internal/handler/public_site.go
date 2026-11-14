@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"log/slog"
 	"net"
 	"net/http"
 	"sync"
@@ -19,6 +20,8 @@ import (
 type PublicHandler struct {
 	db       *pgxpool.Pool
 	journals *journalcheck.Service
+	// institutionWorks counts the university's works in OpenAlex; nil disables it.
+	institutionWorks InstitutionWorksCounter
 
 	stats        cached[map[string]int64]
 	publications cached[[]publicPublication]
@@ -39,10 +42,16 @@ const (
 	publicStatsCacheControl = "public, max-age=60"
 )
 
+// InstitutionWorksCounter returns the number of works an external index attributes to the university.
+type InstitutionWorksCounter func(ctx context.Context) (int, error)
+
+// institutionWorksTimeout keeps a slow index from holding up the public statistics.
+const institutionWorksTimeout = 8 * time.Second
+
 // NewPublicHandler builds a PublicHandler.
-func NewPublicHandler(db *pgxpool.Pool, journals *journalcheck.Service) *PublicHandler {
+func NewPublicHandler(db *pgxpool.Pool, journals *journalcheck.Service, institutionWorks InstitutionWorksCounter) *PublicHandler {
 	return &PublicHandler{
-		db: db, journals: journals,
+		db: db, journals: journals, institutionWorks: institutionWorks,
 		checkPerIP:  journalcheck.NewUserThrottle(publicChecksPerIP, publicChecksInterval),
 		checkGlobal: journalcheck.NewUserThrottle(publicChecksGlobal, publicChecksInterval),
 	}
@@ -83,7 +92,8 @@ func clientIP(r *http.Request) string {
 
 // statsQuery computes every statistic in one round trip. What each one counts:
 //   - academics: researchers whose status is active.
-//   - publications: published records with a title that are linked to at least one researcher.
+//   - publications: published records with a title that are linked to at least one researcher;
+//     computeStats raises it to the university's OpenAlex total when that is larger.
 //   - indexed: distinct papers (by DOI, else by record) from journal-verification requests
 //     that passed review (verified onward) with index_db scopus or wos, plus linked
 //     publications that carry a Scopus record id.
@@ -120,10 +130,32 @@ func (h *PublicHandler) computeStats(ctx context.Context) (map[string]int64, err
 	if err != nil {
 		return nil, err
 	}
+	publications = publishedCount(publications, h.countInstitutionWorks(ctx))
 	return map[string]int64{
 		publicsite.StatAcademics: academics, publicsite.StatPublications: publications,
 		publicsite.StatIndexed: indexed, publicsite.StatColleges: colleges, publicsite.StatActivities: activities,
 	}, nil
+}
+
+// countInstitutionWorks asks OpenAlex for the university's total output; -1 when unavailable.
+func (h *PublicHandler) countInstitutionWorks(ctx context.Context) int64 {
+	if h.institutionWorks == nil {
+		return -1
+	}
+	ctx, cancel := context.WithTimeout(ctx, institutionWorksTimeout)
+	defer cancel()
+	n, err := h.institutionWorks(ctx)
+	if err != nil {
+		slog.Warn("public stats: institution works count unavailable, using portal records", "error", err)
+		return -1
+	}
+	return int64(n)
+}
+
+// publishedCount is the larger of the portal's own records and the external index total, so
+// the figure covers research not yet linked to a researcher and never drops when the index is down.
+func publishedCount(local, external int64) int64 {
+	return max(local, external)
 }
 
 // publicStat is one statistic as visitors see it. Number is the computed value;

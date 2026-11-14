@@ -175,6 +175,22 @@ func (c *OpenAlexClient) ListWorksByAuthor(ctx context.Context, authorID string,
 	return works, len(works) < total, nil
 }
 
+// CountWorksByInstitution returns how many works OpenAlex attributes to the institution
+// with this ROR id (e.g. "019vd4365"). It asks for a single result and reads the total.
+func (c *OpenAlexClient) CountWorksByInstitution(ctx context.Context, ror string) (int, error) {
+	params := c.withIdentity(url.Values{
+		"filter":   {"institutions.ror:" + ror},
+		"per_page": {"1"},
+		"select":   {"id"},
+	})
+	var result OpenAlexWorkResult
+	u := fmt.Sprintf("%s/works?%s", c.baseURL, params.Encode())
+	if err := c.client.GetJSON(ctx, u, c.headers(), &result); err != nil {
+		return 0, fmt.Errorf("openalex count institution works: %w", err)
+	}
+	return result.Meta.Count, nil
+}
+
 // GetWorkByDOI retrieves a single work by DOI.
 func (c *OpenAlexClient) GetWorkByDOI(ctx context.Context, doi string) (*OpenAlexWork, error) {
 	u := fmt.Sprintf("%s/works/doi:%s", openAlexBaseURL, url.PathEscape(doi))

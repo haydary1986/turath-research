@@ -946,6 +946,9 @@ pub /public/stats; expect "public statistics readable without a token" 200
 call GET /site/stats "$RES"; expect "researcher cannot read the stats editor" 403
 call GET /site/stats "$SA"; expect "SA reads computed statistics" 200
 [ "$(echo "$BODY" | jq_ "len(d['data']['items'])")" = "5" ] && ok "editor lists all five statistics" || bad "staff stats" "$BODY"
+PUBS_LOCAL=$(sqlv "SELECT COUNT(*) FROM publications p WHERE status='published' AND EXISTS (SELECT 1 FROM publication_authors pa WHERE pa.publication_id=p.id)")
+PUBS_SHOWN=$(echo "$BODY" | jq_ "[i['computed'] for i in d['data']['items'] if i['key']=='publications'][0]")
+[ "$PUBS_SHOWN" -ge 1000 ] && [ "$PUBS_SHOWN" -ge "$PUBS_LOCAL" ] && ok "published research uses the university's OpenAlex total ($PUBS_SHOWN)" || bad "publications total" "$PUBS_SHOWN vs local $PUBS_LOCAL"
 pub /public/site; BASE_SITE=$(echo "$BODY" | jq_ "json.dumps(d['data'], ensure_ascii=False)")
 OVERRIDE=$(echo "$BASE_SITE" | python3 -c "
 import sys,json; d=json.load(sys.stdin)

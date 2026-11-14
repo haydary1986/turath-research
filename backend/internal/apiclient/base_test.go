@@ -94,3 +94,22 @@ func TestORCIDPersonNames(t *testing.T) {
 		t.Error("a hidden name must yield no names")
 	}
 }
+
+func TestCountWorksByInstitution(t *testing.T) {
+	var gotFilter string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotFilter = r.URL.Query().Get("filter")
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(OpenAlexWorkResult{Meta: OpenAlexMeta{Count: 1754}})
+	}))
+	defer srv.Close()
+	client := NewOpenAlexClient("", "")
+	client.baseURL = srv.URL
+	n, err := client.CountWorksByInstitution(context.Background(), "019vd4365")
+	if err != nil || n != 1754 {
+		t.Fatalf("count = %d, %v", n, err)
+	}
+	if gotFilter != "institutions.ror:019vd4365" {
+		t.Fatalf("filter = %q", gotFilter)
+	}
+}

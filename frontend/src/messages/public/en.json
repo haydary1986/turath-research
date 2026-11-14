@@ -186,7 +186,7 @@
       "preview": "Bar preview",
       "what": {
         "academics": "Active faculty members and researchers.",
-        "publications": "Published papers with a title, linked to the university's academics.",
+        "publications": "The university's total works in OpenAlex (the source ris.uoturath.edu.iq uses), or the portal's own records if larger. To show the exact official Scopus figure, type it as a manual value.",
         "indexed": "Papers of approved journal-verification requests (verified onward) in Scopus or Web of Science, plus papers carrying a Scopus id, without duplicates.",
         "colleges": "Colleges registered in the portal.",
         "activities": "Approved scientific activities dated in the current year."

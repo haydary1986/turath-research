@@ -66,9 +66,11 @@ type BulkSyncConfig struct {
 }
 
 // OpenAlexConfig holds the optional key; without it requests share a small
-// anonymous daily budget.
+// anonymous daily budget. InstitutionROR identifies the university's own output
+// (the public "published research" count).
 type OpenAlexConfig struct {
-	APIKey string
+	APIKey         string
+	InstitutionROR string
 }
 
 // GoogleConfig enables "Sign in with Google" restricted to one institutional domain.
@@ -133,7 +135,8 @@ func Load() (*Config, error) {
 			Mailto: getEnv("CROSSREF_MAILTO", ""),
 		},
 		OpenAlex: OpenAlexConfig{
-			APIKey: getEnv("OPENALEX_API_KEY", ""),
+			APIKey:         getEnv("OPENALEX_API_KEY", ""),
+			InstitutionROR: getEnv("UNIVERSITY_ROR", "019vd4365"),
 		},
 		BulkSync: BulkSyncConfig{
 			Delay:      time.Duration(getEnvInt("BULK_SYNC_DELAY_SECONDS", 5)) * time.Second,

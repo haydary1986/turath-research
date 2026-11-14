@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
-	"strconv"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -50,98 +49,6 @@ type createPublicationReq struct {
 	Pages           *string `json:"pages"`
 	URL             *string `json:"url"`
 	Language        *string `json:"language"`
-}
-
-// List returns paginated publications.
-func (h *PublicationHandler) List(w http.ResponseWriter, r *http.Request) {
-	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
-	defer cancel()
-
-	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
-	if page < 1 {
-		page = 1
-	}
-	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
-	if limit < 1 || limit > 100 {
-		limit = 20
-	}
-	offset := (page - 1) * limit
-	search := r.URL.Query().Get("q")
-	year := r.URL.Query().Get("year")
-	pubType := r.URL.Query().Get("type")
-
-	countQuery := `SELECT COUNT(*) FROM publications WHERE 1=1`
-	args := []any{}
-	argN := 1
-
-	if search != "" {
-		countQuery += ` AND (title_ar ILIKE $` + strconv.Itoa(argN) + ` OR title_en ILIKE $` + strconv.Itoa(argN) + `)`
-		args = append(args, "%"+search+"%")
-		argN++
-	}
-	if year != "" {
-		countQuery += ` AND EXTRACT(YEAR FROM publication_date) = $` + strconv.Itoa(argN)
-		args = append(args, year)
-		argN++
-	}
-	if pubType != "" {
-		countQuery += ` AND publication_type = $` + strconv.Itoa(argN) + `::publication_type`
-		args = append(args, pubType)
-		argN++
-	}
-
-	var total int
-	if err := h.db.QueryRow(ctx, countQuery, args...).Scan(&total); err != nil {
-		model.RespondError(w, http.StatusInternalServerError, "Failed to count publications")
-		return
-	}
-
-	query := `SELECT id, doi, title_ar, title_en,
-	                 publication_date::text, publication_type, journal_id,
-	                 status, citation_count, language
-	          FROM publications WHERE 1=1`
-	fetchArgs := []any{}
-	fetchN := 1
-
-	if search != "" {
-		query += ` AND (title_ar ILIKE $` + strconv.Itoa(fetchN) + ` OR title_en ILIKE $` + strconv.Itoa(fetchN) + `)`
-		fetchArgs = append(fetchArgs, "%"+search+"%")
-		fetchN++
-	}
-	if year != "" {
-		query += ` AND EXTRACT(YEAR FROM publication_date) = $` + strconv.Itoa(fetchN)
-		fetchArgs = append(fetchArgs, year)
-		fetchN++
-	}
-	if pubType != "" {
-		query += ` AND publication_type = $` + strconv.Itoa(fetchN) + `::publication_type`
-		fetchArgs = append(fetchArgs, pubType)
-		fetchN++
-	}
-
-	query += ` ORDER BY publication_date DESC NULLS LAST LIMIT $` + strconv.Itoa(fetchN) + ` OFFSET $` + strconv.Itoa(fetchN+1)
-	fetchArgs = append(fetchArgs, limit, offset)
-
-	rows, err := h.db.Query(ctx, query, fetchArgs...)
-	if err != nil {
-		model.RespondError(w, http.StatusInternalServerError, "Failed to fetch publications")
-		return
-	}
-	defer rows.Close()
-
-	pubs := []publicationRow{}
-	for rows.Next() {
-		var p publicationRow
-		if err := rows.Scan(&p.ID, &p.DOI, &p.TitleAr, &p.TitleEn,
-			&p.PublicationDate, &p.PublicationType, &p.JournalID,
-			&p.Status, &p.CitationCount, &p.Language); err != nil {
-			model.RespondError(w, http.StatusInternalServerError, "Failed to scan publication")
-			return
-		}
-		pubs = append(pubs, p)
-	}
-
-	model.RespondPaginated(w, http.StatusOK, pubs, total, page, limit)
 }
 
 // Get returns a single publication with authors.

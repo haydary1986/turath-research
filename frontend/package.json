@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "node --test src/lib/portal/*.test.ts src/lib/site/*.test.ts src/lib/seo/*.test.ts src/lib/journals/*.test.ts src/lib/i18n/*.test.ts",
+    "test": "node --test src/lib/portal/*.test.ts src/lib/site/*.test.ts src/lib/seo/*.test.ts src/lib/journals/*.test.ts src/lib/i18n/*.test.ts src/lib/publications/*.test.ts",
     "test:i18n": "node e2e/i18n-check.mjs"
   },
   "dependencies": {

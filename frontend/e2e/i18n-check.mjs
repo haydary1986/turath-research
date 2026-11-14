@@ -70,6 +70,7 @@ const PORTAL_PATHS = [
   "/dashboard",
   "/insights/trends",
   "/publications",
+  "/publications?year_from=2020&sort=cited",
   "/researchers",
   "/search",
 ];

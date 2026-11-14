@@ -127,6 +127,7 @@ func newRouter(cfg *config.Config, db *pgxpool.Pool, rdb *redis.Client, journals
 
 			// Publications
 			r.Get("/publications", publicationH.List)
+			r.Get("/publications/facets", publicationH.Facets)
 			r.Get("/publications/{id}", publicationH.Get)
 
 			// Organizations

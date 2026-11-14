@@ -999,6 +999,29 @@ call DELETE /site/director-photo "$SA"; expect "SA removes the director photo" 2
 CODE=$(curl -s -o /dev/null -w "%{http_code}" "$API/public/site/director-photo/$PHOTO"); [ "$CODE" = "404" ] && ok "removed photo no longer served" || bad "removed photo" "$CODE"
 call PUT /site "$SA" "$BASE_SITE"; expect "site content restored after v2 checks" 200
 
+echo "== publications list filters =="
+call GET "/publications?limit=5" "$RES"; expect "publications list readable" 200
+[ "$(echo "$BODY" | jq_ "all('authors' in p and 'journal_name' in p for p in d['data'])")" = "True" ] && ok "rows carry authors and venue" || bad "row shape" "${BODY:0:300}"
+call GET "/publications?year=2024&limit=100" "$RES"
+[ "$(echo "$BODY" | jq_ "all((p['publication_date'] or '').startswith('2024') for p in d['data'])")" = "True" ] && ok "year filter keeps only that year" || bad "year filter" "${BODY:0:300}"
+call GET "/publications?year_from=2020&year_to=2021&sort=oldest&limit=100" "$RES"
+[ "$(echo "$BODY" | jq_ "all('2020' <= (p['publication_date'] or '')[:4] <= '2021' for p in d['data'])")" = "True" ] && ok "year range filter" || bad "year range" "${BODY:0:300}"
+call GET "/publications?sort=cited&limit=20" "$RES"
+[ "$(echo "$BODY" | jq_ "(lambda c: c == sorted(c, reverse=True))([p['citation_count'] for p in d['data']])")" = "True" ] && ok "most-cited sort" || bad "cited sort" "${BODY:0:300}"
+call GET "/publications?type=book&limit=100" "$RES"
+[ "$(echo "$BODY" | jq_ "all(p['publication_type']=='book' for p in d['data'])")" = "True" ] && ok "type filter" || bad "type filter" "${BODY:0:300}"
+call GET "/publications?q=$DOI" "$RES"
+[ "$(echo "$BODY" | jq_ "d['meta']['total']")" = "1" ] && ok "search matches a DOI" || bad "doi search" "${BODY:0:300}"
+call GET "/publications?author=$(python3 -c "import urllib.parse;print(urllib.parse.quote('د. أحمد'))")&limit=100" "$RES"
+echo "$BODY" | grep -q "$DOI" && ok "author filter finds the researcher's paper" || bad "author filter" "${BODY:0:300}"
+call GET "/publications?college_id=$COLLEGE2&q=$DOI" "$RES"
+[ "$(echo "$BODY" | jq_ "len(d['data'])")" = "0" ] && ok "college filter excludes other colleges' research" || bad "college filter" "${BODY:0:300}"
+call GET "/publications?q=zq%25_x$RUN" "$RES"; [ "$(echo "$BODY" | jq_ "len(d['data'])")" = "0" ] && ok "% and _ in a search are literal, not wildcards" || bad "like escape" "${BODY:0:200}"
+call GET "/publications?sort=bogus" "$RES"; expect "unknown sort refused" 422
+call GET "/publications?year_from=2024&year_to=2020" "$RES"; expect "inverted year range refused" 422
+call GET "/publications/facets" "$RES"; expect "facets readable" 200
+[ "$(echo "$BODY" | jq_ "len(d['data']['years']) > 0 and len(d['data']['types']) > 0")" = "True" ] && ok "facets list years and types" || bad "facets" "${BODY:0:300}"
+
 echo "== predatory journals page (explanation and links only) =="
 # ISSN 2049-3630 is on the staff watchlist (see the screening section above).
 call GET "/screening/check?issn=20493630" "$RES"

@@ -106,6 +106,38 @@
       "thesis": "رسالة",
       "patent": "براءة اختراع",
       "report": "تقرير"
+    },
+    "filters": {
+      "subtitle": "بحوث تدريسيي الجامعة المسجلة في البوابة، مع البحث والتصفية حسب الباحث والسنة والنوع والكلية.",
+      "search": "بحث في العنوان أو DOI",
+      "searchPlaceholder": "اكتب كلمة من العنوان أو رقم DOI",
+      "author": "اسم الباحث",
+      "authorPlaceholder": "مثال: أحمد",
+      "journal": "المجلة أو المؤتمر",
+      "journalPlaceholder": "اسم المجلة",
+      "yearFrom": "من سنة",
+      "yearTo": "إلى سنة",
+      "any": "الكل",
+      "allTypes": "كل الأنواع",
+      "college": "الكلية",
+      "allColleges": "كل الكليات",
+      "department": "القسم",
+      "allDepartments": "كل الأقسام",
+      "sort": "الترتيب",
+      "sorts": {
+        "newest": "الأحدث أولًا",
+        "oldest": "الأقدم أولًا",
+        "cited": "الأكثر استشهادًا",
+        "title": "العنوان (أ–ي)"
+      },
+      "activeCount": "{count, plural, =1 {مرشّح واحد مفعّل} =2 {مرشّحان مفعّلان} other {{count} مرشّحات مفعّلة}}",
+      "reset": "مسح المرشّحات",
+      "titleColumn": "البحث",
+      "moreAuthors": "و{count} آخرون",
+      "resultCount": "{count, plural, =0 {لا توجد نتائج} =1 {بحث واحد} =2 {بحثان} few {{formatted} بحوث} other {{formatted} بحثًا}}",
+      "loadFailed": "تعذّر تحميل المنشورات، حاول مرة أخرى.",
+      "pagination": "صفحات النتائج",
+      "pageOf": "صفحة {page} من {pages}"
     }
   },
   "auth": {

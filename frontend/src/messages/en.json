@@ -106,6 +106,38 @@
       "thesis": "Thesis",
       "patent": "Patent",
       "report": "Report"
+    },
+    "filters": {
+      "subtitle": "Research by the university's academics recorded in the portal, searchable and filterable by researcher, year, type and college.",
+      "search": "Search title or DOI",
+      "searchPlaceholder": "A word from the title, or a DOI",
+      "author": "Researcher name",
+      "authorPlaceholder": "e.g. Ahmed",
+      "journal": "Journal or conference",
+      "journalPlaceholder": "Journal name",
+      "yearFrom": "From year",
+      "yearTo": "To year",
+      "any": "Any",
+      "allTypes": "All types",
+      "college": "College",
+      "allColleges": "All colleges",
+      "department": "Department",
+      "allDepartments": "All departments",
+      "sort": "Sort by",
+      "sorts": {
+        "newest": "Newest first",
+        "oldest": "Oldest first",
+        "cited": "Most cited",
+        "title": "Title (A–Z)"
+      },
+      "activeCount": "{count, plural, one {# filter active} other {# filters active}}",
+      "reset": "Clear filters",
+      "titleColumn": "Research",
+      "moreAuthors": "and {count} more",
+      "resultCount": "{count, plural, =0 {No results} one {# publication} other {{formatted} publications}}",
+      "loadFailed": "Could not load the publications; please try again.",
+      "pagination": "Result pages",
+      "pageOf": "Page {page} of {pages}"
     }
   },
   "auth": {
